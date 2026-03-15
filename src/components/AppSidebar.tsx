@@ -326,26 +326,24 @@ export function AppSidebar() {
                     return (
                       <SidebarMenuItem key={folder.id}>
                         <div className="group/folder relative">
-                          <SidebarMenuButton asChild tooltip={folder.name} className="w-full !p-0 !h-auto">
-                            <NavLink
-                              to={folderUrl}
-                              className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative w-full
-                                transition-[background-color,color,opacity] duration-[120ms] ease-out
-                                gap-[11px] px-3.5 min-h-[36px]
-                                text-foreground font-medium hover:brightness-110`}
-                              style={{ backgroundColor: `${folder.color}15` }}
-                              activeClassName=""
-                            >
-                              {isActiveFolder && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ backgroundColor: folder.color }} />
-                              )}
-                              <FolderOpen className={cn("w-[18px] h-[18px] shrink-0")} style={{ color: folder.color }} strokeWidth={isActiveFolder ? 2.2 : 1.5} />
-                              <span className="truncate flex-1">{folder.name}</span>
-                              {folder.device_ids && folder.device_ids.length > 0 && (
-                                <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
-                              )}
-                            </NavLink>
-                          </SidebarMenuButton>
+                          <NavLink
+                            to={folderUrl}
+                            className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative w-full
+                              transition-[background-color,color,opacity] duration-[120ms] ease-out
+                              gap-[11px] px-3.5 py-[8px]
+                              text-foreground font-medium hover:brightness-110`}
+                            style={{ backgroundColor: `${folder.color}15` }}
+                            activeClassName=""
+                          >
+                            {isActiveFolder && (
+                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ backgroundColor: folder.color }} />
+                            )}
+                            <FolderOpen className="w-[18px] h-[18px] shrink-0" style={{ color: folder.color }} strokeWidth={isActiveFolder ? 2.2 : 1.5} />
+                            <span className="truncate flex-1">{folder.name}</span>
+                            {folder.device_ids && folder.device_ids.length > 0 && (
+                              <span className="text-[9px] text-muted-foreground/40 font-mono">{folder.device_ids.length}</span>
+                            )}
+                          </NavLink>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -353,7 +351,7 @@ export function AppSidebar() {
                               setEditingFolder({ id: folder.id, name: folder.name, color: folder.color });
                               setFolderDialogOpen(true);
                             }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover/folder:opacity-100 transition-opacity"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover/folder:opacity-100 transition-opacity z-10"
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
