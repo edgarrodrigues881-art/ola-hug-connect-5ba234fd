@@ -385,6 +385,37 @@ const WarmupInstanceDetail = () => {
     }
   };
 
+  /* ── TEMPORARY: Test Auto Save — creates 1 autosave job and runs it immediately ── */
+  const handleTestAutosave = async () => {
+    if (!cycle?.id || !deviceId || !user) return;
+    setTestingAutosave(true);
+    try {
+      // Create a single autosave_interaction job set to run NOW
+      const { error: insertErr } = await supabase.from("warmup_jobs").insert({
+        user_id: user.id,
+        device_id: deviceId,
+        cycle_id: cycle.id,
+        job_type: "autosave_interaction" as any,
+        payload: { recipient_index: 0, msg_index: 0, forced: true },
+        run_at: new Date().toISOString(),
+        status: "pending" as any,
+      });
+      if (insertErr) throw insertErr;
+
+      // Trigger tick immediately
+      await supabase.functions.invoke("warmup-tick", { body: {} });
+
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+      await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+      toast({ title: "🧪 Auto Save disparado!", description: "1 mensagem de autosave sendo enviada agora para o contato #1." });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setTestingAutosave(false);
+    }
+  };
+
   /* advance day: skip current day's jobs, move to next day (or complete if last day) */
   const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
