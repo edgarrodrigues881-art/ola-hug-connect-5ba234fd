@@ -6,7 +6,7 @@ import { useWarmupCycles } from "@/hooks/useWarmupV2";
 import { useWarmupEngine } from "@/hooks/useWarmupEngine";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
-import { WarmupFolderDialog } from "@/components/warmup/WarmupFolderDialog";
+import { TagManagerDialog } from "@/components/warmup/TagManagerDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -343,7 +343,7 @@ const WarmupInstances = () => {
   const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : null;
   const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<{ id: string; name: string; color: string; tags?: any[] } | null>(null);
+  
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
@@ -1190,10 +1190,7 @@ const WarmupInstances = () => {
               <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
                 <Plus className="w-3.5 h-3.5" /> Adicionar Instância
               </Button>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => {
-                setEditingFolder({ id: activeFolder.id, name: activeFolder.name, color: activeFolder.color, tags: activeFolder.tags || [] });
-                setFolderDialogOpen(true);
-              }}>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setFolderDialogOpen(true)}>
                 <Tag className="w-3.5 h-3.5" /> Tags
               </Button>
             </>
@@ -1574,18 +1571,19 @@ const WarmupInstances = () => {
         />
       )}
 
-      {/* Folder tags dialog */}
-      <WarmupFolderDialog
-        open={folderDialogOpen}
-        onOpenChange={setFolderDialogOpen}
-        editingFolder={editingFolder}
-        onSave={async (data) => {
-          if (editingFolder) {
-            await updateFolder.mutateAsync({ id: editingFolder.id, name: data.name, color: data.color, tags: data.tags });
-          }
-        }}
-        currentDeviceIds={activeFolder?.device_ids || []}
-      />
+      {/* Tag manager dialog */}
+      {activeFolder && (
+        <TagManagerDialog
+          open={folderDialogOpen}
+          onOpenChange={setFolderDialogOpen}
+          tags={activeFolder.tags || []}
+          onSave={async (tags) => {
+            await updateFolder.mutateAsync({ id: activeFolder.id, tags });
+          }}
+          folderName={activeFolder.name}
+          folderColor={activeFolder.color}
+        />
+      )}
     </div>
   );
 };
