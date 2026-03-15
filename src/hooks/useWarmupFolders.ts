@@ -65,8 +65,10 @@ export function useWarmupFolders() {
   });
 
   const updateFolder = useMutation({
-    mutationFn: async (params: { id: string; name?: string; color?: string; icon?: string }) => {
-      const { id, ...updates } = params;
+    mutationFn: async (params: { id: string; name?: string; color?: string; icon?: string; tags?: FolderTag[] }) => {
+      const { id, tags, ...rest } = params;
+      const updates: any = { ...rest };
+      if (tags !== undefined) updates.tags = JSON.stringify(tags);
       const { error } = await supabase
         .from("warmup_folders" as any)
         .update(updates as any)
