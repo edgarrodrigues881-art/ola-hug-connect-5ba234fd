@@ -1458,24 +1458,26 @@ async function handleTick(db: any) {
           ? pickRandom(cachedMsgs)
           : generateNaturalMessage("group");
 
-        const mediaType = pickMediaType();
+        const requestedMediaType = pickMediaType();
+        let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
         let message = getMsg();
+        let sendFallbackReason: string | null = null;
 
         // 100% reply to last message in group (testing mode)
         let quotedMsgId: string | null = null;
-        if (mediaType === "text") {
+        if (requestedMediaType === "text") {
           try {
             quotedMsgId = await uazapiFetchLastMessage(baseUrl, token, groupJid);
           } catch { /* ignore, send without quote */ }
         }
 
         try {
-          if (mediaType === "image") {
+          if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
             await uazapiSendImage(baseUrl, token, groupJid, imgUrl, caption);
             message = `[IMG] ${caption}`;
-          } else if (mediaType === "sticker") {
+          } else if (requestedMediaType === "sticker") {
             const imgUrl = pickRandom(imagePool);
             await uazapiSendSticker(baseUrl, token, groupJid, imgUrl);
             const stickerMsg = getMsg();
@@ -1485,7 +1487,9 @@ async function handleTick(db: any) {
             await uazapiSendText(baseUrl, token, groupJid, message, quotedMsgId || undefined);
             if (quotedMsgId) message = `[REPLY] ${message}`;
           }
-        } catch {
+        } catch (e) {
+          actualMediaType = "text";
+          sendFallbackReason = e instanceof Error ? e.message : String(e || "unknown_error");
           message = getMsg();
           await uazapiSendText(baseUrl, token, groupJid, message);
         }
@@ -1500,7 +1504,13 @@ async function handleTick(db: any) {
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "group_msg_sent",
           message: `Msg no grupo ${groupName}: "${message.substring(0, 50)}"`,
-          meta: { group_jid: groupJid, media_type: mediaType, group_id: targetGroupId },
+          meta: {
+            group_jid: groupJid,
+            media_type: actualMediaType,
+            requested_media_type: requestedMediaType,
+            send_fallback_reason: sendFallbackReason,
+            group_id: targetGroupId,
+          },
         });
         break;
       }
