@@ -85,12 +85,6 @@ const menuGroups = [
       { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText, exact: true },
     ],
   },
-  {
-    label: "Suporte",
-    items: [
-      { title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle },
-    ],
-  },
 ];
 
 type BadgeKey = "activeCampaigns" | "unreadNotifications";
