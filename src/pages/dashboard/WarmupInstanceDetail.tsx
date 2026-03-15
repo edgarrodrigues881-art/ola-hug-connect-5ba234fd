@@ -163,85 +163,80 @@ const WarmupInstanceDetail = () => {
     }
   }, [cycle?.day_index, cycle?.chip_state, community, deviceId, user]);
 
-  /* accelerate: phase-aware — recalculate pending jobs from NOW keeping delays */
+  /* accelerate: ONLY allows forcing group joins (pre_24h phase) */
   const handleAccelerate = async () => {
     if (!cycle?.id) return;
+
+    // Block acceleration for any phase other than pre_24h (group joining)
+    if (cycle.phase !== "pre_24h") {
+      toast({
+        title: "Ação bloqueada",
+        description: "Só é possível forçar a entrada nos grupos. As mensagens de aquecimento seguem o fluxo automático.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setAccelerating(true);
     try {
       const nowMs = Date.now();
-      const phase = cycle.phase;
 
-      // Determine which job types to accelerate based on current phase
-      const targetTypes = phase === "pre_24h"
-        ? ["join_group"] as const
-        : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check"] as const;
-
-      // 1) Fetch pending jobs of the correct type for this phase
+      // Only accelerate join_group jobs
       const { data: pendingJobs, error: fetchErr } = await supabase
         .from("warmup_jobs")
         .select("id, job_type, run_at, payload")
         .eq("cycle_id", cycle.id)
         .eq("status", "pending")
-        .in("job_type", targetTypes)
+        .eq("job_type", "join_group")
         .order("run_at", { ascending: true });
       if (fetchErr) throw fetchErr;
 
       let forcedCount = 0;
-      let forcedSystemJobType: string | null = null;
 
       if (pendingJobs && pendingJobs.length > 0) {
-        let jobsToAccelerate = pendingJobs;
-
-        // For pre_24h: filter out join_group jobs for groups already joined
-        if (phase === "pre_24h") {
-          const joinedGroupIds = new Set(
-            instanceGroups
-              .filter((g) => g.join_status === "joined")
-              .map((g) => g.group_id)
-          );
-          // Also consider groups recognized via live chats
-          for (const g of instanceGroups) {
-            if (g.join_status !== "joined") {
-              const poolName = g.warmup_groups_pool?.name;
-              const normalizedName = poolName ? normalizeGroupName(poolName) : "";
-              const liveMatch = normalizedName && liveDeviceGroups.some(
-                (lg) => normalizeGroupName(lg.name) === normalizedName
-              );
-              if (liveMatch || (g.group_jid && liveDeviceGroups.some((lg) => lg.id === g.group_jid))) {
-                joinedGroupIds.add(g.group_id);
-              }
+        // Filter out jobs for groups already joined
+        const joinedGroupIds = new Set(
+          instanceGroups
+            .filter((g) => g.join_status === "joined")
+            .map((g) => g.group_id)
+        );
+        for (const g of instanceGroups) {
+          if (g.join_status !== "joined") {
+            const poolName = g.warmup_groups_pool?.name;
+            const normalizedName = poolName ? normalizeGroupName(poolName) : "";
+            const liveMatch = normalizedName && liveDeviceGroups.some(
+              (lg) => normalizeGroupName(lg.name) === normalizedName
+            );
+            if (liveMatch || (g.group_jid && liveDeviceGroups.some((lg) => lg.id === g.group_jid))) {
+              joinedGroupIds.add(g.group_id);
             }
           }
-
-          const alreadyJoinedJobIds: string[] = [];
-          const remainingJobs: typeof pendingJobs = [];
-
-          for (const job of jobsToAccelerate) {
-            const groupId = (job.payload as any)?.group_id;
-            if (groupId && joinedGroupIds.has(groupId)) {
-              alreadyJoinedJobIds.push(job.id);
-            } else {
-              remainingJobs.push(job);
-            }
-          }
-
-          // Cancel jobs for groups already joined
-          if (alreadyJoinedJobIds.length > 0) {
-            await supabase
-              .from("warmup_jobs")
-              .update({ status: "cancelled", last_error: "Grupo já ingressado — cancelado na aceleração" })
-              .in("id", alreadyJoinedJobIds);
-          }
-
-          jobsToAccelerate = remainingJobs;
         }
 
-        if (jobsToAccelerate.length > 0) {
-          // Recalculate: shift timeline so first job starts NOW, keep relative delays
-          const originalFirstMs = new Date(jobsToAccelerate[0].run_at).getTime();
+        const alreadyJoinedJobIds: string[] = [];
+        const remainingJobs: typeof pendingJobs = [];
+
+        for (const job of pendingJobs) {
+          const groupId = (job.payload as any)?.group_id;
+          if (groupId && joinedGroupIds.has(groupId)) {
+            alreadyJoinedJobIds.push(job.id);
+          } else {
+            remainingJobs.push(job);
+          }
+        }
+
+        if (alreadyJoinedJobIds.length > 0) {
+          await supabase
+            .from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Grupo já ingressado — cancelado na aceleração" })
+            .in("id", alreadyJoinedJobIds);
+        }
+
+        if (remainingJobs.length > 0) {
+          const originalFirstMs = new Date(remainingJobs[0].run_at).getTime();
           const shift = nowMs - originalFirstMs;
 
-          for (const job of jobsToAccelerate) {
+          for (const job of remainingJobs) {
             const newMs = new Date(job.run_at).getTime() + shift;
             const { error: updateErr } = await supabase
               .from("warmup_jobs")
@@ -252,39 +247,13 @@ const WarmupInstanceDetail = () => {
           }
         }
 
-        forcedCount = jobsToAccelerate.length;
+        forcedCount = remainingJobs.length;
       } else {
-        if (phase === "pre_24h") {
-          toast({
-            title: "Sem tarefas pendentes",
-            description: "Não há novas entradas em grupo pendentes para executar agora.",
-          });
-          return;
-        }
-
-        // Reagendar o dia atual (sem forçar daily_reset/phase_transition)
-        const { data: schedResult, error: schedErr } = await supabase.functions.invoke("warmup-engine", {
-          body: {
-            action: "schedule_day",
-            device_id: deviceId,
-            cycle_id: cycle.id,
-            day_index: cycle.day_index,
-            phase: cycle.phase,
-            chip_state: cycle.chip_state || "new",
-          },
+        toast({
+          title: "Sem tarefas pendentes",
+          description: "Não há novas entradas em grupo pendentes para executar agora.",
         });
-        if (schedErr) throw schedErr;
-
-        const scheduled = schedResult?.jobs_scheduled || 0;
-        if (scheduled > 0) {
-          forcedCount = scheduled;
-        } else {
-          toast({
-            title: "Sem janela",
-            description: "Não foi possível agendar tarefas agora. Tente novamente dentro da janela (07-19h BRT).",
-          });
-          return;
-        }
+        return;
       }
 
       // Trigger warmup-tick immediately
@@ -294,11 +263,7 @@ const WarmupInstanceDetail = () => {
 
       await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
 
-      const desc = phase === "pre_24h"
-        ? `${forcedCount} entrada(s) em grupo recalculadas a partir de agora.`
-        : forcedSystemJobType
-          ? `Próximo job (${forcedSystemJobType}) forçado para agora.`
-          : `${forcedCount} tarefa(s) recalculadas mantendo o cronograma.`;
+      const desc = `${forcedCount} entrada(s) em grupo recalculadas a partir de agora.`;
 
       toast({ title: "⚡ Recalculado!", description: desc });
     } catch (err: any) {
@@ -862,6 +827,7 @@ const WarmupInstanceDetail = () => {
               {/* Accelerate buttons */}
               {cycle.is_running && (
                 <div className="grid grid-cols-2 gap-2.5">
+                  {cycle.phase === "pre_24h" && (
                   <Button
                     variant="outline"
                     className="gap-1.5 h-10 rounded-xl text-xs border-amber-500/25 text-amber-400 hover:bg-amber-500/12 hover:text-amber-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(38_92%_50%/0.15)]"
@@ -869,8 +835,9 @@ const WarmupInstanceDetail = () => {
                     disabled={accelerating}
                   >
                     {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
-                    Executar Agora
+                    Forçar Entrada nos Grupos
                   </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(270_60%_50%/0.15)]"
@@ -1959,20 +1926,15 @@ const WarmupInstanceDetail = () => {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-foreground">
                   <Zap className="w-5 h-5 text-amber-400" />
-                  Executar agora?
+                  Forçar entrada nos grupos?
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>O <strong className="text-foreground">primeiro job será executado imediatamente</strong>. Os demais manterão o espaçamento original entre si, apenas antecipados a partir de agora.</p>
-                <p>Isso preserva o padrão natural de delays e protege seu chip.</p>
+                <p>A <strong className="text-foreground">entrada nos grupos será antecipada para agora</strong>, mantendo os intervalos entre cada entrada para proteger seu chip.</p>
                 <p className="text-xs bg-muted/30 rounded-lg p-2.5 border border-border/30">
-                  <strong className="text-foreground">{(() => {
-                    const targetTypes = cycle?.phase === "pre_24h"
-                      ? ["join_group"]
-                      : ["group_interaction", "autosave_interaction", "community_interaction", "enable_autosave", "enable_community", "health_check"];
-                    return scheduledJobs.filter(j => j.status === "pending" && targetTypes.includes(j.job_type)).length;
-                  })()}</strong> tarefa(s) pendente(s) serão aceleradas.
+                  <strong className="text-foreground">{scheduledJobs.filter(j => j.status === "pending" && j.job_type === "join_group").length}</strong> entrada(s) em grupo pendente(s).
                 </p>
+                <p className="text-xs text-amber-400/80">⚠️ Apenas a entrada nos grupos pode ser forçada. As mensagens de aquecimento seguem o fluxo automático.</p>
               </div>
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setShowAccelerateConfirm(false)}>Cancelar</Button>
