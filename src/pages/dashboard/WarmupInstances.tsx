@@ -1309,6 +1309,14 @@ const WarmupInstances = () => {
               <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setFolderDialogOpen(true)}>
                 <Tag className="w-3.5 h-3.5" /> Tags
               </Button>
+              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
+                setBulkSelected(new Set());
+                setBulkChipState("new");
+                setBulkDaysTotal("14");
+                setBulkOpen(true);
+              }}>
+                <Flame className="w-3.5 h-3.5" /> Aquecer em massa
+              </Button>
             </>
           )}
           {!activeFolder && (
