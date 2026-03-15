@@ -631,17 +631,20 @@ async function uazapiFetchLastMessage(baseUrl: string, token: string, chatId: st
             fromMe: extractFromMe(m),
             idx,
           }))
-          .filter((m: any) => !!m.id)
-          .sort((a: any, b: any) => {
-            if (b.ts !== a.ts) return b.ts - a.ts;
-            return b.idx - a.idx;
-          });
+          .filter((m: any) => !!m.id);
 
         if (normalized.length === 0) continue;
 
-        // Prefer latest message from another participant; fallback to latest message overall
-        const latestOther = normalized.find((m: any) => !m.fromMe);
-        return (latestOther?.id || normalized[0]?.id || null) as string | null;
+        const hasValidTimestamp = normalized.some((m: any) => m.ts > 0);
+        const ordered = hasValidTimestamp
+          ? [...normalized].sort((a: any, b: any) => {
+              if (b.ts !== a.ts) return b.ts - a.ts;
+              return a.idx - b.idx;
+            })
+          : normalized;
+
+        // Strict latest message available (for testing reply exactly on latest)
+        return (ordered[0]?.id || null) as string | null;
       } catch {
         // try next endpoint
       }
