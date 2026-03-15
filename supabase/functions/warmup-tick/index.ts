@@ -399,44 +399,70 @@ const RESPOSTAS_CURTAS = [
 ];
 
 const FRASES_GRUPO = [
-  "concordo", "muito bom isso", "ótimo ponto",
-  "valeu por compartilhar", "obrigado pela dica",
-  "interessante demais", "vou aplicar isso",
-  "sensacional", "mandou bem", "parabéns pelo conteúdo",
-  "curti muito", "tô acompanhando",
-  "alguém mais concorda", "boa semana a todos",
-  "continue postando", "excelente informação",
-  "salvei aqui", "bom demais", "tamo junto",
-  "quem mais tá acompanhando",
   "muito bom esse conteúdo, parabéns por compartilhar com a gente",
   "cara isso é muito verdade, passei por algo parecido recentemente",
   "valeu demais pela informação, vou aplicar no meu dia a dia",
   "isso é exatamente o que eu precisava ouvir hoje, obrigado",
-  "conteúdo de qualidade como sempre, continue assim",
+  "conteúdo de qualidade como sempre, continue assim que tá ótimo",
+  "concordo demais com isso, acho que muita gente deveria ver",
+  "alguém mais concorda com isso? acho que faz muito sentido",
+  "tamo junto pessoal, boa semana pra todos nós aqui do grupo",
+  "continue postando esse tipo de coisa, faz muita diferença pra gente",
+  "excelente informação, salvei aqui pra compartilhar depois com a família",
+  "mandou muito bem nessa postagem, curti demais o conteúdo",
+  "quem mais tá acompanhando esse grupo? tá cada vez melhor o conteúdo",
+  "valeu por compartilhar isso com a gente, muito bom mesmo",
+  "interessante demais essa informação, vou pesquisar mais sobre isso",
+  "parabéns pelo conteúdo de qualidade, a gente aprende muito aqui",
+  "boa demais essa dica, já passei pra frente pra quem precisa",
 ];
 
 const OPINIOES = [
-  "acho que esse ano vai ser diferente", "to otimista com o futuro",
-  "cada vez mais difícil achar coisa boa", "o mercado tá complicado",
-  "tô repensando muita coisa na vida", "preciso descansar mais",
-  "quero viajar mais esse ano", "preciso focar na saúde",
-  "tô curtindo mais ficar em casa", "o tempo tá passando rápido demais",
-  "tô aprendendo a ter mais paciência", "as coisas estão melhorando",
-  "cada dia é uma conquista", "tô mais seletivo com meu tempo",
-  "quero investir mais em mim", "o importante é ter paz",
-  "tô priorizando o que importa", "a vida tá mudando pra melhor",
+  "acho que esse ano vai ser diferente, tenho muita esperança de dias melhores",
+  "tô otimista com o futuro, muita coisa boa vindo por aí se Deus quiser",
+  "cada vez mais difícil achar coisa boa, mas a gente segue firme e forte",
+  "o mercado tá complicado, mas quem se esforça sempre encontra oportunidade",
+  "tô repensando muita coisa na vida, acho que faz parte do crescimento",
+  "preciso descansar mais, o corpo pede e a gente tem que ouvir né",
+  "quero viajar mais esse ano, já tô até pesquisando alguns destinos legais",
+  "preciso focar na saúde, comecei a me alimentar melhor essa semana",
+  "tô curtindo mais ficar em casa, é bom demais ter paz e sossego",
+  "o tempo tá passando rápido demais, parece que ontem era janeiro",
+  "tô aprendendo a ter mais paciência, nem tudo acontece no nosso tempo",
+  "as coisas estão melhorando aos poucos, cada dia é uma vitória",
+  "cada dia é uma conquista, a gente tem que valorizar cada momento",
+  "tô mais seletivo com meu tempo, aprendi que isso é muito importante",
+  "quero investir mais em mim esse ano, tanto pessoal quanto profissional",
+  "o importante é ter paz de espírito, o resto a gente vai resolvendo",
+  "tô priorizando o que importa de verdade na minha vida agora",
+  "a vida tá mudando pra melhor, e eu tô muito grato por isso",
 ];
 
 const COTIDIANO = [
-  "acabei de almoçar agora", "tô no trânsito parado", "choveu demais aqui",
-  "acordei cedo hoje", "café da manhã top hoje", "fui na feira agora cedo",
-  "limpei a casa inteira", "fiz um churrasco ontem", "passei no mercado agora",
-  "tô esperando o delivery", "acabei de sair da academia", "lavei o carro hoje",
-  "fiz um bolo caseiro", "tô estudando uma coisa nova", "voltei a ler",
-  "comecei a caminhar de manhã", "troquei a tela do celular",
-  "arrumei o quarto todo", "cozinhei pela primeira vez em semanas",
-  "tô assistindo uma série boa", "fui cortar o cabelo", "dormi super bem ontem",
-  "tomei um açaí agora", "pedi uma pizza pra comemorar", "fiz uma compra online",
+  "acabei de almoçar agora, comi muito bem hoje graças a Deus",
+  "tô no trânsito parado faz uns vinte minutos, tá osso",
+  "choveu demais aqui na região, parecia que não ia parar nunca",
+  "acordei cedo hoje e aproveitei pra resolver umas coisas pendentes",
+  "café da manhã ficou top hoje, fiz aquele capricho todo especial",
+  "fui na feira agora cedo e encontrei umas frutas maravilhosas",
+  "limpei a casa inteira, tá brilhando, dá gosto de ver",
+  "fiz um churrasco ontem com a família, ficou muito bom",
+  "passei no mercado agora e comprei umas coisas pro almoço de amanhã",
+  "tô esperando o delivery, já tá com fome demais aqui",
+  "acabei de sair da academia, treino pesado mas valeu a pena",
+  "lavei o carro hoje, tava precisando muito, tava imundo",
+  "fiz um bolo caseiro pra família e ficou uma delícia",
+  "tô estudando uma coisa nova, é difícil mas tô gostando bastante",
+  "voltei a ler depois de muito tempo, tô curtindo muito",
+  "comecei a caminhar de manhã e já tô sentindo diferença no corpo",
+  "troquei a tela do celular que tava rachada há meses",
+  "arrumei o quarto todo, ficou muito bom, dá vontade de ficar lá",
+  "cozinhei pela primeira vez em semanas e lembrei como é bom",
+  "tô assistindo uma série boa demais, não consigo parar de ver",
+  "fui cortar o cabelo hoje e ficou do jeito que eu queria",
+  "dormi super bem ontem, acordei renovado, fazia tempo que não dormia assim",
+  "tomei um açaí agora com granola e banana, melhor coisa do mundo",
+  "pedi uma pizza pra comemorar o final de semana, merecido demais",
 ];
 
 const DICAS_GERAIS = [
@@ -501,8 +527,8 @@ type MsgCtx = "group" | "private" | "autosave" | "community";
 
 function generateNaturalMessage(context: MsgCtx = "group"): string {
   const maxLen = context === "autosave" ? 40 : 250;
-  const minLen = (context === "group" || context === "community") ? 30 : 5;
-  for (let attempt = 0; attempt < 80; attempt++) {
+  const minLen = (context === "group" || context === "community") ? 60 : 5;
+  for (let attempt = 0; attempt < 120; attempt++) {
     const msg = buildMsg(context);
     if (msg.length >= minLen && msg.length <= maxLen && !recentMsgs.includes(msg)) {
       recentMsgs.push(msg);
@@ -510,9 +536,9 @@ function generateNaturalMessage(context: MsgCtx = "group"): string {
       return msg;
     }
   }
-  // Fallback: combine parts to guarantee minimum length
-  let fb = `${pickRandom(SAUDACOES)}, ${pickRandom(COMENTARIOS)}. ${pickRandom(COMPLEMENTOS)}`;
-  if (fb.length < minLen) fb = pickRandom(REFLEXOES) || pickRandom(HISTORIAS_CURTAS);
+  // Fallback: always combine multiple parts to guarantee length
+  let fb = `${pickRandom(SAUDACOES)}, ${pickRandom(COTIDIANO)}. ${pickRandom(OPINIOES)}. ${pickRandom(COMPLEMENTOS)}`;
+  if (fb.length < minLen) fb += ` ${pickRandom(REFLEXOES)}`;
   return cap(maybeEmoji(fb)).substring(0, maxLen);
 }
 
@@ -1454,9 +1480,13 @@ async function handleTick(db: any) {
         }
 
         const cachedMsgs = userMsgsMap[job.user_id];
-        const getMsg = () => (cachedMsgs?.length && Math.random() < 0.3)
-          ? pickRandom(cachedMsgs)
-          : generateNaturalMessage("group");
+        const longCachedMsgs = cachedMsgs?.filter((m: string) => m.length >= 60) || [];
+        const getMsg = () => {
+          if (longCachedMsgs.length > 0 && Math.random() < 0.3) {
+            return pickRandom(longCachedMsgs);
+          }
+          return generateNaturalMessage("group");
+        };
 
         const requestedMediaType = pickMediaType();
         let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
