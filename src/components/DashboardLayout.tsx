@@ -42,8 +42,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
 
-  // Global auto-sync of device statuses every 1s across all dashboard pages
-  useAutoSyncDevices(30000); // 30s — realtime handles instant updates
+  // Global auto-sync of device statuses every 5s across all dashboard pages
+  useAutoSyncDevices(5000);
 
   return (
     <SidebarProvider>
