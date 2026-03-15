@@ -1726,7 +1726,7 @@ const Devices = () => {
                 )}>
                   {d.profile_picture ? (
                     <img
-                      src={d.profile_picture}
+                      src={withAvatarRefresh(d.profile_picture)}
                       className="w-[52px] h-[52px] rounded-full object-cover"
                       alt={d.name}
                       onError={(e) => {
