@@ -23,14 +23,14 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl border p-4 pr-8 shadow-xl data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl border p-5 pr-10 shadow-2xl backdrop-blur-sm transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
   {
     variants: {
       variant: {
-        default: "border-border bg-background text-foreground",
-        destructive: "border-l-4 border-l-red-500 border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-100",
-        success: "border-l-4 border-l-emerald-500 border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
-        warning: "border-l-4 border-l-amber-500 border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100",
+        default: "border-border/50 bg-background/95 text-foreground shadow-lg",
+        destructive: "border-l-4 border-l-red-500 border-red-500/20 bg-gradient-to-r from-red-500/15 to-red-500/5 text-red-50 shadow-red-500/10",
+        success: "border-l-4 border-l-emerald-500 border-emerald-500/20 bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 text-emerald-50 shadow-emerald-500/10",
+        warning: "border-l-4 border-l-amber-500 border-amber-500/20 bg-gradient-to-r from-amber-500/15 to-amber-500/5 text-amber-50 shadow-amber-500/10",
       },
     },
     defaultVariants: {
