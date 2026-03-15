@@ -79,18 +79,35 @@ Deno.serve(async (req) => {
     }
     const results: SyncResult[] = [];
 
-    // ── Phase 1: Fetch ALL statuses (no DB writes yet) ──
+    // ── Phase 1: Fetch ALL statuses + profile data (no DB writes yet) ──
     await runPool(syncable, 40, async (device) => {
       if (Date.now() > deadline) { results.push({ device, httpStatus: null }); return; }
       const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
+      const headers = { token: device.uazapi_token, Accept: "application/json" };
       try {
         const res = await fetchT(`${baseUrl}/instance/status`, {
-          method: "GET",
-          headers: { token: device.uazapi_token, Accept: "application/json" },
+          method: "GET", headers,
         }, 5000);
 
         if (res.ok) {
           const data = await res.json();
+
+          // Try to fetch fresh profile picture from dedicated endpoint
+          // This is more reliable than the status endpoint for profile data
+          try {
+            const profileRes = await fetchT(`${baseUrl}/profile`, { method: "GET", headers }, 4000);
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              // Merge profile data into status data (profile endpoint has fresher pic)
+              if (profileData.profilePicUrl) data.profilePicUrl = profileData.profilePicUrl;
+              if (profileData.profilePicture) data.profilePicture = profileData.profilePicture;
+              if (profileData.imgUrl) data.profilePicUrl = profileData.imgUrl;
+              if (profileData.image) data.profilePicUrl = profileData.image;
+              if (profileData.pushname) data.pushname = profileData.pushname;
+              if (profileData.name) data.profileName = profileData.name;
+            } else { await profileRes.text(); }
+          } catch { /* profile fetch optional */ }
+
           results.push({ device, httpStatus: 200, apiData: data });
         } else {
           await res.text(); // drain
