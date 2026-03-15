@@ -840,35 +840,44 @@ Deno.serve(async (req) => {
       const normalizedPicture = typeof profilePictureData === "string" ? profilePictureData.trim() : "";
       if (!normalizedPicture) return json({ error: "profilePictureData obrigatório" }, 400);
 
-      // uazapiGO uses POST /profile/image with { image: "value" }
-      // To remove: { image: "remove" }
-      const imageValue = normalizedPicture === "remove" ? "remove" : normalizedPicture;
-
-      const picEndpoints = [
-        // Primary: confirmed uazapiGO endpoint
-        { path: "/profile/image", method: "POST" as const, payload: { image: imageValue } },
-        // Fallbacks
-        { path: "/profile/picture", method: "POST" as const, payload: { image: imageValue } },
-        { path: "/profile-picture", method: "POST" as const, payload: { image: imageValue } },
-        { path: "/profile/image", method: "PUT" as const, payload: { image: imageValue } },
-        { path: "/profile/picture", method: "PUT" as const, payload: { picture: imageValue } },
-        { path: "/profile-picture", method: "PUT" as const, payload: { value: imageValue } },
-      ];
+      const imageVariants = await resolveProfileImageVariants(normalizedPicture);
+      if (imageVariants.length === 0) {
+        return json({ success: false, error: "Imagem inválida para atualização de foto." }, 422);
+      }
 
       const failures: Array<{ path: string; method: string; status: number; error: string | null }> = [];
 
-      for (const ep of picEndpoints) {
-        const r = await uazapi(instanceUrl, ep.path, instanceToken, ep.method, ep.payload, { timeoutMs: 8000, retries: 1 });
-        console.log(`[profile-pic] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 200));
-        if (r.ok) {
-          const dbValue = normalizedPicture === "remove" ? null : normalizedPicture;
-          await svc.from("devices").update({ profile_picture: dbValue }).eq("id", deviceId);
-          return json({ success: true, endpoint: ep.path, method: ep.method, ...r.data });
+      for (const imageValue of imageVariants) {
+        const isRemove = imageValue === "remove";
+
+        const attempts = [
+          // uazapiGO canonical endpoint
+          { path: "/profile/image", method: "POST" as const, payload: { image: imageValue } },
+          // alternate accepted payload keys in some providers
+          { path: "/profile/image", method: "POST" as const, payload: { file: imageValue } },
+          { path: "/profile/image", method: "PUT" as const, payload: { image: imageValue } },
+          // legacy fallbacks
+          { path: "/profile/picture", method: "POST" as const, payload: { image: imageValue } },
+          { path: "/profile-picture", method: "POST" as const, payload: { image: imageValue } },
+        ];
+
+        for (const ep of attempts) {
+          const r = await uazapi(instanceUrl, ep.path, instanceToken, ep.method, ep.payload, { timeoutMs: 10000, retries: 1 });
+          console.log(`[profile-pic] ${ep.method} ${ep.path} => ${r.status} ok=${r.ok}`, JSON.stringify(r.data).substring(0, 250));
+
+          if (r.ok) {
+            const dbValue = normalizedPicture === "remove" || isRemove ? null : normalizedPicture;
+            await svc.from("devices").update({ profile_picture: dbValue }).eq("id", deviceId);
+            return json({ success: true, endpoint: ep.path, method: ep.method, ...r.data });
+          }
+
+          failures.push({
+            path: ep.path,
+            method: ep.method,
+            status: r.status,
+            error: (r.data?.error || r.data?.message || r.data?.raw || null) as string | null,
+          });
         }
-        failures.push({
-          path: ep.path, method: ep.method, status: r.status,
-          error: (r.data?.error || r.data?.message || r.data?.raw || null) as string | null,
-        });
       }
 
       return json({
