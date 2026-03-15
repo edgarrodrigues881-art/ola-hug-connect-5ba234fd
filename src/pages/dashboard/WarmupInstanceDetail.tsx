@@ -403,7 +403,10 @@ const WarmupInstanceDetail = () => {
 
       if (pendingAutosave && pendingAutosave.length > 0) {
         const next = pendingAutosave[0];
-        const forcedPayload = { ...(next.payload || {}), forced: true };
+        const basePayload = (next.payload && typeof next.payload === "object"
+          ? (next.payload as Record<string, unknown>)
+          : {});
+        const forcedPayload = { ...basePayload, forced: true };
         const { error: upErr } = await supabase
           .from("warmup_jobs")
           .update({ run_at: new Date().toISOString(), attempts: 0, last_error: null, payload: forcedPayload as any })
@@ -415,8 +418,8 @@ const WarmupInstanceDetail = () => {
         await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
         await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
 
-        const ri = Number((next.payload as any)?.recipient_index ?? 0) + 1;
-        const mi = Number((next.payload as any)?.msg_index ?? 0) + 1;
+        const ri = Number(basePayload?.recipient_index ?? 0) + 1;
+        const mi = Number(basePayload?.msg_index ?? 0) + 1;
         toast({ title: "⚡ Próximo Auto Save forçado", description: `Executando contato ${ri}/5, msg ${mi}/5 agora.` });
         return;
       }
