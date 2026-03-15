@@ -773,25 +773,30 @@ const Devices = () => {
       const profilePromises: Promise<any>[] = [];
       if (wpName.trim()) {
         profilePromises.push(
-          callApi({ action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() })
+          callApiStrict(
+            { action: "updateProfileName", deviceId: editingDevice.id, profileName: wpName.trim() },
+            "Falha ao atualizar nome no WhatsApp",
+          )
         );
       }
       if (wpRemovePhoto) {
         profilePromises.push(
-          callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" })
+          callApiStrict(
+            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: "remove" },
+            "Falha ao remover foto no WhatsApp",
+          )
         );
       } else if (wpPhotoBase64) {
         profilePromises.push(
-          callApi({ action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 })
+          callApiStrict(
+            { action: "updateProfilePicture", deviceId: editingDevice.id, profilePictureData: wpPhotoBase64 },
+            "Falha ao atualizar foto no WhatsApp",
+          )
         );
       }
 
       if (profilePromises.length > 0) {
-        const profileResults = await Promise.all(profilePromises);
-        const failedResult = profileResults.find((r) => r?.error || r?.success === false);
-        if (failedResult) {
-          throw new Error(failedResult?.error || "Falha ao atualizar perfil no WhatsApp");
-        }
+        await Promise.all(profilePromises);
       }
 
       await updateMutation.mutateAsync({
@@ -914,16 +919,44 @@ const Devices = () => {
       // Run all devices in parallel, and each device's actions in parallel too
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const promises: Promise<any>[] = [];
+          const apiPromises: Promise<any>[] = [];
+          const dbUp: Record<string, any> = {};
+
           if (wpName.trim()) {
-            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() }));
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfileName", deviceId: device.id, profileName: wpName.trim() },
+                "Falha ao atualizar nome no WhatsApp",
+              )
+            );
+            dbUp.profile_name = wpName.trim();
           }
           if (wpRemovePhoto) {
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
+                "Falha ao remover foto no WhatsApp",
+              )
+            );
+            dbUp.profile_picture = null;
           } else if (wpPhotoBase64) {
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 }));
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: wpPhotoBase64 },
+                "Falha ao atualizar foto no WhatsApp",
+              )
+            );
+            dbUp.profile_picture = wpPhotoBase64;
           }
-          await Promise.all(promises);
+
+          if (apiPromises.length > 0) {
+            await Promise.all(apiPromises);
+          }
+
+          if (Object.keys(dbUp).length > 0) {
+            const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+            if (error) throw error;
+          }
         })
       );
 
@@ -985,24 +1018,44 @@ const Devices = () => {
     try {
       const results = await Promise.allSettled(
         targetDevices.map(async (device) => {
-          const promises: Promise<any>[] = [];
-          // DB update
+          const apiPromises: Promise<any>[] = [];
           const dbUp: Record<string, any> = {};
+
           if (bulkProfileName.trim()) {
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() },
+                "Falha ao atualizar nome no WhatsApp",
+              )
+            );
             dbUp.profile_name = bulkProfileName.trim();
-            promises.push(callApi({ action: "updateProfileName", deviceId: device.id, profileName: bulkProfileName.trim() }));
           }
           if (bulkProfileRemovePhoto) {
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" },
+                "Falha ao remover foto no WhatsApp",
+              )
+            );
             dbUp.profile_picture = null;
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: "remove" }));
           } else if (bulkProfilePhotoPublicUrl) {
+            apiPromises.push(
+              callApiStrict(
+                { action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl },
+                "Falha ao atualizar foto no WhatsApp",
+              )
+            );
             dbUp.profile_picture = bulkProfilePhotoPublicUrl;
-            promises.push(callApi({ action: "updateProfilePicture", deviceId: device.id, profilePictureData: bulkProfilePhotoPublicUrl }));
           }
+
+          if (apiPromises.length > 0) {
+            await Promise.all(apiPromises);
+          }
+
           if (Object.keys(dbUp).length > 0) {
-            await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+            const { error } = await supabase.from("devices").update(dbUp as any).eq("id", device.id);
+            if (error) throw error;
           }
-          await Promise.all(promises);
         })
       );
       const failed = results.filter(r => r.status === "rejected").length;
@@ -1088,6 +1141,14 @@ const Devices = () => {
       return response.data;
     }
     return { error: "Servidor sobrecarregado. Tente novamente em instantes." };
+  };
+
+  const callApiStrict = async (body: Record<string, any>, fallbackMessage: string) => {
+    const result = await callApi(body);
+    if (result?.error || result?.success === false) {
+      throw new Error(result?.error || fallbackMessage);
+    }
+    return result;
   };
 
   // Quick actions
