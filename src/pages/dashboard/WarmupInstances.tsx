@@ -23,6 +23,128 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/* ── Add to Folder Dialog ── */
+const AddToFolderDialog = memo(({ open, onOpenChange, allDevices, currentDeviceIds, folderName, folderColor, onSave, cycleByDeviceId }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  allDevices: any[];
+  currentDeviceIds: string[];
+  folderName: string;
+  folderColor: string;
+  onSave: (deviceIds: string[]) => Promise<void>;
+  cycleByDeviceId: Map<string, any>;
+}) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSelected(new Set(currentDeviceIds));
+      setSearchTerm("");
+    }
+  }, [open, currentDeviceIds]);
+
+  const filtered = useMemo(() => {
+    if (!searchTerm) return allDevices;
+    const q = searchTerm.toLowerCase();
+    return allDevices.filter(d => d.name.toLowerCase().includes(q) || (d.number || "").includes(q));
+  }, [allDevices, searchTerm]);
+
+  const toggle = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(Array.from(selected));
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px] max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" style={{ color: folderColor }} />
+            Adicionar a "{folderName}"
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+          {allDevices.length > 5 && (
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+              <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar instância..." className="h-8 pl-8 text-xs" />
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+              {selected.size} selecionada(s)
+            </span>
+            <button
+              className="text-[10px] text-primary hover:text-primary/80 font-bold"
+              onClick={() => setSelected(prev => prev.size === allDevices.length ? new Set() : new Set(allDevices.map(d => d.id)))}
+            >
+              {selected.size > 0 ? "Desmarcar" : "Selecionar todos"}
+            </button>
+          </div>
+          <div className="overflow-y-auto flex-1 space-y-1 rounded-xl border border-border/15 bg-muted/10 p-2 scrollbar-thin max-h-[300px]">
+            {filtered.map((d) => {
+              const isSelected = selected.has(d.id);
+              const cycle = cycleByDeviceId.get(d.id);
+              const phase = cycle?.phase;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => toggle(d.id)}
+                  className={cn(
+                    "flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-left transition-colors",
+                    isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/30 border border-transparent"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "bg-primary border-primary" : "border-border/40"
+                  )}>
+                    {isSelected && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-foreground truncate">{d.name}</p>
+                    <div className="flex items-center gap-2">
+                      {d.number && <span className="text-[10px] text-muted-foreground/50 font-mono">{d.number}</span>}
+                      {phase && <span className="text-[9px] text-muted-foreground/40">{phaseShort[phase] || phase}</span>}
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    CONNECTED_STATUSES.includes(d.status) ? "bg-primary" : "bg-muted-foreground/30"
+                  )} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex gap-2 pt-3 border-t border-border/10">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-9">
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-9">
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
 
 const phaseLabels: Record<string, string> = {
   pre_24h: "Primeiras 24h",
