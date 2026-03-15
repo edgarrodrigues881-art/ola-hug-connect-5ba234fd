@@ -182,6 +182,17 @@ export function WarmupFolderDialog({ open, onOpenChange, editingFolder, onSave, 
         </div>
 
         <div className="flex gap-2 pt-3 border-t border-border/10">
+          {editingFolder && onDelete && (
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={() => { onDelete(editingFolder.id); onOpenChange(false); }}
+              className="shrink-0"
+              title="Excluir pasta"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancelar
           </Button>
