@@ -1543,12 +1543,16 @@ const WarmupInstanceDetail = () => {
                     const iconMap: Record<string, string> = {
                       cycle_started: "🚀", cycle_paused: "⏸️", cycle_resumed: "▶️",
                       group_joined: "✅", group_msg_sent: "💬", autosave_msg_sent: "📱",
-                      community_msg_sent: "🌐", daily_reset: "🔄", phase_changed: "⚡",
-                      auto_paused_disconnected: "⚠️", autosave_enabled: "📱",
-                      community_enabled: "🌐", health_check: "🩺",
-                      group_no_jid: "⚠️", autosave_no_contacts: "⚠️",
+                      community_msg_sent: "🌐", community_burst_sent: "🌐",
+                      community_enabled: "🌐", community_pairs_rotated: "🔄",
                       community_no_peers: "⚠️", community_peer_offline: "⚠️",
+                      daily_reset: "🔄", phase_changed: "⚡",
+                      auto_paused_disconnected: "⚠️", autosave_enabled: "📱",
+                      health_check: "🩺",
+                      group_no_jid: "⚠️", autosave_no_contacts: "⚠️",
                       manual_day_advance: "⏭️", daily_reset_deferred: "⏳",
+                      auto_sync_joined: "🔗", auto_transition_post_groups: "⚡",
+                      groups_complete_waiting: "⏳", cycle_completed: "🎉",
                     };
                     const colorMap: Record<string, string> = {
                       info: "text-emerald-400", warn: "text-amber-400", error: "text-destructive",
