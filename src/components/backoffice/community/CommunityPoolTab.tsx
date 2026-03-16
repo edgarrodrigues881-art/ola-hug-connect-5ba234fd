@@ -14,9 +14,9 @@ const CommunityPoolTab = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("connected");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [filterEnrolled, setFilterEnrolled] = useState("all");
-  const [filterPhase, setFilterPhase] = useState("all");
+  const [filterPhase, setFilterPhase] = useState("community");
   const [showFilters, setShowFilters] = useState(false);
   const [showOnlyWithCycle, setShowOnlyWithCycle] = useState(true);
 
