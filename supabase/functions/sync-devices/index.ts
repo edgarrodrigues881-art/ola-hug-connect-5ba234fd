@@ -444,17 +444,30 @@ Deno.serve(async (req) => {
 
         let newPic: string | null;
         if (!isConnected) {
-          // Disconnected: keep whatever we have
           newPic = currentPic;
         } else if (justEdited && currentPic && typeof providerPic === "string" && currentPic !== providerPic) {
-          // Just saved from panel and provider returned a different NON-EMPTY pic: keep local briefly
           newPic = currentPic;
         } else if (providerPic === undefined) {
-          // Unknown provider state: preserve current photo (critical to avoid accidental mass wipe)
           newPic = currentPic;
+        } else if (providerPic === null) {
+          // Provider explicitly says no photo — remove from storage too
+          newPic = null;
         } else {
-          // Explicit provider state: URL (new/updated) or null (removed)
-          newPic = providerPic;
+          // New/updated WhatsApp URL — check if it's a pps.whatsapp.net URL that needs persisting
+          const isWhatsAppUrl = providerPic.includes("pps.whatsapp.net") || providerPic.includes("mmg.whatsapp.net");
+          const alreadyPersisted = currentPic?.includes("/storage/") || currentPic?.includes("supabase");
+          const picChanged = !currentPic || !alreadyPersisted || currentPic.split("?")[0] !== (currentPic?.split("?")[0]);
+          
+          if (isWhatsAppUrl && picChanged) {
+            // Download and persist to storage
+            const storedUrl = await persistProfilePic(svc, device.id, providerPic);
+            newPic = storedUrl || providerPic; // fallback to original URL if upload fails
+          } else if (alreadyPersisted && isWhatsAppUrl) {
+            // Already have a persisted version, keep it
+            newPic = currentPic;
+          } else {
+            newPic = providerPic;
+          }
         }
 
         const newName = isConnected
