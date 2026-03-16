@@ -2040,7 +2040,7 @@ async function handleTick(db: any) {
             const { data: eligible } = await db.from("warmup_community_membership")
               .select("device_id, user_id")
               .eq("is_enabled", true).eq("is_eligible", true)
-              .neq("user_id", job.user_id)
+              .neq("device_id", job.device_id)
               .limit(100);
 
             if (eligible?.length) {
@@ -2066,7 +2066,7 @@ async function handleTick(db: any) {
               let created = 0;
               for (const e of sorted) {
                 if (created >= newNeeded) break;
-                if (usedDevices.has(e.device_id) || usedUsers.has(e.user_id)) continue;
+                if (usedDevices.has(e.device_id)) continue;
 
                 const { data: pd } = await db.from("devices")
                   .select("status, number").eq("id", e.device_id).single();
