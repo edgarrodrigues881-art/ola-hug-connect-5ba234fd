@@ -530,7 +530,7 @@ const Contacts = () => {
                     "Todas as tags"
                   ) : (
                     <span className="flex items-center gap-1.5">
-                      <span className={cn("w-2 h-2 rounded-full", getTagStyle(tagFilter).dot)} />
+                      <span className="w-2.5 h-2.5 rounded-md shrink-0" style={{ backgroundColor: getTagColor(tagFilter) }} />
                       {tagFilter}
                     </span>
                   )}
