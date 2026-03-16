@@ -1756,24 +1756,29 @@ async function handleTick(db: any) {
         const pairs = allPairs.filter(p => { if (seenPairIds.has(p.id)) return false; seenPairIds.add(p.id); return true; });
 
         let peerDeviceId: string | null = null;
+        let initiatorSide: string | null = null;
 
         if (pairs?.length) {
           const selectedPair = pairs[peerIndex % pairs.length];
           peerDeviceId = selectedPair.instance_id_a === job.device_id
             ? selectedPair.instance_id_b
             : selectedPair.instance_id_a;
-        } else {
-          // Fallback: find any running community device
-          const { data: otherCycles } = await db.from("warmup_cycles")
-            .select("device_id, user_id")
-            .eq("is_running", true).neq("device_id", job.device_id)
-            .in("phase", ["autosave_enabled", "community_enabled"])
-            .limit(10);
+          // Determine if this device is the initiator for this burst
+          const meta = selectedPair.meta as any;
+          initiatorSide = meta?.initiator || "a";
+          const iAmA = selectedPair.instance_id_a === job.device_id;
+          const iAmInitiator = (initiatorSide === "a" && iAmA) || (initiatorSide === "b" && !iAmA);
 
-          if (otherCycles?.length) {
-            const shuffled = otherCycles.sort(() => Math.random() - 0.5);
-            peerDeviceId = shuffled[peerIndex % shuffled.length].device_id;
+          // Only the initiator sends — prevents both sides flooding each other
+          if (!iAmInitiator) {
+            bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_skip_non_initiator", message: `Par ${peerIndex}: não sou o iniciador — pulando burst` });
+            break;
           }
+        } else {
+          // NO FALLBACK — without active pairs, skip community interaction entirely
+          // This prevents random flooding across uncoordinated devices
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_pairs", message: `Nenhum par ativo para par ${peerIndex} — pulando (sem fallback)` });
+          break;
         }
 
         if (!peerDeviceId) {
