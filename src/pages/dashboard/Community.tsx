@@ -183,23 +183,23 @@ const Community = () => {
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+        <div className="flex flex-col gap-3 w-full">
           <a
             href="https://chat.whatsapp.com/KpkJQCdw7i10ICftI1tpBf"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 flex-1 h-12 rounded-xl bg-gradient-to-r from-[#b8860b] via-[#d4af37] to-[#b8860b] text-white text-sm font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:shadow-[0_0_35px_rgba(212,175,55,0.4)]"
+            className="flex items-center justify-center gap-2.5 w-full h-14 rounded-2xl bg-gradient-to-r from-[#b8860b] via-[#d4af37] to-[#b8860b] text-white text-[15px] font-bold tracking-wide transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:shadow-[0_0_35px_rgba(212,175,55,0.4)] hover:scale-[1.01]"
           >
-            <UsersRound className="w-4 h-4" />
+            <UsersRound className="w-5 h-5" />
             Entrar na Comunidade
           </a>
           <a
             href="https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20preciso%20de%20suporte."
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 flex-1 h-12 rounded-xl border border-border/50 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/40 transition-all duration-300"
+            className="flex items-center justify-center gap-2.5 w-full h-14 rounded-2xl border border-border/50 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/40 transition-all duration-300 hover:scale-[1.01]"
           >
-            <MessageCircle className="w-4 h-4" />
+            <MessageCircle className="w-5 h-5" />
             Falar com Suporte
           </a>
         </div>
