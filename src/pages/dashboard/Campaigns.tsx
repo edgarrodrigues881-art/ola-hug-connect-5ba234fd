@@ -1149,7 +1149,7 @@ const Campaigns = () => {
         {step === 1 && (
           <div className="space-y-6 sm:space-y-12">
             {/* Editor + Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8 items-start">
               {/* Editor column */}
               <div className="lg:col-span-3 space-y-4 sm:space-y-8">
                 {/* Message editor */}
@@ -1300,8 +1300,8 @@ const Campaigns = () => {
               </div>
 
               {/* Preview column */}
-              <div className="lg:col-span-2">
-                <div className="h-full">
+              <div className="lg:col-span-2 lg:sticky lg:top-4">
+                <div className="max-h-[500px]">
                   <WhatsAppPreview />
                 </div>
               </div>
