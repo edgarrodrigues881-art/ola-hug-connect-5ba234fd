@@ -160,7 +160,7 @@ const Community = () => {
             href="https://chat.whatsapp.com/KpkJQCdw7i10ICftI1tpBf"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 flex-1 h-12 rounded-xl bg-primary text-primary-foreground text-sm font-semibold transition-all duration-300 shadow-[0_0_20px_hsl(var(--primary)/0.2)] hover:shadow-[0_0_35px_hsl(var(--primary)/0.35)] hover:bg-primary/90"
+            className="flex items-center justify-center gap-2 flex-1 h-12 rounded-xl bg-gradient-to-r from-[#b8860b] via-[#d4af37] to-[#b8860b] text-white text-sm font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:shadow-[0_0_35px_rgba(212,175,55,0.4)]"
           >
             <UsersRound className="w-4 h-4" />
             Entrar na Comunidade
