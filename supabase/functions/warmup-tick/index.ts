@@ -249,27 +249,31 @@ async function scheduleDayJobs(
     }
   }
 
-  // Community interactions — conversation-style, spread across entire window
-  // 3 pares, cada par troca 50-90 msgs/dia (cada lado envia ~25-45)
+  // Community bursts — each job = 1 burst of 3-7 msgs (real conversation)
+  // 8-12 bursts per peer, spaced ~40-90 min apart to fill the 12h window
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
     for (let p = 0; p < volumes.communityPeers; p++) {
-      const convStartOffset = randInt(5, 30) * 60 * 1000 + p * randInt(3, 8) * 60 * 1000;
+      const convStartOffset = randInt(5, 20) * 60 * 1000 + p * randInt(5, 15) * 60 * 1000;
       let cursor = effectiveStart + convStartOffset;
 
-      for (let m = 0; m < volumes.communityMsgsPerPeer; m++) {
-        if (cursor > effectiveEnd - 60000) break;
+      // Space bursts evenly across the window with jitter
+      const burstsForPeer = volumes.communityMsgsPerPeer;
+      const remainingWindow = effectiveEnd - cursor;
+      const baseSpacing = Math.floor(remainingWindow / Math.max(burstsForPeer, 1));
 
-        const mediaRoll = Math.random();
-        const mediaType = mediaRoll < 0.15 ? "image" : mediaRoll < 0.20 ? "sticker" : "text";
+      for (let m = 0; m < burstsForPeer; m++) {
+        if (cursor > effectiveEnd - 5 * 60 * 1000) break; // leave 5min margin for burst execution
 
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "community_interaction",
-          payload: { peer_index: p, msg_index: m, media_type: mediaType },
+          payload: { peer_index: p, burst_index: m },
           run_at: new Date(cursor).toISOString(), status: "pending",
         });
 
-        cursor += randInt(5, 15) * 60 * 1000;
+        // Space between bursts: baseSpacing ± 20% jitter
+        const jitter = randInt(-Math.floor(baseSpacing * 0.2), Math.floor(baseSpacing * 0.2));
+        cursor += Math.max(baseSpacing + jitter, 15 * 60 * 1000); // minimum 15min between bursts
       }
     }
   }

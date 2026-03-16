@@ -291,31 +291,28 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── COMMUNITY INTERACTIONS (conversation-style, spread across entire window) ──
-  // 3 pares, cada par troca 50-90 msgs/dia (cada lado envia ~25-45)
-  // Mensagens intercaladas com gaps de 5-15 min simulando conversa real
+  // ── COMMUNITY BURSTS (each job = 3-7 msgs, spaced across window) ──
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
     for (let p = 0; p < volumes.communityPeers; p++) {
-      // Spread each conversation across the full window with random start offset
-      const convStartOffset = randInt(5, 30) * 60 * 1000 + p * randInt(3, 8) * 60 * 1000;
+      const convStartOffset = randInt(5, 20) * 60 * 1000 + p * randInt(5, 15) * 60 * 1000;
       let cursor = effectiveStart + convStartOffset;
 
-      for (let m = 0; m < volumes.communityMsgsPerPeer; m++) {
-        if (cursor > effectiveEnd - 60000) break;
+      const burstsForPeer = volumes.communityMsgsPerPeer;
+      const remainingWindow = effectiveEnd - cursor;
+      const baseSpacing = Math.floor(remainingWindow / Math.max(burstsForPeer, 1));
 
-        // ~15% image, ~5% sticker, rest text
-        const mediaRoll = Math.random();
-        const mediaType = mediaRoll < 0.15 ? "image" : mediaRoll < 0.20 ? "sticker" : "text";
+      for (let m = 0; m < burstsForPeer; m++) {
+        if (cursor > effectiveEnd - 5 * 60 * 1000) break;
 
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "community_interaction",
-          payload: { peer_index: p, msg_index: m, media_type: mediaType },
+          payload: { peer_index: p, burst_index: m },
           run_at: new Date(cursor).toISOString(), status: "pending",
         });
 
-        // Gap between messages: 5-15 min (simulates ping-pong conversation)
-        cursor += randInt(5, 15) * 60 * 1000;
+        const jitter = randInt(-Math.floor(baseSpacing * 0.2), Math.floor(baseSpacing * 0.2));
+        cursor += Math.max(baseSpacing + jitter, 15 * 60 * 1000);
       }
     }
   }
