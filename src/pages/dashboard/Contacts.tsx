@@ -626,8 +626,8 @@ const Contacts = () => {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Contact Table */}
       <Card className="glass-card overflow-x-auto border border-primary/10" style={{ WebkitOverflowScrolling: 'touch' }}>
