@@ -70,7 +70,7 @@ interface ContactRowProps {
   getTagColor: (tag: string) => string;
 }
 
-const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit, getTagStyle }: ContactRowProps): ReactElement {
+const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit, getTagColor }: ContactRowProps): ReactElement {
   return (
     <div className="grid items-center border-b border-primary/5 hover:bg-primary/[0.02] text-sm transition-colors" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
       <div className="p-2 flex items-center justify-center">
@@ -82,12 +82,16 @@ const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSele
       </div>
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
-      <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
+      <div className="p-2 flex gap-1.5 flex-wrap overflow-hidden">
         {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => {
-          const style = getTagStyle(tag);
+          const color = getTagColor(tag);
           return (
-            <span key={tag} className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border cursor-pointer group transition-colors", style.bg, style.text, style.border, "hover:opacity-80")} onClick={() => onRemoveTag(contact.id, tag)}>
-              <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+            <span
+              key={tag}
+              className="group inline-flex items-center gap-1 pl-2 pr-1.5 py-0.5 rounded-md text-[10px] font-semibold text-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+              style={{ backgroundColor: color }}
+              onClick={() => onRemoveTag(contact.id, tag)}
+            >
               {tag}
               <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
             </span>
