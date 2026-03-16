@@ -2140,7 +2140,7 @@ async function handleTick(db: any) {
             cycle_id: job.cycle_id,
             level: "info",
             event_type: "community_turn_sent",
-            message: `Comunitário x1: turno ${nextTurnNumber}/${maxTurns} enviado — agora aguardando a resposta do outro lado`,
+            message: `Comunitário x1: turno ${nextTurnNumber}/${maxTurns} enviado (${communityActualMedia}) — aguardando resposta`,
             meta: {
               pair_id: selectedPair.id,
               peer_device: peerDeviceId,
@@ -2148,6 +2148,7 @@ async function handleTick(db: any) {
               next_sender_device_id: peerDeviceId,
               next_turn_index: nextTurnNumber,
               reply_delay_seconds: replyDelaySeconds,
+              media_type: communityActualMedia,
             },
           });
         } else {
