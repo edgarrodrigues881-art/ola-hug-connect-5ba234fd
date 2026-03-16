@@ -721,10 +721,12 @@ async function handleStart(db: any, userId: string | null, body: any) {
       if (i > 0) {
         cumulativeDelay += randInt(5, 30) * 60 * 1000;
       }
+      const jobPayload: any = { group_id: allGroups[i].id, group_name: allGroups[i].name };
+      if (allGroups[i].invite_link) jobPayload.invite_link = allGroups[i].invite_link;
       jobs.push({
         user_id: userId, device_id, cycle_id: cycle.id,
         job_type: "join_group",
-        payload: { group_id: allGroups[i].id, group_name: allGroups[i].name },
+        payload: jobPayload,
         run_at: new Date(now.getTime() + cumulativeDelay).toISOString(),
         status: "pending",
       });
