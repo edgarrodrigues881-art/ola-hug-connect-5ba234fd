@@ -91,7 +91,37 @@ function parseProfileSnapshot(payload: any): { pic: string | null | undefined; n
   };
 }
 
-// Try dedicated endpoints to fetch own profile pic URL (often fresher than /instance/status)
+/**
+ * Downloads a WhatsApp profile picture and uploads it to Supabase Storage.
+ * Returns the public URL, or null if download/upload fails.
+ */
+async function persistProfilePic(
+  svc: any,
+  deviceId: string,
+  whatsappUrl: string,
+): Promise<string | null> {
+  try {
+    const res = await fetchT(whatsappUrl, { method: "GET" }, 6000);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (blob.size < 100) return null; // too small, likely error page
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    const ext = contentType.includes("png") ? "png" : "jpg";
+    const path = `profile-pictures/${deviceId}.${ext}`;
+    const { error } = await svc.storage.from("avatars").upload(path, blob, {
+      contentType,
+      upsert: true,
+      cacheControl: "3600",
+    });
+    if (error) return null;
+    const { data: urlData } = svc.storage.from("avatars").getPublicUrl(path);
+    // Append timestamp to bust cache on updates
+    return urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: string, numberRaw?: string): Promise<string | null | undefined> {
   const owner = (ownerRaw || "").toString().trim();
   const number = (numberRaw || "").toString().trim();
