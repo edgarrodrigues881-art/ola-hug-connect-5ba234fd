@@ -275,7 +275,7 @@ export function AppSidebar() {
             <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="px-2.5 space-y-[2px]">
+            <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {/* Main warmup item with expand arrow */}
               <SidebarMenuItem>
                 <div className="flex items-center">
