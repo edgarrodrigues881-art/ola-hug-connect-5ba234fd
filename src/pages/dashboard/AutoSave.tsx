@@ -384,105 +384,126 @@ const AutoSave = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary shrink-0" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
             Auto Save
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5 max-w-[280px] sm:max-w-none">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Gerencie os contatos da camada Auto Save
           </p>
         </div>
-
-        {/* Action buttons - grid on mobile */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9" onClick={() => setImportOpen(true)}>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl border-border/15" onClick={() => setImportOpen(true)}>
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           {contacts.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 text-destructive hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl text-destructive border-destructive/20 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
               <Trash2 className="w-3.5 h-3.5" /> Apagar todos
             </Button>
           )}
-          <Button size="sm" className="gap-1.5 text-xs h-9 col-span-2 sm:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="gap-1.5 text-xs h-9 rounded-xl shadow-md" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <Card className="max-w-[160px]"><CardContent className="p-3 text-center">
-        <p className="text-xl font-bold tabular-nums text-foreground">{contacts.length}</p>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</p>
-      </CardContent></Card>
+      {/* Stats cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Total", value: contacts.length, color: "#a1a1aa", icon: Users },
+          { label: "Ativos", value: activeCount, color: "#10b981", icon: CheckCircle2 },
+          { label: "Inativos", value: contacts.length - activeCount, color: "#6b7280", icon: XCircle },
+        ].map(s => (
+          <div key={s.label} className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl p-4 overflow-hidden group hover:border-border/40 transition-colors">
+            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent to-transparent" style={{ backgroundImage: `linear-gradient(to right, transparent, ${s.color}40, transparent)` }} />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1.5">{s.label}</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${s.color}15` }}>
+                <s.icon className="w-4 h-4" style={{ color: s.color }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+      {/* Search & Tags */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/40" />
           <Input
             placeholder="Buscar nome ou número..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-9 h-10 text-xs rounded-xl bg-muted/10 border-border/15"
           />
         </div>
         {allTags.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
             {tagFilter && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-6 cursor-pointer hover:bg-destructive/10"
+              <button
+                className="px-3 py-1.5 rounded-xl text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20 shadow-sm"
                 onClick={() => setTagFilter("")}
               >
                 ✕ {tagFilter}
-              </Badge>
+              </button>
             )}
             {allTags.filter(t => t !== tagFilter).slice(0, 5).map(tag => (
-              <Badge
+              <button
                 key={tag}
-                variant="outline"
-                className="text-[10px] h-6 cursor-pointer hover:bg-primary/10"
+                className="px-3 py-1.5 rounded-xl text-[10px] font-medium border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                 onClick={() => setTagFilter(tag)}
               >
                 {tag}
-              </Badge>
+              </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Table */}
+      {/* Contact list */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {contacts.length === 0 ? "Nenhum contato cadastrado" : "Nenhum contato encontrado com esses filtros"}
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="py-16 text-center">
+            <Users className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground/50 font-medium">
+              {contacts.length === 0 ? "Nenhum contato cadastrado" : "Nenhum contato encontrado"}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <div
-          className="rounded-xl border border-border/30 overflow-hidden"
-          style={{
-            contain: "layout style",
-            height: Math.min(filtered.length * 68, 520),
-          }}
-        >
-          <VirtualList
-            rowCount={filtered.length}
-            rowHeight={68}
-            overscanCount={10}
-            style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
-            rowProps={rowProps}
-            rowComponent={AutoSaveRowInner}
-          />
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+            <h3 className="text-sm font-bold text-foreground">{filtered.length} contato{filtered.length !== 1 ? "s" : ""}</h3>
+          </div>
+          <div
+            className="p-2"
+            style={{
+              contain: "layout style",
+              height: Math.min(filtered.length * 68, 520),
+            }}
+          >
+            <VirtualList
+              rowCount={filtered.length}
+              rowHeight={68}
+              overscanCount={10}
+              style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
+              rowProps={rowProps}
+              rowComponent={AutoSaveRowInner}
+            />
+          </div>
         </div>
       )}
 
