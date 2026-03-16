@@ -2108,6 +2108,9 @@ async function handleTick(db: any) {
           }
         }
 
+        // [BUG B FIX] Reschedule pending join_group jobs for groups still not joined
+        await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+
         // Schedule today's jobs
         await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
