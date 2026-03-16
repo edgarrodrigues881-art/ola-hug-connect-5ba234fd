@@ -1847,9 +1847,13 @@ async function handleTick(db: any) {
         break;
       }
 
-      // ── COMMUNITY INTERACTION (parallel conversations with multiple peers) ──
-      // Dispositivo pode manter conversas paralelas com diferentes pares.
-      // Reply turns processam o par específico; novos inícios iteram todos os pares disponíveis.
+      // ── COMMUNITY INTERACTION (rotação inteligente entre pares) ──
+      // Cada job processa UM par por vez, priorizando:
+      //   1) Pares com conversa ativa onde SOU EU o próximo a falar (responder)
+      //   2) Pares sem conversa ativa, mais tempo sem contato (iniciar nova)
+      //   3) Pares em cooldown são pulados
+      // Isso simula uma pessoa real que responde quem mandou mensagem e
+      // depois puxa conversa com quem não fala há mais tempo.
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
@@ -1865,13 +1869,11 @@ async function handleTick(db: any) {
           const peerDeviceId = getCommunityPeerDeviceId(selectedPair, job.device_id);
           const iAmInitiator = job.device_id === initiatorDeviceId;
 
-          // Validações de reply
           if (isReply) {
             if (!Number.isFinite(currentTurnIndex)) return "skip";
             if (pairMeta.conversation_id !== job.payload.conversation_id) return "skip";
             if (pairMeta.expected_sender_device_id !== job.device_id || pairMeta.turns_completed !== currentTurnIndex) return "skip";
           } else {
-            // Não-iniciador não abre conversa
             if (!iAmInitiator) return "skip";
 
             const pairBusy = Boolean(pairMeta.conversation_id && pairMeta.expected_sender_device_id);
@@ -1882,46 +1884,37 @@ async function handleTick(db: any) {
 
               if (isStale) {
                 const resetMeta = {
-                  ...rawPairMeta,
-                  initiator: null,
-                  expected_sender_device_id: null,
+                  ...rawPairMeta, initiator: null, expected_sender_device_id: null,
                   last_sender_device_id: pairMeta.last_sender_device_id,
-                  turns_completed: 0,
-                  max_turns: 0,
-                  conversation_id: null,
-                  last_turn_at: pairMeta.last_turn_at,
-                  last_completed_at: new Date().toISOString(),
+                  turns_completed: 0, max_turns: 0, conversation_id: null,
+                  last_turn_at: pairMeta.last_turn_at, last_completed_at: new Date().toISOString(),
                 };
                 await db.from("community_pairs").update({ meta: resetMeta }).eq("id", selectedPair.id);
                 bufferAudit({
                   user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
                   level: "warn", event_type: "community_stale_reset",
                   message: `Par não respondeu em 10 min — conversa resetada`,
-                  meta: { pair_id: selectedPair.id, stale_conversation_id: pairMeta.conversation_id },
+                  meta: { pair_id: selectedPair.id },
                 });
-                // Continua para iniciar nova conversa com este par
               } else {
-                return "busy"; // Par ocupado mas não stale — pular para outro par
+                return "busy";
               }
             }
 
             const lastCompletedMs = pairMeta.last_completed_at ? new Date(pairMeta.last_completed_at).getTime() : 0;
             if (lastCompletedMs && !Number.isNaN(lastCompletedMs) && (Date.now() - lastCompletedMs) < 5 * 60 * 1000) {
-              return "cooldown"; // Par em cooldown — pular para outro par
+              return "cooldown";
             }
           }
 
-          // Verificar peer online
           const { data: peerDev } = await db.from("devices")
-            .select("id, number, status")
-            .eq("id", peerDeviceId)
-            .maybeSingle();
+            .select("id, number, status").eq("id", peerDeviceId).maybeSingle();
 
           if (!peerDev?.number || !CONNECTED_STATUSES.includes(peerDev.status)) {
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "community_peer_offline",
-              message: "Par offline — pulando para próximo par disponível",
+              message: "Par offline — pulando para próximo",
               meta: { pair_id: selectedPair.id, peer_device: peerDeviceId },
             });
             return "offline";
@@ -1938,26 +1931,13 @@ async function handleTick(db: any) {
 
           if (hasNextTurn) {
             const { data: nextCycleData } = await db.from("warmup_cycles")
-              .select("id, user_id")
-              .eq("device_id", peerDeviceId)
-              .eq("is_running", true)
-              .neq("phase", "completed")
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
+              .select("id, user_id").eq("device_id", peerDeviceId)
+              .eq("is_running", true).neq("phase", "completed")
+              .order("created_at", { ascending: false }).limit(1).maybeSingle();
             nextCycle = nextCycleData;
-            if (!nextCycle) {
-              bufferAudit({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "warn", event_type: "community_peer_no_cycle",
-                message: "O outro lado não está pronto para responder",
-                meta: { pair_id: selectedPair.id, peer_device: peerDeviceId },
-              });
-              return "no_cycle";
-            }
+            if (!nextCycle) return "no_cycle";
           }
 
-          // ── Enviar mensagem ──
           const communityMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
           let msg = generateNaturalMessage("community");
           let communityActualMedia: "text" | "image" | "sticker" = communityMediaType;
@@ -1977,7 +1957,7 @@ async function handleTick(db: any) {
             } else {
               await uazapiSendText(baseUrl, token, peerPhone, msg);
             }
-          } catch (mediaErr) {
+          } catch {
             communityActualMedia = "text";
             msg = generateNaturalMessage("community");
             await uazapiSendText(baseUrl, token, peerPhone, msg);
@@ -2007,24 +1987,15 @@ async function handleTick(db: any) {
           if (hasNextTurn && nextCycle) {
             const replyDelaySeconds = randInt(8, 35);
             await enqueueCommunityTurn(db, {
-              user_id: nextCycle.user_id,
-              device_id: peerDeviceId,
-              cycle_id: nextCycle.id,
-              pair_id: selectedPair.id,
-              conversation_id: conversationId,
-              turn_index: nextTurnNumber,
-              delay_seconds: replyDelaySeconds,
+              user_id: nextCycle.user_id, device_id: peerDeviceId, cycle_id: nextCycle.id,
+              pair_id: selectedPair.id, conversation_id: conversationId,
+              turn_index: nextTurnNumber, delay_seconds: replyDelaySeconds,
             });
-
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "info", event_type: "community_turn_sent",
               message: `Comunitário x1: turno ${nextTurnNumber}/${maxTurns} enviado (${communityActualMedia})`,
-              meta: {
-                pair_id: selectedPair.id, peer_device: peerDeviceId,
-                conversation_id: conversationId, next_turn_index: nextTurnNumber,
-                reply_delay_seconds: replyDelaySeconds, media_type: communityActualMedia,
-              },
+              meta: { pair_id: selectedPair.id, peer_device: peerDeviceId, conversation_id: conversationId, media_type: communityActualMedia },
             });
           } else {
             bufferAudit({
@@ -2041,9 +2012,7 @@ async function handleTick(db: any) {
         if (isReplyTurn) {
           const { data: replyPair } = await db.from("community_pairs")
             .select("id, instance_id_a, instance_id_b, meta")
-            .eq("id", job.payload.pair_id)
-            .eq("status", "active")
-            .maybeSingle();
+            .eq("id", job.payload.pair_id).eq("status", "active").maybeSingle();
 
           if (!replyPair || ![replyPair.instance_id_a, replyPair.instance_id_b].includes(job.device_id)) {
             bufferAudit({
@@ -2055,20 +2024,17 @@ async function handleTick(db: any) {
             break;
           }
 
-          const currentTurnIndex = Number(job.payload?.turn_index) || 0;
-          await processCommunityTurn(replyPair, currentTurnIndex, true);
+          await processCommunityTurn(replyPair, Number(job.payload?.turn_index) || 0, true);
           break;
         }
 
-        // ── Novo início: iterar TODOS os pares e processar os disponíveis ──
+        // ── Novo início: selecionar UM par com prioridade inteligente ──
         const { data: pairsAsA } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_a", job.device_id)
-          .eq("status", "active");
+          .eq("instance_id_a", job.device_id).eq("status", "active");
         const { data: pairsAsB } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_b", job.device_id)
-          .eq("status", "active");
+          .eq("instance_id_b", job.device_id).eq("status", "active");
 
         const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
         const seenPairIds = new Set<string>();
@@ -2087,39 +2053,75 @@ async function handleTick(db: any) {
           break;
         }
 
-        // Embaralhar para não seguir sempre a mesma ordem
-        for (let i = uniquePairs.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [uniquePairs[i], uniquePairs[j]] = [uniquePairs[j], uniquePairs[i]];
-        }
-
-        let processedCount = 0;
-        const statusLog: string[] = [];
+        // ── Classificar pares por prioridade ──
+        // Prioridade 1: Par com conversa ativa esperando MINHA resposta (mais urgente)
+        // Prioridade 2: Par livre sem conversa ativa, há mais tempo sem contato
+        // Prioridade 3: Par ocupado esperando a resposta DO OUTRO (pular)
+        // Prioridade 4: Par em cooldown (pular)
+        type ScoredPair = { pair: any; priority: number; lastContactMs: number };
+        const scored: ScoredPair[] = [];
 
         for (const pair of uniquePairs) {
-          // Verificar budget antes de cada par
-          if ((cycle.daily_interaction_budget_used || 0) >= (cycle.daily_interaction_budget_target || 120)) {
-            statusLog.push(`budget_full`);
-            break;
-          }
+          const meta = normalizeCommunityPairMeta(pair);
+          const hasBusyConversation = Boolean(meta.conversation_id && meta.expected_sender_device_id);
+          const myTurnToReply = hasBusyConversation && meta.expected_sender_device_id === job.device_id;
+          const otherSideTurn = hasBusyConversation && meta.expected_sender_device_id !== job.device_id;
 
-          const result = await processCommunityTurn(pair, 0, false);
-          statusLog.push(`${pair.id.slice(0,8)}:${result}`);
+          const lastTurnMs = meta.last_turn_at ? new Date(meta.last_turn_at).getTime() : 0;
+          const lastCompletedMs = meta.last_completed_at ? new Date(meta.last_completed_at).getTime() : 0;
+          const lastContactMs = Math.max(lastTurnMs, lastCompletedMs) || 0;
 
-          if (result === "ok") {
-            processedCount++;
-            // Delay entre iniciar conversas com pares diferentes (parecer natural)
-            if (processedCount < uniquePairs.length) {
-              await new Promise(r => setTimeout(r, randInt(3000, 8000)));
-            }
+          // Stale check (10 min) — se o outro lado não respondeu, tratar como livre
+          const STALE_MS = 10 * 60 * 1000;
+          const isStale = otherSideTurn && lastTurnMs && (Date.now() - lastTurnMs) > STALE_MS;
+
+          if (myTurnToReply) {
+            // Prioridade máxima: alguém me mandou mensagem, preciso responder
+            scored.push({ pair, priority: 1, lastContactMs });
+          } else if (otherSideTurn && !isStale) {
+            // O outro lado precisa responder — não interfiro, pulo
+            continue;
+          } else if (isStale) {
+            // Conversa travada, vou resetar e iniciar nova
+            scored.push({ pair, priority: 2, lastContactMs: 0 }); // Tratar como nunca conversou
+          } else {
+            // Par livre — verificar cooldown
+            const inCooldown = lastCompletedMs && (Date.now() - lastCompletedMs) < 5 * 60 * 1000;
+            if (inCooldown) continue;
+
+            // Quanto mais tempo sem contato, maior prioridade (menor lastContactMs = prioridade)
+            scored.push({ pair, priority: 2, lastContactMs });
           }
         }
+
+        if (!scored.length) {
+          bufferAudit({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "community_all_busy",
+            message: "Todos os pares ocupados ou em cooldown — nada a fazer agora",
+            meta: { total_pairs: uniquePairs.length },
+          });
+          break;
+        }
+
+        // Ordenar: prioridade 1 primeiro, depois por tempo sem contato (mais antigo primeiro)
+        scored.sort((a, b) => {
+          if (a.priority !== b.priority) return a.priority - b.priority;
+          return a.lastContactMs - b.lastContactMs; // Quem não conversa há mais tempo primeiro
+        });
+
+        // Processar o par com maior prioridade
+        const chosen = scored[0];
+        const result = await processCommunityTurn(chosen.pair, 0, false);
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "info", event_type: "community_round_summary",
-          message: `Rodada comunitária: ${processedCount}/${uniquePairs.length} pares ativados`,
-          meta: { pairs_total: uniquePairs.length, processed: processedCount, details: statusLog },
+          level: "info", event_type: "community_smart_pick",
+          message: `Par selecionado (prioridade ${chosen.priority}): ${result}`,
+          meta: {
+            pair_id: chosen.pair.id, priority: chosen.priority,
+            result, candidates: scored.length, total_pairs: uniquePairs.length,
+          },
         });
 
         break;
