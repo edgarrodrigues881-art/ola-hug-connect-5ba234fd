@@ -15,21 +15,11 @@ export function useMessagesTodayCount() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      // Get valid device IDs (non-report_wa)
-      const { data: devices } = await supabase
-        .from("devices")
-        .select("id")
-        .eq("user_id", user!.id)
-        .neq("login_type", "report_wa");
-
-      const validIds = (devices || []).map((d) => d.id);
-      if (validIds.length === 0) return 0;
-
+      // Query audit logs directly by user_id so counts persist even if devices disconnect/are removed
       const { count } = await supabase
         .from("warmup_audit_logs")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user!.id)
-        .in("device_id", validIds)
         .in("event_type", [
           "group_msg_sent",
           "autosave_msg_sent",
