@@ -215,6 +215,37 @@ const AdminTokensGlobal = () => {
         </div>
       </div>
 
+      {/* Cleanup idle tokens */}
+      {idle > 0 && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isPending || cleaningIdle}
+              className="w-full gap-2 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl h-9"
+            >
+              {cleaningIdle ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              Limpar {idle} token(s) ociosos (disponíveis/bloqueados sem instância) + UAZAPI
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Limpar todos os tokens ociosos?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground">
+                {idle} token(s) que <strong>não estão em uso</strong> e <strong>não têm instância vinculada</strong> serão removidos do banco de dados e deletados da UAZAPI. Tokens em uso não serão afetados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCleanIdle} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Limpar ociosos
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       {/* Filters */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
