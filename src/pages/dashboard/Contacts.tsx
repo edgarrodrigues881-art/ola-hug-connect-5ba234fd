@@ -141,8 +141,15 @@ const Contacts = () => {
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
   const [customTags, setCustomTags] = useState<string[]>([]);
+  const [tagColors, setTagColors] = useState<Record<string, number>>({});
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [createTagInput, setCreateTagInput] = useState("");
+  const [newTagColorIdx, setNewTagColorIdx] = useState(0);
+
+  const getTagStyle = useCallback((tag: string) => {
+    const idx = tagColors[tag] ?? 0;
+    return TAG_COLORS[idx % TAG_COLORS.length];
+  }, [tagColors]);
 
   // Edit contact state
   const [editContactOpen, setEditContactOpen] = useState(false);
