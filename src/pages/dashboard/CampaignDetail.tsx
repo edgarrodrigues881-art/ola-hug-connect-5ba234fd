@@ -601,6 +601,32 @@ const CampaignDetail = () => {
                 {isActive && (
                   <p className="text-[10px] text-muted-foreground/40 italic">Pause a campanha para editar.</p>
                 )}
+
+                {/* Pause on disconnect toggle */}
+                <div className="rounded-lg border border-border/20 bg-background/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                      <div>
+                        <p className="text-[11px] font-medium text-foreground">Pausar se desconectar</p>
+                        <p className="text-[9px] text-muted-foreground/50">Pausa a campanha se uma instância for desconectada</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={pauseOnDisconnect}
+                      onCheckedChange={async (val) => {
+                        setPauseOnDisconnect(val);
+                        if (id) {
+                          await supabase.from("campaigns").update({ pause_on_disconnect: val }).eq("id", id);
+                          toast({ title: val ? "✅ Campanha pausará ao desconectar" : "⚠️ Campanha continuará mesmo se desconectar" });
+                        }
+                      }}
+                    />
+                  </div>
+                  {!pauseOnDisconnect && (
+                    <p className="text-[9px] text-amber-400/70 mt-1.5 ml-6">⚠ O envio continuará mesmo se contas forem banidas ou desconectadas</p>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
