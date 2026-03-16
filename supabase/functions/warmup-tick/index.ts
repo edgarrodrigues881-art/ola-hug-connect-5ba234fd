@@ -1813,7 +1813,7 @@ async function handleTick(db: any) {
         const { data: eligible } = await db.from("warmup_community_membership")
           .select("device_id, user_id")
           .eq("is_enabled", true).eq("is_eligible", true)
-          .neq("user_id", job.user_id)
+          .neq("device_id", job.device_id)
           .limit(100);
 
         // Get existing active pairs to decide which to keep
