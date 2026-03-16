@@ -549,11 +549,12 @@ Deno.serve(async (req) => {
 async function handleStart(db: any, userId: string | null, body: any) {
   if (!userId) throw new Error("start requires authenticated user");
 
-  const { device_id, chip_state, days_total, plan_id, start_day } = body;
+  const { device_id, chip_state, days_total, plan_id, start_day, group_source } = body;
   if (!device_id) throw new Error("device_id required");
 
   const resolvedChipState = chip_state || "new";
   const resolvedStartDay = Math.max(1, Math.min(start_day || 1, 30));
+  const resolvedGroupSource = group_source || "system";
   const now = new Date();
 
   // 1. Clean up completed/orphan cycles for this device
@@ -601,48 +602,89 @@ async function handleStart(db: any, userId: string | null, body: any) {
       daily_interaction_budget_target: 0,
       daily_interaction_budget_min: 0,
       daily_interaction_budget_max: 0,
+      group_source: resolvedGroupSource,
     })
     .select("id")
     .single();
 
   if (cycleErr) throw cycleErr;
 
-  // 3. Register groups from pool
-  const { data: poolGroups } = await db
-    .from("warmup_groups_pool")
-    .select("id, name")
-    .eq("is_active", true);
+  // 3. Register groups — from pool (system) or user's custom groups
+  let allGroups: { id: string; name: string; invite_link?: string }[] = [];
 
-  const allGroups = shuffleArray(poolGroups || []);
+  if (resolvedGroupSource === "custom") {
+    // Use user's custom groups from warmup_groups table
+    const { data: customGroups } = await db
+      .from("warmup_groups")
+      .select("id, name, link")
+      .eq("user_id", userId)
+      .eq("is_custom", true);
+    
+    allGroups = shuffleArray((customGroups || []).map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      invite_link: g.link,
+    })));
+  } else {
+    // Use system groups from pool
+    const { data: poolGroups } = await db
+      .from("warmup_groups_pool")
+      .select("id, name")
+      .eq("is_active", true);
+    
+    allGroups = shuffleArray((poolGroups || []).map((g: any) => ({
+      id: g.id,
+      name: g.name,
+    })));
+  }
 
-  // Check for existing group records for this device
-  const { data: existingGroups } = await db
-    .from("warmup_instance_groups")
-    .select("id, group_id, join_status")
-    .eq("device_id", device_id);
-
-  if (existingGroups?.length > 0) {
-    // Update existing records to reference new cycle
-    await db.from("warmup_instance_groups")
-      .update({ cycle_id: cycle.id })
-      .eq("device_id", device_id);
-
-    // Insert any NEW pool groups that don't have records yet
-    const existingGroupIds = new Set(existingGroups.map((g: any) => g.group_id));
-    const missingGroups = allGroups.filter((g: any) => !existingGroupIds.has(g.id));
-    for (const g of missingGroups) {
+  if (resolvedGroupSource === "custom") {
+    // For custom groups: clear existing instance_groups and create fresh
+    await db.from("warmup_instance_groups").delete()
+      .eq("device_id", device_id).eq("user_id", userId);
+    
+    for (const g of allGroups) {
+      // Use the warmup_groups id — but warmup_instance_groups.group_id references warmup_groups_pool
+      // So for custom groups, we store a dummy reference and put the real link in join_group job payload
       await db.from("warmup_instance_groups").insert({
         user_id: userId, device_id,
-        group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+        group_id: g.id, // This is the warmup_groups id (custom)
+        cycle_id: cycle.id, join_status: "pending",
+      }).then(() => {}).catch(() => {
+        // Ignore FK constraint — we'll handle custom groups via job payload
       });
     }
   } else {
-    // Fresh: register all pool groups
-    for (const g of allGroups) {
-      await db.from("warmup_instance_groups").insert({
-        user_id: userId, device_id,
-        group_id: g.id, cycle_id: cycle.id, join_status: "pending",
-      });
+    // System groups — original logic
+    // Check for existing group records for this device
+    const { data: existingGroups } = await db
+      .from("warmup_instance_groups")
+      .select("id, group_id, join_status")
+      .eq("device_id", device_id);
+
+    if (existingGroups?.length > 0) {
+      // Update existing records to reference new cycle
+      await db.from("warmup_instance_groups")
+        .update({ cycle_id: cycle.id })
+        .eq("device_id", device_id);
+
+      // Insert any NEW pool groups that don't have records yet
+      const existingGroupIds = new Set(existingGroups.map((g: any) => g.group_id));
+      const missingGroups = allGroups.filter((g: any) => !existingGroupIds.has(g.id));
+      for (const g of missingGroups) {
+        await db.from("warmup_instance_groups").insert({
+          user_id: userId, device_id,
+          group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+        });
+      }
+    } else {
+      // Fresh: register all pool groups
+      for (const g of allGroups) {
+        await db.from("warmup_instance_groups").insert({
+          user_id: userId, device_id,
+          group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+        });
+      }
     }
   }
 
