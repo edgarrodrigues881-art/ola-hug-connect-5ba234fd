@@ -471,10 +471,10 @@ const Contacts = () => {
       {/* Filters */}
       <Card className="glass-card">
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
-            <div className="relative flex-1 w-full">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full">
+            <div className="relative flex-[3] min-w-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-full" />
             </div>
             <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
