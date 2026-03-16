@@ -59,24 +59,40 @@ const ROADMAP_NOVO: DayPlan[] = [
   },
   {
     day: 5, phase: "community_light", title: "Comunidade inicial",
-    goals: ["Manter grupos (200-500) + AutoSave (15)", "Ativar conversas comunitárias: 3-5 pares", "Cada conversa: 15-30 msgs trocadas naturalmente"],
-    checklist: ["Grupos + AutoSave mantidos", "3-5 conversas comunitárias ativas", "15-30 msgs por conversa", "Mensagens parecem naturais (emojis, textos curtos)"],
+    goals: ["Manter grupos (50-120) + AutoSave (25)", "Ativar conversas comunitárias: 2 pares", "Cada conversa: 4 bursts × 3-7 msgs (conversa real)"],
+    checklist: ["Grupos + AutoSave mantidos", "2 conversas comunitárias ativas", "~20-28 msgs comunitárias", "Mensagens parecem naturais (emojis, textos curtos)"],
     tips: "As conversas comunitárias são entre instâncias da plataforma. Devem parecer orgânicas.",
-    msgTarget: { min: 260, max: 665 }, groupTarget: 8, recipientTarget: 10,
+    msgTarget: { min: 95, max: 173 }, groupTarget: 8, recipientTarget: 7,
   },
   {
     day: 6, phase: "community_light", title: "Comunidade consolidando",
-    goals: ["Continuar tudo: grupos + AutoSave + comunidade leve", "Verificar logs de erros", "Ajustar pares se necessário"],
-    checklist: ["3-5 pares comunitários ativos", "Zero erros nos últimos 2 dias", "Volume estável"],
-    msgTarget: { min: 260, max: 665 }, groupTarget: 8, recipientTarget: 10,
+    goals: ["Continuar tudo: grupos + AutoSave + comunidade leve", "Verificar logs de erros", "2 pares mantidos"],
+    checklist: ["2 pares comunitários ativos", "Zero erros nos últimos 2 dias", "Volume estável < 200 msgs"],
+    msgTarget: { min: 95, max: 173 }, groupTarget: 8, recipientTarget: 7,
   },
-  // Days 7-30: Community Full
+  // Days 7-30: Community Full — progressão segura (< 350 msgs/dia)
   ...Array.from({ length: 24 }, (_, i) => {
     const day = i + 7;
     const isCheckpoint = [7, 14, 21, 30].includes(day);
-    const communityPairsMin = 5, communityPairsMax = 10;
-    const communityMsgsMin = communityPairsMin * 15;
-    const communityMsgsMax = communityPairsMax * 30;
+    const daysSinceCommunity = day - 6; // community starts day 6
+
+    // Progressão de pares: 2→3→4→5→6→7
+    const communityPairs = daysSinceCommunity <= 1 ? 2 :
+                           daysSinceCommunity <= 5 ? 3 :
+                           daysSinceCommunity <= 10 ? 4 :
+                           daysSinceCommunity <= 15 ? 5 :
+                           daysSinceCommunity <= 20 ? 6 : 7;
+
+    // Bursts por par: 4→5→5→6→6→7
+    const burstsPerPeer = daysSinceCommunity <= 1 ? 4 :
+                          daysSinceCommunity <= 5 ? 5 :
+                          daysSinceCommunity <= 10 ? 5 :
+                          daysSinceCommunity <= 15 ? 6 :
+                          daysSinceCommunity <= 20 ? 6 : 7;
+
+    // Cada burst = 3-7 msgs → média 5
+    const communityMsgsMin = communityPairs * burstsPerPeer * 3;
+    const communityMsgsMax = communityPairs * burstsPerPeer * 7;
 
     return {
       day,
@@ -88,15 +104,15 @@ const ROADMAP_NOVO: DayPlan[] = [
              day === 30 ? "Chip aquecido! 🎉🔥" :
              `Dia ${day} — Maturação contínua`,
       goals: [
-        "Grupos: 200-500 mensagens nos 8 grupos",
-        "Auto Save: 5 números novos × 3 msgs = 15/dia",
-        `Comunitário: ${communityPairsMin}-${communityPairsMax} pares × 15-30 msgs cada`,
+        "Grupos: 50-120 mensagens nos 8 grupos",
+        "Auto Save: 5 números × 5 msgs = 25/dia",
+        `Comunitário: ${communityPairs} pares × ${burstsPerPeer} bursts (3-7 msgs cada)`,
         ...(isCheckpoint ? ["Health check completo da instância"] : []),
       ],
       checklist: [
-        "Volume de grupos mantido (200-500)",
-        "Auto Save ativo (15 msgs/dia)",
-        `${communityPairsMin}-${communityPairsMax} conversas comunitárias`,
+        "Volume de grupos mantido (50-120)",
+        "Auto Save ativo (25 msgs/dia)",
+        `${communityPairs} conversas comunitárias (~${communityMsgsMin}-${communityMsgsMax} msgs)`,
         ...(isCheckpoint ? ["Zero bloqueios ou restrições", "Instância estável e saudável"] : ["Sem erros nos logs"]),
         ...(day === 30 ? ["🏆 Ciclo de 30 dias completo!", "Chip pronto para campanhas com delays seguros"] : []),
       ],
@@ -105,9 +121,9 @@ const ROADMAP_NOVO: DayPlan[] = [
             day === 21 ? "3 semanas! O chip já tem boa reputação. Mantenha a consistência." :
             day === 30 ? "🎉 Parabéns! O chip completou 30 dias de maturação. Use com delays seguros em campanhas." :
             undefined,
-      msgTarget: { min: 200 + 15 + communityMsgsMin, max: 500 + 15 + communityMsgsMax },
+      msgTarget: { min: 50 + 25 + communityMsgsMin, max: 120 + 25 + communityMsgsMax },
       groupTarget: 8,
-      recipientTarget: 5 + communityPairsMax,
+      recipientTarget: 5 + communityPairs,
     } as DayPlan;
   }),
 ];
@@ -165,13 +181,25 @@ const ROADMAP_BANIDO: DayPlan[] = [
     tips: "Uma semana sem ban! Bom sinal, mas mantenha a cautela. Chips banidos podem ter recaídas.",
     msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
   },
-  // Days 8-30: Community Full (conservative)
+  // Days 8-30: Community Full (conservative) — progressão segura
   ...Array.from({ length: 23 }, (_, i) => {
     const day = i + 8;
     const isCheckpoint = [14, 21, 30].includes(day);
-    const communityPairsMin = 4, communityPairsMax = 8;
-    const communityMsgsMin = communityPairsMin * 15;
-    const communityMsgsMax = communityPairsMax * 25;
+    const daysSinceCommunity = day - 7; // recovered community starts later
+
+    // Progressão conservadora: 2→2→3→4→5→5
+    const communityPairs = daysSinceCommunity <= 2 ? 2 :
+                           daysSinceCommunity <= 6 ? 3 :
+                           daysSinceCommunity <= 12 ? 4 :
+                           daysSinceCommunity <= 18 ? 5 : 5;
+
+    const burstsPerPeer = daysSinceCommunity <= 2 ? 3 :
+                          daysSinceCommunity <= 6 ? 4 :
+                          daysSinceCommunity <= 12 ? 4 :
+                          daysSinceCommunity <= 18 ? 5 : 5;
+
+    const communityMsgsMin = communityPairs * burstsPerPeer * 3;
+    const communityMsgsMax = communityPairs * burstsPerPeer * 7;
 
     return {
       day,
@@ -183,24 +211,24 @@ const ROADMAP_BANIDO: DayPlan[] = [
              day === 30 ? "Recuperação completa! 🎉🛡️" :
              `Dia ${day} — Recuperação contínua`,
       goals: [
-        "Grupos: 150-350 msgs (conservador)",
-        "Auto Save: 5 números × 2 msgs = 10/dia",
-        `Comunitário: ${communityPairsMin}-${communityPairsMax} pares × 15-25 msgs`,
+        "Grupos: 50-120 msgs (conservador)",
+        "Auto Save: 5 números × 5 msgs = 25/dia",
+        `Comunitário: ${communityPairs} pares × ${burstsPerPeer} bursts`,
         ...(isCheckpoint ? ["Health check completo"] : []),
       ],
       checklist: [
         "Volume controlado (abaixo do chip novo)",
-        "Auto Save: 10 msgs/dia",
-        `${communityPairsMin}-${communityPairsMax} conversas comunitárias`,
+        "Auto Save: 25 msgs/dia",
+        `${communityPairs} conversas comunitárias (~${communityMsgsMin}-${communityMsgsMax} msgs)`,
         ...(isCheckpoint ? ["Zero bloqueios ou restrições", "Instância estável"] : ["Logs limpos"]),
         ...(day === 30 ? ["🛡️ 30 dias de recuperação completo!", "Chip recuperado — usar com delays maiores que normal"] : []),
       ],
       tips: day === 14 ? "2 semanas de recuperação! Continue mantendo cautela." :
             day === 21 ? "3 semanas! Se não houve problemas, o chip está se recuperando bem." :
             day === 30 ? "🛡️ Recuperação de 30 dias completa! Use SEMPRE com delays maiores e volume menor que chips novos." : undefined,
-      msgTarget: { min: 150 + 10 + communityMsgsMin, max: 350 + 10 + communityMsgsMax },
+      msgTarget: { min: 50 + 25 + communityMsgsMin, max: 120 + 25 + communityMsgsMax },
       groupTarget: 8,
-      recipientTarget: 5 + communityPairsMax,
+      recipientTarget: 5 + communityPairs,
     } as DayPlan;
   }),
 ];
@@ -241,10 +269,26 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     tips: i === 0 ? "1 semana sem ban! Mas mantenha cautela — chip fraco pode recair." : undefined,
     msgTarget: { min: 126, max: 228 }, groupTarget: 8, recipientTarget: 4,
   } as DayPlan)),
-  // Days 11-30: community_light
+  // Days 11-30: community_light — progressão ultra-conservadora
   ...Array.from({ length: 20 }, (_, i) => {
     const day = i + 11;
     const isCheckpoint = [14, 21, 30].includes(day);
+    const daysSinceCommunity = day - 11;
+
+    // Ultra-conservador: 1→2→2→3→3→4
+    const communityPairs = daysSinceCommunity <= 2 ? 1 :
+                           daysSinceCommunity <= 6 ? 2 :
+                           daysSinceCommunity <= 10 ? 2 :
+                           daysSinceCommunity <= 15 ? 3 : 4;
+
+    const burstsPerPeer = daysSinceCommunity <= 2 ? 3 :
+                          daysSinceCommunity <= 6 ? 3 :
+                          daysSinceCommunity <= 10 ? 4 :
+                          daysSinceCommunity <= 15 ? 4 : 5;
+
+    const communityMsgsMin = communityPairs * burstsPerPeer * 3;
+    const communityMsgsMax = communityPairs * burstsPerPeer * 7;
+
     return {
       day,
       phase: day >= 25 ? "consolidation" : "community_light",
@@ -255,24 +299,24 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
              day === 30 ? "Chip estabilizado! 🎉🛡️" :
              `Dia ${day} — Maturação contínua`,
       goals: [
-        "Grupos: 150-300 msgs (conservador)",
-        "Auto Save: 5 números × 2 msgs = 10/dia",
-        "Comunitário leve: 2-5 pares × 10-20 msgs",
+        "Grupos: 50-120 msgs (ultra-conservador)",
+        "Auto Save: 5 números × 5 msgs = 25/dia",
+        `Comunitário leve: ${communityPairs} pares × ${burstsPerPeer} bursts`,
         ...(isCheckpoint ? ["Health check completo"] : []),
       ],
       checklist: [
-        "Volume controlado (abaixo do chip novo)",
-        "Auto Save: 10 msgs/dia",
-        "2-5 conversas comunitárias leves",
+        "Volume controlado (< 250 msgs/dia)",
+        "Auto Save: 25 msgs/dia",
+        `${communityPairs} conversas comunitárias (~${communityMsgsMin}-${communityMsgsMax} msgs)`,
         ...(isCheckpoint ? ["Zero bloqueios", "Instância estável"] : ["Logs limpos"]),
         ...(day === 30 ? ["🛡️ 30 dias completos!", "Chip estabilizado — usar com delays seguros"] : []),
       ],
       tips: day === 14 ? "2 semanas! Continue conservador." :
             day === 21 ? "3 semanas sem problemas. O chip está melhorando." :
             day === 30 ? "🛡️ Ciclo completo! Use SEMPRE com delays maiores e volume conservador." : undefined,
-      msgTarget: { min: 150 + 10 + 20, max: 300 + 10 + 100 },
+      msgTarget: { min: 50 + 25 + communityMsgsMin, max: 120 + 25 + communityMsgsMax },
       groupTarget: 8,
-      recipientTarget: 5 + 5,
+      recipientTarget: 5 + communityPairs,
     } as DayPlan;
   }),
 ];

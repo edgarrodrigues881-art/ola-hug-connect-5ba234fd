@@ -99,11 +99,26 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  if (daysSinceCommunity === 0) return 3;  // primeiro dia: apenas 3
-  if (daysSinceCommunity <= 4) return 5;   // dias 1-4: 5 pares
-  if (daysSinceCommunity <= 7) return Math.min(5 + (daysSinceCommunity - 4), 10); // ramp 6→10
-  if (daysSinceCommunity <= 10) return Math.min(10 + (daysSinceCommunity - 7), 15); // ramp 11→15
-  return Math.min(15 + (daysSinceCommunity - 10), 20); // ramp 16→20 (teto)
+  // Progressão segura: 2→3→4→5→6→7 pares (volume total < 350 msgs/dia)
+  if (daysSinceCommunity <= 1) return 2;   // dias 0-1: 2 pares
+  if (daysSinceCommunity <= 5) return 3;   // dias 2-5: 3 pares
+  if (daysSinceCommunity <= 10) return 4;  // dias 6-10: 4 pares
+  if (daysSinceCommunity <= 15) return 5;  // dias 11-15: 5 pares
+  if (daysSinceCommunity <= 20) return 6;  // dias 16-20: 6 pares
+  return 7;                                // dias 21+: 7 pares (teto)
+}
+
+function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
+  const communityStartDay = getGroupsEndDay(chipState) + 2;
+  const daysSinceCommunity = dayIndex - communityStartDay;
+  if (daysSinceCommunity < 0) return 0;
+  // Bursts por par escalam suavemente: 4→5→5→6→6→7
+  if (daysSinceCommunity <= 1) return 4;
+  if (daysSinceCommunity <= 5) return 5;
+  if (daysSinceCommunity <= 10) return 5;
+  if (daysSinceCommunity <= 15) return 6;
+  if (daysSinceCommunity <= 20) return 6;
+  return 7;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -128,11 +143,11 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveRounds = 5;
   }
 
-  // Community: ramp-up gradual baseado em dias desde ativação
+  // Community: progressão segura — volume total < 350 msgs/dia
   // Cada burst = 3-7 msgs de uma vez (conversa real)
   if (phase === "community_enabled") {
     v.communityPeers = getCommunityPeers(dayIndex, chipState);
-    v.communityMsgsPerPeer = randInt(8, 12); // bursts por par
+    v.communityMsgsPerPeer = getCommunityBurstsPerPeer(dayIndex, chipState);
   }
 
   return v;
