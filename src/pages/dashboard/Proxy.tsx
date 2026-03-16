@@ -357,17 +357,21 @@ const Proxy = () => {
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {/* Disclaimer — clean & direct */}
+    <div className="space-y-5 max-w-6xl mx-auto">
+      {/* Disclaimer */}
       <Dialog open={disclaimerOpen} onOpenChange={(open) => { if (!open) navigate("/dashboard"); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5 text-foreground text-base">
-              <Shield className="w-5 h-5 text-primary" />
-              Boas práticas de Proxy
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
+        <DialogContent className="sm:max-w-[380px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-primary" />
+                </div>
+                Boas práticas de Proxy
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4 space-y-3">
             <p className="text-[13px] text-muted-foreground leading-relaxed">
               Proxies são parte crítica da saúde do chip. A qualidade da conexão impacta diretamente na estabilidade da instância.
             </p>
@@ -384,85 +388,44 @@ const Proxy = () => {
               ))}
             </div>
           </div>
-          <DialogFooter className="flex-col gap-3 sm:flex-col">
+          <div className="px-6 py-4 border-t border-border/10 bg-muted/5 space-y-3">
             <div className="flex items-start gap-2">
               <Checkbox id="disclaimer-check" checked={disclaimerChecked} onCheckedChange={(v) => setDisclaimerChecked(!!v)} className="mt-0.5" />
               <label htmlFor="disclaimer-check" className="text-[11px] text-muted-foreground cursor-pointer leading-relaxed">
                 Estou ciente e assumo responsabilidade pelo uso.
               </label>
             </div>
-            <Button onClick={handleAcceptDisclaimer} className="w-full" size="sm" disabled={!disclaimerChecked}>
+            <Button onClick={handleAcceptDisclaimer} className="w-full h-10 rounded-xl text-xs font-semibold shadow-md" disabled={!disclaimerChecked}>
               Continuar
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Header */}
-      <div>
-        <h1 className="text-lg sm:text-xl font-bold text-foreground">Proxies</h1>
-        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Conexão dedicada por instância para saúde do chip</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {[
-          { label: "Total", value: counts.total, color: "text-foreground" },
-          { label: "Livres", value: counts.NOVA, color: "text-emerald-400" },
-          { label: "Em uso", value: counts.USANDO, color: "text-amber-400" },
-          { label: "Usadas", value: counts.USADA, color: "text-muted-foreground/50" },
-        ].map(s => (
-          <Card key={s.label} className="border-border/15">
-            <CardContent className="p-2.5 sm:p-3">
-              <p className={`text-lg sm:text-xl font-bold tabular-nums leading-none ${s.color}`}>{s.value}</p>
-              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mt-1">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Filters + Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {([
-            { key: null as StatusFilter, label: "Todas" },
-            { key: "NOVA" as StatusFilter, label: "Livres" },
-            { key: "USANDO" as StatusFilter, label: "Em uso" },
-            { key: "USADA" as StatusFilter, label: "Usadas" },
-            { key: "INVALID" as StatusFilter, label: "Inválidas" },
-          ]).map(f => (
-            <button
-              key={f.label}
-              onClick={() => setStatusFilter(f.key)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
-                statusFilter === f.key
-                  ? "bg-muted/20 text-foreground border-border/40"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+            <Globe className="w-6 h-6 text-primary" />
+            Proxies
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Conexão dedicada por instância para saúde do chip</p>
         </div>
-        <div className="flex items-center gap-1.5 sm:ml-auto flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-3 h-3" /> Importar
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           <div className="relative">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
-              <Download className="w-3 h-3" /> Exportar
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
+              <Download className="w-3.5 h-3.5" /> Exportar
             </Button>
             {exportMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[120px]">
+                <div className="absolute right-0 top-full mt-1.5 z-50 bg-card/95 backdrop-blur-2xl border border-border/20 rounded-xl shadow-2xl py-1.5 min-w-[130px]">
                   {(["TODAS", "NOVA", "USANDO", "USADA"] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => handleExport(s)}
-                      className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
-                    >
+                    <button key={s} onClick={() => handleExport(s)} className="w-full text-left px-3.5 py-2 text-xs text-foreground hover:bg-muted/50 transition-colors rounded-lg mx-0.5" style={{ width: "calc(100% - 4px)" }}>
                       {s === "TODAS" ? "Todas" : s === "NOVA" ? "Livres" : s === "USANDO" ? "Em uso" : "Usadas"}
                     </button>
                   ))}
@@ -470,186 +433,237 @@ const Proxy = () => {
               </>
             )}
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={handleSync}>
-            <RefreshCw className="w-3 h-3" /> Sincronizar
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleSync}>
+            <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
           </Button>
         </div>
       </div>
 
-      {/* Add form — compact */}
-      <Card className="border-border/15">
-        <CardContent className="p-4 space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground">Cole proxy (host:porta:user:senha)</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="192.168.0.1:8080:user:senha"
-                value={pasteInput}
-                onChange={(e) => handlePasteInput(e.target.value)}
-                className="font-mono text-xs flex-1 h-8"
-              />
-              <Button onClick={handleAdd} size="sm" className="gap-1 text-xs h-8 shrink-0">
-                <Plus className="w-3 h-3" /> Adicionar
-              </Button>
+      {/* Stats — premium cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total", value: counts.total, icon: Server, color: "#a1a1aa" },
+          { label: "Livres", value: counts.NOVA, icon: Wifi, color: "#10b981" },
+          { label: "Em uso", value: counts.USANDO, icon: Link2, color: "#f59e0b" },
+          { label: "Usadas", value: counts.USADA, icon: Globe, color: "#6b7280" },
+        ].map(s => (
+          <div key={s.label} className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl p-4 overflow-hidden group hover:border-border/40 transition-colors">
+            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent to-transparent" style={{ backgroundImage: `linear-gradient(to right, transparent, ${s.color}40, transparent)` }} />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1.5">{s.label}</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${s.color}15` }}>
+                <s.icon className="w-4 h-4" style={{ color: s.color }} />
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Host</Label>
-              <Input placeholder="192.168.0.1" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-7 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Porta</Label>
-              <Input placeholder="8080" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="h-7 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Usuário</Label>
-              <Input placeholder="user" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-7 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Senha</Label>
-              <Input placeholder="senha" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-7 text-xs font-mono" />
-            </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {([
+          { key: null as StatusFilter, label: "Todas" },
+          { key: "NOVA" as StatusFilter, label: "Livres" },
+          { key: "USANDO" as StatusFilter, label: "Em uso" },
+          { key: "USADA" as StatusFilter, label: "Usadas" },
+          { key: "INVALID" as StatusFilter, label: "Inválidas" },
+        ]).map(f => (
+          <button
+            key={f.label}
+            onClick={() => setStatusFilter(f.key)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              statusFilter === f.key
+                ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Add form — premium */}
+      <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="p-5 space-y-4">
+          <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Adicionar proxy</label>
+          <div className="flex gap-2">
+            <Input
+              placeholder="192.168.0.1:8080:user:senha"
+              value={pasteInput}
+              onChange={(e) => handlePasteInput(e.target.value)}
+              className="font-mono text-xs flex-1 h-10 rounded-xl bg-muted/10 border-border/15"
+            />
+            <Button onClick={handleAdd} size="sm" className="gap-1.5 text-xs h-10 px-4 rounded-xl shrink-0 shadow-md">
+              <Plus className="w-3.5 h-3.5" /> Adicionar
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {[
+              { label: "Host", placeholder: "192.168.0.1", key: "host" as const },
+              { label: "Porta", placeholder: "8080", key: "port" as const },
+              { label: "Usuário", placeholder: "user", key: "username" as const },
+              { label: "Senha", placeholder: "senha", key: "password" as const },
+            ].map(f => (
+              <div key={f.key} className="space-y-1">
+                <Label className="text-[10px] font-semibold text-muted-foreground/50 uppercase">{f.label}</Label>
+                <Input
+                  placeholder={f.placeholder}
+                  value={form[f.key]}
+                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  className="h-9 text-xs font-mono rounded-xl bg-muted/10 border-border/15"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">{selectedIds.size} selecionada(s)</span>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
+        <div className="flex items-center gap-2.5 flex-wrap rounded-xl bg-destructive/5 border border-destructive/15 px-4 py-2.5">
+          <span className="text-xs text-muted-foreground font-medium">{selectedIds.size} selecionada(s)</span>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 rounded-lg" onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
             <Trash2 className="w-3 h-3" /> Remover
           </Button>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => setClearAllConfirmOpen(true)}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 rounded-lg" onClick={() => setClearAllConfirmOpen(true)}>
             Limpar tudo
           </Button>
 
           <Dialog open={clearAllConfirmOpen} onOpenChange={setClearAllConfirmOpen}>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle className="text-sm">Confirmar remoção</DialogTitle>
-              </DialogHeader>
-              <p className="text-xs text-muted-foreground">Todas as proxies livres serão removidas. Proxies vinculadas a instâncias serão preservadas.</p>
-              <DialogFooter className="gap-2">
-                <Button variant="outline" size="sm" onClick={() => setClearAllConfirmOpen(false)}>Cancelar</Button>
-                <Button variant="destructive" size="sm" onClick={() => { deleteMultipleMutation.mutate(filtered.map((p: any) => p.id)); setClearAllConfirmOpen(false); }}>Confirmar</Button>
-              </DialogFooter>
+            <DialogContent className="sm:max-w-[340px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+              <div className="px-6 pt-6 pb-4">
+                <DialogHeader>
+                  <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+                      <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                    </div>
+                    Confirmar remoção
+                  </DialogTitle>
+                </DialogHeader>
+              </div>
+              <div className="px-6 pb-4">
+                <p className="text-xs text-muted-foreground leading-relaxed">Todas as proxies livres serão removidas. Proxies vinculadas a instâncias serão preservadas.</p>
+              </div>
+              <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+                <Button variant="outline" size="sm" onClick={() => setClearAllConfirmOpen(false)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+                <Button variant="destructive" size="sm" onClick={() => { deleteMultipleMutation.mutate(filtered.map((p: any) => p.id)); setClearAllConfirmOpen(false); }} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">Confirmar</Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
       )}
 
-      {/* Proxy table */}
-      <Card ref={tableRef} className="border-border/15 overflow-hidden">
-        <CardHeader className="pb-0 pt-3 px-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">Proxies ({filtered.length})</CardTitle>
-            {filtered.length > 0 && (
-              <Button variant="ghost" size="sm" className="text-[11px] h-6" onClick={selectAll}>
-                {selectedIds.size === filtered.length ? "Desmarcar" : "Selecionar tudo"}
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 mt-2">
-          {filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-sm text-muted-foreground">Nenhuma proxy encontrada</p>
-            </div>
-          ) : (
-            <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-border/30 bg-muted/5">
-                    <TableHead className="w-8 px-3"></TableHead>
-                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">#</TableHead>
-                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Proxy</TableHead>
-                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Auth</TableHead>
-                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Instância</TableHead>
-                    <TableHead className="w-8"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((proxy: any) => {
-                    const isSelected = selectedIds.has(proxy.id);
-                    const linkedDevice = deviceByProxy[proxy.id];
-                    return (
-                      <TableRow key={proxy.id} className={`border-b border-border/15 ${isSelected ? "bg-primary/5" : ""}`}>
-                        <TableCell className="px-3">
-                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(proxy.id)} />
-                        </TableCell>
-                        <TableCell className="text-[11px] text-muted-foreground/40 font-mono tabular-nums">
-                          {proxy.displayId}
-                        </TableCell>
-                        <TableCell>
-                          <p className="text-xs font-medium text-foreground font-mono">{proxy.host}:{proxy.port}</p>
-                        </TableCell>
-                        <TableCell>
-                          {proxy.username ? (
-                            <p className="text-[11px] text-muted-foreground font-mono truncate max-w-[120px]" title={`${proxy.username}:${proxy.password}`}>
-                              {proxy.username}:{"•".repeat(Math.min(proxy.password?.length || 4, 6))}
-                            </p>
-                          ) : (
-                            <p className="text-[11px] text-muted-foreground/20">—</p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={proxy.proxyStatus}
-                            onValueChange={(value) => updateStatusMutation.mutate({ id: proxy.id, status: value as any })}
-                          >
-                            <SelectTrigger className="h-6 w-auto gap-1 rounded-full !border-0 bg-transparent px-0 text-[10px] !shadow-none !ring-0 !ring-offset-0 !outline-none [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-40">
-                              {getStatusBadge(proxy.proxyStatus)}
-                            </SelectTrigger>
-                            <SelectContent className="min-w-[100px] bg-popover z-50">
-                              <SelectItem value="NOVA" className="text-xs">Livre</SelectItem>
-                              <SelectItem value="USANDO" className="text-xs">Em uso</SelectItem>
-                              <SelectItem value="USADA" className="text-xs">Usada</SelectItem>
-                              <SelectItem value="INVALID" className="text-xs">Inválida</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          {linkedDevice ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
-                                {linkedDevice.profile_picture ? (
-                                  <img src={linkedDevice.profile_picture} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <Link2 className="w-2.5 h-2.5 text-muted-foreground" />
-                                )}
-                              </div>
-                              <span className="text-[11px] text-foreground/70 truncate max-w-[120px]">
-                                {linkedDevice.profile_name || linkedDevice.name}
-                                {linkedDevice.number ? ` · ${linkedDevice.number}` : ""}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground/20">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {isSelected && (
-                            <button
-                              onClick={() => deleteMultipleMutation.mutate([proxy.id])}
-                              className="text-destructive/60 hover:text-destructive transition-colors"
-                              title="Remover"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+      {/* Proxy table — premium */}
+      <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden" ref={tableRef}>
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+          <h3 className="text-sm font-bold text-foreground">Proxies ({filtered.length})</h3>
+          {filtered.length > 0 && (
+            <button onClick={selectAll} className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors">
+              {selectedIds.size === filtered.length ? "Desmarcar" : "Selecionar tudo"}
+            </button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        {filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <Globe className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground/50 font-medium">Nenhuma proxy encontrada</p>
+          </div>
+        ) : (
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-border/10 bg-muted/5">
+                  <TableHead className="w-8 px-3"></TableHead>
+                  <TableHead className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground/50">#</TableHead>
+                  <TableHead className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground/50">Proxy</TableHead>
+                  <TableHead className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground/50">Auth</TableHead>
+                  <TableHead className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground/50">Status</TableHead>
+                  <TableHead className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground/50">Instância</TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((proxy: any) => {
+                  const isSelected = selectedIds.has(proxy.id);
+                  const linkedDevice = deviceByProxy[proxy.id];
+                  return (
+                    <TableRow key={proxy.id} className={`border-b border-border/10 transition-colors ${isSelected ? "bg-primary/5" : "hover:bg-muted/5"}`}>
+                      <TableCell className="px-3">
+                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(proxy.id)} />
+                      </TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground/30 font-mono tabular-nums">
+                        {proxy.displayId}
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs font-semibold text-foreground font-mono">{proxy.host}:{proxy.port}</p>
+                      </TableCell>
+                      <TableCell>
+                        {proxy.username ? (
+                          <p className="text-[11px] text-muted-foreground/60 font-mono truncate max-w-[120px]" title={`${proxy.username}:${proxy.password}`}>
+                            {proxy.username}:{"•".repeat(Math.min(proxy.password?.length || 4, 4))}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground/20">—</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={proxy.proxyStatus}
+                          onValueChange={(value) => updateStatusMutation.mutate({ id: proxy.id, status: value as any })}
+                        >
+                          <SelectTrigger className="h-6 w-auto gap-1 rounded-full !border-0 bg-transparent px-0 text-[10px] !shadow-none !ring-0 !ring-offset-0 !outline-none [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-40">
+                            {getStatusBadge(proxy.proxyStatus)}
+                          </SelectTrigger>
+                          <SelectContent className="min-w-[100px] bg-popover z-50">
+                            <SelectItem value="NOVA" className="text-xs">Livre</SelectItem>
+                            <SelectItem value="USANDO" className="text-xs">Em uso</SelectItem>
+                            <SelectItem value="USADA" className="text-xs">Usada</SelectItem>
+                            <SelectItem value="INVALID" className="text-xs">Inválida</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {linkedDevice ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 border border-border/10">
+                              {linkedDevice.profile_picture ? (
+                                <img src={linkedDevice.profile_picture} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <Link2 className="w-3 h-3 text-muted-foreground/40" />
+                              )}
+                            </div>
+                            <span className="text-[11px] text-foreground/70 truncate max-w-[120px]">
+                              {linkedDevice.profile_name || linkedDevice.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground/20">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isSelected && (
+                          <button
+                            onClick={() => deleteMultipleMutation.mutate([proxy.id])}
+                            className="text-destructive/40 hover:text-destructive transition-colors"
+                            title="Remover"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
