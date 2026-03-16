@@ -1690,7 +1690,7 @@ async function handleTick(db: any) {
         } else {
           const { data: otherCycles } = await db.from("warmup_cycles")
             .select("device_id, user_id")
-            .eq("is_running", true).neq("device_id", job.device_id).neq("user_id", job.user_id)
+            .eq("is_running", true).neq("device_id", job.device_id)
             .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
             .limit(10);
 
@@ -1813,7 +1813,7 @@ async function handleTick(db: any) {
         const { data: eligible } = await db.from("warmup_community_membership")
           .select("device_id, user_id")
           .eq("is_enabled", true).eq("is_eligible", true)
-          .neq("user_id", job.user_id)
+          .neq("device_id", job.device_id)
           .limit(100);
 
         // Get existing active pairs to decide which to keep
@@ -1883,7 +1883,7 @@ async function handleTick(db: any) {
 
           for (const e of sorted) {
             if (pairsCreated >= newNeeded) break;
-            if (usedUsers.has(e.user_id) || usedDevices.has(e.device_id)) continue;
+            if (usedDevices.has(e.device_id)) continue;
 
             // Check if partner device is connected
             const { data: partnerDev } = await db.from("devices")
