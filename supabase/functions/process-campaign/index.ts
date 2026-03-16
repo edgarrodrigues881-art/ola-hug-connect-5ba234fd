@@ -149,6 +149,14 @@ async function uazapiRequest(baseUrl: string, token: string, endpoint: string, p
   return parsed;
 }
 
+function detectMediaType(url: string): string {
+  const lower = (url || "").toLowerCase().split("?")[0];
+  if (/\.(ogg|mp3|wav|m4a|aac|opus|mpeg)$/.test(lower)) return "audio";
+  if (/\.(mp4|mov|avi|mkv|webm|3gp)$/.test(lower)) return "video";
+  if (/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|csv|txt)$/.test(lower)) return "document";
+  return "image";
+}
+
 async function sendUazapiMessage(baseUrl: string, token: string, to: string, body: string, mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string) {
   const phone = to.replace(/\D/g, "");
   const hasButtons = buttons && buttons.length > 0;
@@ -159,7 +167,18 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     return await uazapiRequest(baseUrl, token, "/send/menu", payload);
   }
   if (mediaUrl) {
-    return await uazapiRequest(baseUrl, token, "/send/media", { number: phone, media: mediaUrl, caption: body || undefined, type: "image" });
+    const mediaType = detectMediaType(mediaUrl);
+    const payload: any = { number: phone, media: mediaUrl, type: mediaType };
+    // Audio/video: caption goes separately; for audio, text is usually ignored by WhatsApp
+    if (mediaType === "audio") {
+      // Audio PTT (push-to-talk) for voice-note style
+      payload.type = "audio";
+      // Some UAZAPI providers support ptt flag for voice notes
+      payload.ptt = true;
+    } else if (body) {
+      payload.caption = body;
+    }
+    return await uazapiRequest(baseUrl, token, "/send/media", payload);
   }
   return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
 }
