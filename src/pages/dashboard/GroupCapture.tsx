@@ -25,9 +25,9 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={copy}>
-      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
-    </Button>
+    <button className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted/40 transition-colors shrink-0" onClick={copy}>
+      {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground/40" />}
+    </button>
   );
 }
 
@@ -53,38 +53,39 @@ function CampaignCard({ camp, onCancel, onDelete, showDelete }: {
   const st = statusMap[camp.status] || statusMap.done;
 
   return (
-    <div className="rounded-lg border border-border/30 bg-card/50 p-3 space-y-2">
+    <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl p-4 space-y-3 overflow-hidden group hover:border-border/30 transition-colors">
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
-          <span className="text-sm font-medium text-foreground truncate">
+          <span className="text-[13px] font-semibold text-foreground truncate">
             {camp.name || `Campanha ${formatDate(camp.created_at)}`}
           </span>
         </div>
-        <Badge variant="outline" className="text-[10px] shrink-0">{st.label}</Badge>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/20 text-muted-foreground/60 font-medium shrink-0">{st.label}</span>
       </div>
 
       <Progress value={progress} className="h-1" />
 
       <div className="grid grid-cols-4 gap-1 text-center text-[11px]">
-        <div><span className="text-muted-foreground">OK</span> <span className="font-semibold text-emerald-500 ml-0.5">{success}</span></div>
-        <div><span className="text-muted-foreground">Erro</span> <span className={`font-semibold ml-0.5 ${errors ? "text-destructive" : "text-foreground"}`}>{errors}</span></div>
-        <div><span className="text-muted-foreground">Pend.</span> <span className="font-semibold ml-0.5">{pending}</span></div>
-        <div><span className="text-muted-foreground">Total</span> <span className="font-semibold ml-0.5">{total}</span></div>
+        <div><span className="text-muted-foreground/50">OK</span> <span className="font-bold text-primary ml-0.5">{success}</span></div>
+        <div><span className="text-muted-foreground/50">Erro</span> <span className={`font-bold ml-0.5 ${errors ? "text-destructive" : "text-foreground/60"}`}>{errors}</span></div>
+        <div><span className="text-muted-foreground/50">Pend.</span> <span className="font-bold ml-0.5 text-foreground/60">{pending}</span></div>
+        <div><span className="text-muted-foreground/50">Total</span> <span className="font-bold ml-0.5 text-foreground/60">{total}</span></div>
       </div>
 
-      <div className="flex items-center justify-between pt-1 border-t border-border/15 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-between pt-2 border-t border-border/10 text-[10px] text-muted-foreground/40">
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(camp.created_at)}</span>
         <div className="flex gap-1">
           {camp.status === "running" && onCancel && (
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={onCancel}>
+            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive rounded-lg" onClick={onCancel}>
               <StopCircle className="w-3 h-3 mr-1" /> Parar
             </Button>
           )}
           {showDelete && camp.status !== "running" && onDelete && (
-            <Button variant="ghost" size="sm" className="h-6 px-1.5 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+            <button className="h-6 w-6 rounded-lg flex items-center justify-center hover:bg-destructive/10 text-muted-foreground/30 hover:text-destructive transition-colors" onClick={onDelete}>
               <XCircle className="w-3 h-3" />
-            </Button>
+            </button>
           )}
         </div>
       </div>
@@ -254,15 +255,20 @@ const GroupCapture = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-2xl mx-auto">
+    <div className="space-y-5 max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-foreground">Grupos de Aquecimento</h1>
-          <p className="text-xs text-muted-foreground">Grupos para aquecimento automático</p>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <UsersRound className="w-5 h-5 text-primary" />
+            </div>
+            Grupos de Aquecimento
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Grupos para aquecimento automático</p>
         </div>
-        <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5 h-8 text-xs">
-          <LogIn className="w-3.5 h-3.5" /> Entrar nos Grupos
+        <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5 text-xs h-10 px-5 rounded-xl shadow-md">
+          <LogIn className="w-4 h-4" /> Entrar nos Grupos
         </Button>
       </div>
 
@@ -271,117 +277,134 @@ const GroupCapture = () => {
 
       {/* Groups List */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
       ) : groups.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
-            <UsersRound className="w-8 h-8 mb-2 opacity-30" />
-            <span className="text-sm">Nenhum grupo cadastrado</span>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="secondary" className="text-[10px]">{groups.length} grupo{groups.length !== 1 ? "s" : ""}</Badge>
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="py-16 text-center">
+            <UsersRound className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground/50 font-medium">Nenhum grupo cadastrado</p>
           </div>
-          {groups.map((g: any) => (
-            <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/20 bg-card/40 hover:bg-card/70 transition-colors">
-              <img src={dgGroupAvatar} alt="Grupo" className="w-8 h-8 rounded-full object-cover shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
-                <p className="text-[10px] text-muted-foreground/50 truncate font-mono">{g.link}</p>
+        </div>
+      ) : (
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+            <h3 className="text-sm font-bold text-foreground">{groups.length} grupo{groups.length !== 1 ? "s" : ""}</h3>
+          </div>
+          <div className="divide-y divide-border/10">
+            {groups.map((g: any) => (
+              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/5 transition-colors group/row">
+                <img src={dgGroupAvatar} alt="Grupo" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-border/10" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground truncate">{g.name}</p>
+                  <p className="text-[10px] text-muted-foreground/35 truncate font-mono mt-0.5">{g.link}</p>
+                </div>
+                <div className="opacity-50 group-hover/row:opacity-100 transition-opacity">
+                  <CopyButton text={g.link} />
+                </div>
               </div>
-              <CopyButton text={g.link} />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Join Modal */}
+      {/* Join Modal — premium */}
       <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
-        <DialogContent className="max-w-sm sm:max-w-md max-h-[80vh] overflow-y-auto p-4 sm:p-5">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-semibold">Entrar nos Grupos</DialogTitle>
-            <p className="text-[11px] text-muted-foreground">
-              Selecione instâncias e grupos. Roda <span className="font-medium text-foreground">em segundo plano</span>.
-            </p>
-          </DialogHeader>
+        <DialogContent className="max-w-sm sm:max-w-md max-h-[80vh] overflow-y-auto p-0 bg-card/95 backdrop-blur-2xl border-border/10 rounded-2xl shadow-2xl">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="px-6 pt-6 pb-3">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <LogIn className="w-4 h-4 text-primary" />
+                </div>
+                Entrar nos Grupos
+              </DialogTitle>
+              <p className="text-[11px] text-muted-foreground/60 mt-1">
+                Selecione instâncias e grupos. Roda <span className="font-semibold text-foreground">em segundo plano</span>.
+              </p>
+            </DialogHeader>
+          </div>
 
-          <div className="space-y-4 mt-2">
+          <div className="px-6 pb-4 space-y-4">
             {/* Devices */}
-            <section className="space-y-1.5">
+            <section className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                  Instâncias <span className="text-muted-foreground font-normal normal-case">({selectedDevices.length}/{devices.length})</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  Instâncias <span className="normal-case font-normal">({selectedDevices.length}/{devices.length})</span>
                 </span>
-                <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2 text-primary" onClick={selectAllDevices}>
+                <button className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors" onClick={selectAllDevices}>
                   {selectedDevices.length === devices.length ? "Desmarcar" : "Todas"}
-                </Button>
+                </button>
               </div>
-              <div className="max-h-36 overflow-y-auto rounded-lg border border-border/15 p-1.5 space-y-0.5">
+              <div className="max-h-40 overflow-y-auto rounded-xl border border-border/15 bg-muted/5 p-1.5 space-y-0.5">
                 {devices.map((d) => {
                   const online = ["Connected", "Ready", "authenticated"].includes(d.status);
                   const sel = selectedDevices.includes(d.id);
                   return (
-                    <label key={d.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${sel ? "bg-primary/5" : "hover:bg-muted/20"}`}>
+                    <label key={d.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
                       <Checkbox checked={sel} onCheckedChange={() => toggleDevice(d.id)} />
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${online ? "bg-emerald-400" : "bg-red-400"}`} />
-                      <span className="text-xs truncate">{d.name}</span>
-                      {d.number && <span className="text-[10px] text-muted-foreground/40 font-mono ml-auto">{d.number}</span>}
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ring-2 ${online ? "bg-emerald-400 ring-emerald-400/20" : "bg-red-400 ring-red-400/20"}`} />
+                      <span className="text-xs font-medium truncate flex-1">{d.name}</span>
+                      {d.number && <span className="text-[10px] text-muted-foreground/30 font-mono ml-auto">{d.number}</span>}
                     </label>
                   );
                 })}
-                {devices.length === 0 && <p className="text-[11px] text-muted-foreground/50 text-center py-3">Nenhuma instância</p>}
+                {devices.length === 0 && <p className="text-[11px] text-muted-foreground/30 text-center py-4">Nenhuma instância</p>}
               </div>
             </section>
 
             {/* Groups */}
-            <section className="space-y-1.5">
+            <section className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                  Grupos <span className="text-muted-foreground font-normal normal-case">({selectedGroups.length}/{groups.length})</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  Grupos <span className="normal-case font-normal">({selectedGroups.length}/{groups.length})</span>
                 </span>
-                <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2 text-primary" onClick={selectAllGroups}>
+                <button className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors" onClick={selectAllGroups}>
                   {selectedGroups.length === groups.length ? "Desmarcar" : "Todos"}
-                </Button>
+                </button>
               </div>
-              <div className="max-h-32 overflow-y-auto rounded-lg border border-border/15 p-1.5 space-y-0.5">
-                {groups.map((g: any) => (
-                  <label key={g.link} className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${selectedGroups.includes(g.link) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
-                    <Checkbox checked={selectedGroups.includes(g.link)} onCheckedChange={() => toggleGroup(g.link)} />
-                    <span className="text-xs truncate">{g.name}</span>
-                  </label>
-                ))}
-                {groups.length === 0 && <p className="text-[11px] text-muted-foreground/50 text-center py-3">Nenhum grupo</p>}
+              <div className="max-h-36 overflow-y-auto rounded-xl border border-border/15 bg-muted/5 p-1.5 space-y-0.5">
+                {groups.map((g: any) => {
+                  const sel = selectedGroups.includes(g.link);
+                  return (
+                    <label key={g.link} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
+                      <Checkbox checked={sel} onCheckedChange={() => toggleGroup(g.link)} />
+                      <span className="text-xs font-medium truncate">{g.name}</span>
+                    </label>
+                  );
+                })}
+                {groups.length === 0 && <p className="text-[11px] text-muted-foreground/30 text-center py-4">Nenhum grupo</p>}
               </div>
             </section>
 
             {/* Info chips */}
-            <div className="flex flex-wrap gap-2 text-[11px]">
-              <span className="flex items-center gap-1 px-2 py-1 rounded-md border border-border/15 text-muted-foreground">
-                <Timer className="w-3 h-3" /> 10-30s delay
+            <div className="flex flex-wrap gap-2">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/15 text-[10px] text-muted-foreground/50 font-medium">
+                <Timer className="w-3 h-3" /> 10–30s delay
               </span>
-              <span className="flex items-center gap-1 px-2 py-1 rounded-md border border-emerald-500/15 text-emerald-600">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/15 text-[10px] text-primary/70 font-medium">
                 <Shield className="w-3 h-3" /> Segundo plano
               </span>
             </div>
 
             {hasOffline && (
-              <p className="text-[11px] text-destructive flex items-center gap-1.5">
+              <p className="text-[11px] text-destructive flex items-center gap-1.5 font-medium">
                 <Shield className="w-3 h-3" /> Instâncias offline selecionadas
               </p>
             )}
+          </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/15">
-              {totalOps > 0 && <span className="text-[11px] text-muted-foreground">{totalOps} op{totalOps !== 1 ? "s" : ""}</span>}
-              <div className="flex gap-2 ml-auto">
-                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setJoinModalOpen(false)}>Cancelar</Button>
-                <Button onClick={startJoinProcess} disabled={!canStart} size="sm" className="gap-1.5 h-8 text-xs">
-                  {isStarting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
-                  Iniciar ({totalOps})
-                </Button>
-              </div>
+          {/* Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border/10 bg-muted/5">
+            {totalOps > 0 && <span className="text-[11px] text-muted-foreground/40">{totalOps} operaç{totalOps !== 1 ? "ões" : "ão"}</span>}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" size="sm" className="h-9 text-xs rounded-xl border-border/15 font-semibold" onClick={() => setJoinModalOpen(false)}>Cancelar</Button>
+              <Button onClick={startJoinProcess} disabled={!canStart} size="sm" className="gap-1.5 h-9 text-xs rounded-xl font-semibold shadow-md">
+                {isStarting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
+                Iniciar ({totalOps})
+              </Button>
             </div>
           </div>
         </DialogContent>
