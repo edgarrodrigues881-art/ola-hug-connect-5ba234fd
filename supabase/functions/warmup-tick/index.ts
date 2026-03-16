@@ -2073,8 +2073,31 @@ async function handleTick(db: any) {
           }
         }
 
-        const msg = generateNaturalMessage("community");
-        await uazapiSendText(baseUrl, token, peerPhone, msg);
+        // ── Media mix: 80% texto, 15% imagem, 5% figurinha ──
+        const communityMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
+        let msg = generateNaturalMessage("community");
+        let communityActualMedia: "text" | "image" | "sticker" = communityMediaType;
+
+        try {
+          if (communityMediaType === "image") {
+            const imgUrl = pickRandom(imagePool);
+            const caption = pickRandom(IMAGE_CAPTIONS);
+            await uazapiSendImage(baseUrl, token, peerPhone, imgUrl, "");
+            await new Promise(r => setTimeout(r, randInt(1000, 3000)));
+            await uazapiSendText(baseUrl, token, peerPhone, caption);
+            msg = `[IMG+TXT] ${caption}`;
+          } else if (communityMediaType === "sticker") {
+            const imgUrl = pickRandom(imagePool);
+            await uazapiSendSticker(baseUrl, token, peerPhone, imgUrl);
+            msg = `[STICKER] 🎭`;
+          } else {
+            await uazapiSendText(baseUrl, token, peerPhone, msg);
+          }
+        } catch (mediaErr) {
+          communityActualMedia = "text";
+          msg = generateNaturalMessage("community");
+          await uazapiSendText(baseUrl, token, peerPhone, msg);
+        }
 
         const nowIso = new Date().toISOString();
         const conversationId = isReplyTurn ? String(job.payload.conversation_id) : job.id;
