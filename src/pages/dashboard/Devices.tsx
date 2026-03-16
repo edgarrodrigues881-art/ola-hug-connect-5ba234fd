@@ -31,8 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { muteAutoSync, trackDeletedDevice, getRecentlyDeletedIds, pauseKeepAlive, resumeKeepAlive } from "@/hooks/useAutoSyncDevices";
 import { useNavigate } from "react-router-dom";
-
-type PlanState = "noPlan" | "active" | "expired" | "suspended";
+import { usePlanGate, type PlanState } from "@/hooks/usePlanGate";
 
 interface Device {
   id: string;
