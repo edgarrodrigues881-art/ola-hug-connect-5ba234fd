@@ -394,7 +394,7 @@ export function AppSidebar() {
             <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="px-2.5 space-y-[2px]">
+            <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
