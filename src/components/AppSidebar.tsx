@@ -406,7 +406,7 @@ export function AppSidebar() {
       <div className="mt-auto border-t border-sidebar-border p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`flex items-center gap-3 w-full rounded-[10px] hover:bg-sidebar-accent/30 transition-colors duration-150 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
+            <button className={`flex items-center gap-3 w-full rounded-[10px] hover:bg-sidebar-accent/30 transition-colors duration-150 ${collapsed ? 'justify-center px-2 py-2' : 'px-2.5 py-2'}`}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover ring-1 ring-border" />
               ) : (
