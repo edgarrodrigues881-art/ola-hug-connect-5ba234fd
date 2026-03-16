@@ -1792,27 +1792,82 @@ async function handleTick(db: any) {
 
       // ── ENABLE COMMUNITY ──
       case "enable_community": {
-        // Auto-create up to 3 pairs with other eligible devices (cross-account)
+        const targetPeers = getCommunityPeers(cycle.day_index, chipState);
+
+        // Fetch eligible devices from other users
         const { data: eligible } = await db.from("warmup_community_membership")
           .select("device_id, user_id")
           .eq("is_enabled", true).eq("is_eligible", true)
           .neq("user_id", job.user_id)
-          .limit(50);
+          .limit(100);
 
-        // Close old pairs
-        await db.from("community_pairs")
-          .update({ status: "closed", closed_at: new Date().toISOString() })
+        // Get existing active pairs to decide which to keep
+        const { data: existingPairs } = await db.from("community_pairs")
+          .select("id, instance_id_a, instance_id_b, meta")
           .eq("cycle_id", cycle.id).eq("status", "active");
 
-        let pairsCreated = 0;
-        if (eligible?.length) {
-          // Shuffle and pick up to 3 unique partners from different users
-          const shuffled = eligible.sort(() => Math.random() - 0.5);
-          const usedUsers = new Set<string>();
-          const usedDevices = new Set<string>();
+        // Strategy: keep ~40% of existing pairs (old contacts), fill rest with new
+        const keepCount = Math.min(
+          Math.floor(targetPeers * 0.4),
+          existingPairs?.length || 0
+        );
+        const newNeeded = targetPeers - keepCount;
 
-          for (const e of shuffled) {
-            if (pairsCreated >= 3) break;
+        // Close excess old pairs (keep only keepCount)
+        if (existingPairs?.length) {
+          const shuffledExisting = existingPairs.sort(() => Math.random() - 0.5);
+          const toKeep = shuffledExisting.slice(0, keepCount);
+          const toClose = shuffledExisting.slice(keepCount);
+          if (toClose.length > 0) {
+            const closeIds = toClose.map((p: any) => p.id);
+            await db.from("community_pairs")
+              .update({ status: "closed", closed_at: new Date().toISOString() })
+              .in("id", closeIds);
+          }
+          // Track kept devices to avoid duplicates
+          var keptDevices = new Set<string>();
+          var keptUsers = new Set<string>();
+          for (const p of toKeep) {
+            const peerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
+            keptDevices.add(peerId);
+            // Find user of kept peer
+            const keptEligible = eligible?.find((e: any) => e.device_id === peerId);
+            if (keptEligible) keptUsers.add(keptEligible.user_id);
+          }
+        } else {
+          var keptDevices = new Set<string>();
+          var keptUsers = new Set<string>();
+        }
+
+        let pairsCreated = 0;
+        if (eligible?.length && newNeeded > 0) {
+          // Shuffle and pick new unique partners
+          const shuffled = eligible.sort(() => Math.random() - 0.5);
+          const usedUsers = new Set<string>(keptUsers);
+          const usedDevices = new Set<string>(keptDevices);
+
+          // Prefer devices NOT in "new" chip state (avoid fresh accounts pairing)
+          // Check which devices have older cycles (non-new)
+          const eligibleDeviceIds = shuffled.map((e: any) => e.device_id);
+          const { data: peerCycles } = await db.from("warmup_cycles")
+            .select("device_id, chip_state, day_index")
+            .in("device_id", eligibleDeviceIds.slice(0, 50))
+            .eq("is_running", true);
+
+          const peerCycleMap: Record<string, any> = {};
+          peerCycles?.forEach((c: any) => { peerCycleMap[c.device_id] = c; });
+
+          // Sort: prefer non-new chips and older cycles first
+          const sorted = shuffled.sort((a: any, b: any) => {
+            const ca = peerCycleMap[a.device_id];
+            const cb = peerCycleMap[b.device_id];
+            const aNew = ca?.chip_state === "new" && (ca?.day_index || 0) < 10 ? 1 : 0;
+            const bNew = cb?.chip_state === "new" && (cb?.day_index || 0) < 10 ? 1 : 0;
+            return aNew - bNew; // non-new first
+          });
+
+          for (const e of sorted) {
+            if (pairsCreated >= newNeeded) break;
             if (usedUsers.has(e.user_id) || usedDevices.has(e.device_id)) continue;
 
             // Check if partner device is connected
@@ -1825,7 +1880,7 @@ async function handleTick(db: any) {
               instance_id_a: job.device_id,
               instance_id_b: e.device_id,
               status: "active",
-              meta: { initiator: Math.random() < 0.5 ? "a" : "b" },
+              meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
             });
 
             usedUsers.add(e.user_id);
@@ -1838,8 +1893,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_enabled",
-          message: `Comunidade ativada: ${pairsCreated} pares criados de ${eligible?.length || 0} elegíveis`,
-          meta: { pairs_created: pairsCreated },
+          message: `Comunidade ativada: ${keepCount} pares mantidos + ${pairsCreated} novos = ${keepCount + pairsCreated}/${targetPeers} (dia ${cycle.day_index})`,
+          meta: { pairs_kept: keepCount, pairs_new: pairsCreated, target: targetPeers },
         });
         break;
       }
