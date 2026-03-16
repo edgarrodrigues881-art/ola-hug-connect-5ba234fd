@@ -1846,13 +1846,6 @@ export type Database = {
             referencedRelation: "devices"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "warmup_instance_groups_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "warmup_groups_pool"
-            referencedColumns: ["id"]
-          },
         ]
       }
       warmup_jobs: {
