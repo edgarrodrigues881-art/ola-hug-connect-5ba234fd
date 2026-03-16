@@ -75,9 +75,10 @@ interface ContactRowProps {
   onRemoveTag: (contactId: string, tag: string) => void;
   onDelete: (ids: string[]) => void;
   onEdit: (contact: Contact) => void;
+  getTagStyle: (tag: string) => typeof TAG_COLORS[0];
 }
 
-const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
+const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit, getTagStyle }: ContactRowProps): ReactElement {
   return (
     <div className="grid items-center border-b border-primary/5 hover:bg-primary/[0.02] text-sm transition-colors" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
       <div className="p-2 flex items-center justify-center">
@@ -90,12 +91,16 @@ const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSele
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
       <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
-        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 2).map((tag: string) => (
-          <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => onRemoveTag(contact.id, tag)}>
-            {tag}
-            <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </Badge>
-        )) : <span className="text-[11px] text-muted-foreground">—</span>}
+        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => {
+          const style = getTagStyle(tag);
+          return (
+            <span key={tag} className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border cursor-pointer group transition-colors", style.bg, style.text, style.border, "hover:opacity-80")} onClick={() => onRemoveTag(contact.id, tag)}>
+              <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+              {tag}
+              <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </span>
+          );
+        }) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
       <div className="p-2 overflow-hidden">
         <DropdownMenu>
