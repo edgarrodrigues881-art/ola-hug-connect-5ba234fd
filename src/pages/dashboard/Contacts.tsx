@@ -206,7 +206,7 @@ const Contacts = () => {
     const newColors = { ...tagColors, [tag]: newTagColorIdx };
     setTagColors(newColors);
     localStorage.setItem("contactTagColors", JSON.stringify(newColors));
-    setNewTagColorIdx((newTagColorIdx + 1) % TAG_COLORS.length);
+    setNewTagColorIdx((newTagColorIdx + 1) % TAG_HEX_COLORS.length);
     setCreateTagInput("");
     toast({ title: `Tag "${tag}" criada` });
   };
