@@ -115,7 +115,7 @@ const Community = () => {
                 strokeLinecap="round"
                 fill="none"
                 strokeDasharray="80 860"
-                opacity="0.7"
+                opacity="1"
               >
                 <animate
                   attributeName="stroke-dashoffset"
@@ -125,15 +125,15 @@ const Community = () => {
                 />
                 <animate
                   attributeName="opacity"
-                  values="0.3;0.8;0.3"
+                  values="0.5;1;0.5"
                   dur="5s"
                   repeatCount="indefinite"
                 />
               </rect>
               <defs>
                 <linearGradient id="snake-gradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
-                  <stop offset="40%" stopColor="rgba(255,255,255,0.3)" />
+                  <stop offset="0%" stopColor="rgba(255,255,255,1)" />
+                  <stop offset="50%" stopColor="rgba(255,255,255,0.5)" />
                   <stop offset="100%" stopColor="rgba(255,255,255,0)" />
                 </linearGradient>
               </defs>
