@@ -61,8 +61,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Trial provision: always cap at 3 regardless of subscription max_instances
-    const maxInstances = Math.min(sub.max_instances || 3, 3);
+    // Lazy provisioning: DON'T pre-generate regular tokens.
+    // Tokens will be generated on-demand when user creates instances.
     const ADMIN_BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
     const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
 
@@ -79,46 +79,9 @@ Deno.serve(async (req) => {
     const clientName = profile?.full_name || user.email || "cliente";
     const sanitizedName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
 
-    let created = 0;
+    const created = 0;
     const errors: string[] = [];
-
-    for (let i = 0; i < maxInstances; i++) {
-      const instanceName = `${sanitizedName}_trial_${i + 1}`;
-      try {
-        const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
-          method: "POST",
-          headers: { "admintoken": ADMIN_TOKEN, "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify({ name: instanceName }),
-        });
-        const body = await res.json();
-        console.log(`[provision-trial] ${instanceName}: status=${res.status}`, JSON.stringify(body));
-
-        if (!res.ok) {
-          errors.push(`${instanceName}: ${body?.message || res.statusText}`);
-          continue;
-        }
-
-        const token = body?.token || body?.data?.token || body?.instance?.token;
-        if (!token) {
-          errors.push(`${instanceName}: Sem token na resposta`);
-          continue;
-        }
-
-        // Idempotency check
-        const { data: dup } = await adminClient.from("user_api_tokens")
-          .select("id").eq("token", token).maybeSingle();
-        if (dup) continue;
-
-        await adminClient.from("user_api_tokens").insert({
-          user_id: user.id, token, admin_id: user.id,
-          status: "available", healthy: true, label: instanceName,
-          last_checked_at: new Date().toISOString(),
-        });
-        created++;
-      } catch (e) {
-        errors.push(`${instanceName}: ${e.message}`);
-      }
-    }
+    console.log(`[provision-trial] Lazy mode: no regular tokens pre-generated for ${user.id}. Will generate on-demand.`);
 
     // ─── AUTO-PROVISION REPORT_WA (MONITORING) INSTANCE ───
     let monitorCreated = false;

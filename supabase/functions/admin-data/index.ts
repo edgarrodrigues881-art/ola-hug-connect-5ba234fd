@@ -387,64 +387,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Calculate how many new tokens needed after unblocking
-      const { data: currentTokens } = await adminClient.from("user_api_tokens")
-        .select("id").eq("user_id", target_user_id).neq("status", "blocked");
-      const activeTokenCount = currentTokens?.length || 0;
-      const toCreate = Math.max(0, max_instances - activeTokenCount);
-
-      if (toCreate > 0 && ADMIN_BASE_URL && ADMIN_TOKEN) {
-        // Get client name for instance labels
-        const { data: profile } = await adminClient.from("profiles")
-          .select("full_name").eq("id", target_user_id).maybeSingle();
-        const { data: authUser } = await adminClient.auth.admin.getUserById(target_user_id);
-        const clientName = profile?.full_name || authUser?.user?.email || "cliente";
-        const sanitizedName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
-
-        for (let i = 0; i < toCreate; i++) {
-          const instanceName = `${sanitizedName}_${activeTokenCount + i + 1}`;
-          try {
-            const res = await fetch(`${ADMIN_BASE_URL}/instance/init`, {
-              method: "POST",
-              headers: { "admintoken": ADMIN_TOKEN, "Content-Type": "application/json", "Accept": "application/json" },
-              body: JSON.stringify({ name: instanceName }),
-            });
-            const body = await res.json();
-            console.log(`[auto-provision] ${instanceName}: status=${res.status}`, JSON.stringify(body));
-
-            if (!res.ok) {
-              provisionResult.errors.push(`${instanceName}: ${body?.message || res.statusText}`);
-              continue;
-            }
-
-            const token = body?.token || body?.data?.token || body?.instance?.token;
-            if (!token) {
-              provisionResult.errors.push(`${instanceName}: Sem token na resposta`);
-              continue;
-            }
-
-            // Idempotency: check if token already exists
-            const { data: dup } = await adminClient.from("user_api_tokens")
-              .select("id").eq("token", token).maybeSingle();
-            if (dup) {
-              console.log(`[auto-provision] Token duplicado, pulando: ${instanceName}`);
-              continue;
-            }
-
-            await adminClient.from("user_api_tokens").insert({
-              user_id: target_user_id, token, admin_id: user.id,
-              status: "available", healthy: true, label: instanceName,
-              last_checked_at: new Date().toISOString(),
-            });
-            provisionResult.created++;
-          } catch (e) {
-            provisionResult.errors.push(`${instanceName}: ${e.message}`);
-          }
-        }
-
-        await logAction(adminClient, user.id, target_user_id, "auto-provision-tokens",
-          `Provisionamento automático: ${provisionResult.created} criados, ${provisionResult.errors.length} erros (de ${toCreate} solicitados)`);
-      }
+      // Lazy provisioning: DON'T pre-generate tokens.
+      // Tokens are generated on-demand when user creates instances.
+      // Just log the plan change.
+      console.log(`[save-plan] Lazy mode: no tokens pre-generated. Limit set to ${max_instances}. Existing tokens unblocked: ${provisionResult.unblocked}`);
+      await logAction(adminClient, user.id, target_user_id, "plan-updated",
+        `Plano atualizado: limite ${max_instances} instâncias. ${provisionResult.unblocked} tokens desbloqueados. Tokens serão gerados sob demanda.`);
 
       return new Response(JSON.stringify({
         success: true,
