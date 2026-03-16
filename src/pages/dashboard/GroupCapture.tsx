@@ -25,9 +25,9 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={copy}>
-      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
-    </Button>
+    <button className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted/40 transition-colors shrink-0" onClick={copy}>
+      {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground/40" />}
+    </button>
   );
 }
 
