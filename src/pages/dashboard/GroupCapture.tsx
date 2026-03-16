@@ -391,25 +391,12 @@ const GroupCapture = () => {
       {/* Tabs: System vs Custom */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-muted/10 border border-border/15 rounded-xl p-1 h-auto">
-          <TabsTrigger value="system" className="text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1.5 px-4 py-2">
-            <Shield className="w-3.5 h-3.5" />
-            Sistema
-            <Badge variant="secondary" className="text-[9px] ml-1 h-4 px-1.5">{systemGroups.length}</Badge>
-          </TabsTrigger>
           <TabsTrigger value="custom" className="text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1.5 px-4 py-2">
             <UserPlus className="w-3.5 h-3.5" />
             Meus Grupos
             <Badge variant="secondary" className="text-[9px] ml-1 h-4 px-1.5">{customGroups.length}</Badge>
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="system" className="space-y-4 mt-0">
-          {isLoading ? (
-            <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
-          ) : (
-            <GroupList groups={systemGroups} isCustom={false} />
-          )}
-        </TabsContent>
 
         <TabsContent value="custom" className="space-y-4 mt-0">
           {/* Add group form */}
