@@ -112,8 +112,8 @@ export function useWarmupCycles() {
       return data as unknown as WarmupCycle[];
     },
     enabled: !!user,
-    refetchInterval: 3_000,
-    staleTime: 2_000,
+    refetchInterval: 10_000,
+    staleTime: 5_000,
   });
 }
 
