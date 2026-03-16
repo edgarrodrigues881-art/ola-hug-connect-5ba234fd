@@ -1,4 +1,4 @@
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-new.png";
 
 const Footer = () => (
   <footer className="py-10 bg-transparent">

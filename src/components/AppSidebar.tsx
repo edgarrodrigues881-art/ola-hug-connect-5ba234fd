@@ -29,7 +29,7 @@ import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
 import { useSidebarStats } from "@/hooks/useSidebarStats";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-new.png";
 import dgGroupAvatar from "@/assets/dg-group-avatar.png";
 import {
   DropdownMenu,
