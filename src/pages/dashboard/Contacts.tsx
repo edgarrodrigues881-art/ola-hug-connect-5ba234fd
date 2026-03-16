@@ -756,24 +756,25 @@ const Contacts = () => {
           <DialogHeader><DialogTitle>Adicionar tags</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <Label className="text-xs">Selecione até 2 tags</Label>
-            <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+            <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
               {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => {
                 const isSelected = selectedTags.includes(tag);
+                const style = getTagStyle(tag);
                 return (
-                  <label key={tag} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          if (selectedTags.length < 2) setSelectedTags([...selectedTags, tag]);
-                        } else {
-                          setSelectedTags(selectedTags.filter(t => t !== tag));
-                        }
-                      }}
-                      disabled={!isSelected && selectedTags.length >= 2}
-                    />
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) setSelectedTags(selectedTags.filter(t => t !== tag));
+                      else if (selectedTags.length < 2) setSelectedTags([...selectedTags, tag]);
+                    }}
+                    disabled={!isSelected && selectedTags.length >= 2}
+                    className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors", isSelected ? "bg-muted font-medium" : "hover:bg-muted/50", !isSelected && selectedTags.length >= 2 && "opacity-40")}
+                  >
+                    <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", style.dot)} />
                     {tag}
-                  </label>
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />}
+                  </button>
                 );
               })}
             </div>
