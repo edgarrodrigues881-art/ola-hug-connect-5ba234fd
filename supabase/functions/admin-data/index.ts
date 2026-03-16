@@ -1318,27 +1318,35 @@ Deno.serve(async (req) => {
         throw new Error("Configuração do provedor incompleta.");
       }
 
-      // Try different auth header patterns and endpoints
+      // Prioritize official admin listing routes first; always keep DB fallback below
       let instances: any[] = [];
-      const endpoints = ["/instance/list", "/instance/fetchInstances", "/instances"];
+      const endpoints = [
+        "/admin/instances",
+        "/admin/instance/list",
+        "/admin/instance/all",
+        "/instance/all",
+        "/instance/list",
+        "/instance/fetchInstances",
+        "/instances",
+      ];
       const authVariants = [
         { admintoken: ADMIN_TOKEN },
         { token: ADMIN_TOKEN },
         { Authorization: `Bearer ${ADMIN_TOKEN}` },
       ];
-      const candidateKeys = ["instances", "data", "result", "content", "rows", "list"];
+      const candidateKeys = ["instances", "data", "result", "content", "rows", "list", "items"];
 
       const looksLikeInstance = (item: any) => {
         if (!item || typeof item !== "object") return false;
         return Boolean(
-          item.name || item.instanceName || item.instance_name || item.instance ||
+          item.id || item.name || item.instanceName || item.instance_name || item.instance ||
           item.token || item.apiToken || item.api_token || item.auth?.jwt || item.auth?.token ||
           item.status || item.connectionStatus || item.state || item.owner || item.phone || item.ownerJid
         );
       };
 
       const extractInstanceList = (payload: any, depth = 0): any[] => {
-        if (depth > 5 || payload == null) return [];
+        if (depth > 6 || payload == null) return [];
 
         if (Array.isArray(payload)) {
           if (payload.some(looksLikeInstance)) return payload;
@@ -1369,6 +1377,7 @@ Deno.serve(async (req) => {
 
       for (const endpoint of endpoints) {
         let found = false;
+
         for (const authHeaders of authVariants) {
           try {
             const res = await fetch(`${BASE_URL}${endpoint}?t=${Date.now()}`, {
@@ -1402,6 +1411,7 @@ Deno.serve(async (req) => {
             console.warn(`[admin-data] fetch-uazapi-instances endpoint=${endpoint} failed:`, err instanceof Error ? err.message : String(err));
           }
         }
+
         if (found) break;
       }
 
