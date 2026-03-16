@@ -168,16 +168,16 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   }
   if (mediaUrl) {
     const mediaType = detectMediaType(mediaUrl);
-    const payload: any = { number: phone, media: mediaUrl, type: mediaType };
-    // Audio/video: caption goes separately; for audio, text is usually ignored by WhatsApp
     if (mediaType === "audio") {
-      // Audio PTT (push-to-talk) for voice-note style
-      payload.type = "audio";
-      // Some UAZAPI providers support ptt flag for voice notes
-      payload.ptt = true;
-    } else if (body) {
-      payload.caption = body;
+      // UAZAPI expects 'file' field for audio, and dedicated endpoint
+      return await uazapiRequest(baseUrl, token, "/send/audio", {
+        number: phone,
+        file: mediaUrl,
+        ptt: true,
+      });
     }
+    const payload: any = { number: phone, file: mediaUrl, media: mediaUrl, type: mediaType };
+    if (body) payload.caption = body;
     return await uazapiRequest(baseUrl, token, "/send/media", payload);
   }
   return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
