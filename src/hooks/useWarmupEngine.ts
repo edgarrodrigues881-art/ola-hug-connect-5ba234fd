@@ -12,6 +12,7 @@ export function useWarmupEngine() {
       days_total?: number;
       plan_id?: string;
       start_day?: number;
+      group_source?: "system" | "custom";
     }) => {
       const { data, error } = await supabase.functions.invoke("warmup-engine", {
         body: params,
