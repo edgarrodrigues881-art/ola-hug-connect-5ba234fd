@@ -16,43 +16,29 @@ const PLANS_WITH_REPORTS: Record<string, boolean> = {
 export function usePlanGate() {
   const { session } = useAuth();
 
-  // Main instance subscription (excludes notification addon)
-  const { data: subscription } = useQuery({
-    queryKey: ["my_subscription"],
+  // Single query for all subscriptions — split in JS to avoid 2 round-trips
+  const { data: allSubs } = useQuery({
+    queryKey: ["my_subscriptions"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subscriptions")
         .select("plan_name, plan_price, max_instances, expires_at")
         .eq("user_id", session!.user.id)
-        .neq("plan_name", "Relatórios WhatsApp")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!session,
     staleTime: 60_000,
   });
 
-  // Notification addon subscription
-  const { data: notificationSub } = useQuery({
-    queryKey: ["my_notification_sub"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("plan_name, plan_price, max_instances, expires_at")
-        .eq("user_id", session!.user.id)
-        .eq("plan_name", "Relatórios WhatsApp")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session,
-    staleTime: 60_000,
-  });
+  const subscription = useMemo(() =>
+    allSubs?.find(s => s.plan_name !== "Relatórios WhatsApp") ?? null,
+  [allSubs]);
+
+  const notificationSub = useMemo(() =>
+    allSubs?.find(s => s.plan_name === "Relatórios WhatsApp") ?? null,
+  [allSubs]);
 
   const { data: profile } = useQuery({
     queryKey: ["my_profile"],
