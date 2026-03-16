@@ -30,6 +30,7 @@ import { NavLink } from "@/components/NavLink";
 import { useSidebarStats } from "@/hooks/useSidebarStats";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
 import logo from "@/assets/logo.png";
+import dgGroupAvatar from "@/assets/dg-group-avatar.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -395,20 +396,43 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="px-2.5 space-y-[2px]">
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+            </SidebarMenu>
+
+            {!collapsed && (
+              <div className="mx-3 mt-2 mb-1 rounded-xl border border-border/50 bg-sidebar-accent/30 p-3 flex flex-col items-center gap-2.5">
+                <img
+                  src={dgGroupAvatar}
+                  alt="DG Contingência"
+                  className="w-10 h-10 rounded-full ring-1 ring-primary/30"
+                />
+                <div className="text-center">
+                  <p className="text-[13px] font-semibold text-sidebar-foreground leading-tight">DG Contingência</p>
+                  <p className="text-[11px] text-muted-foreground/70 leading-snug mt-0.5">
+                    Participe da nossa comunidade para receber atualizações, melhorias e novidades em primeira mão.
+                  </p>
+                </div>
+                <div className="flex flex-col w-full gap-1.5">
                   <a
                     href="https://chat.whatsapp.com/KpkJQCdw7i10ICftI1tpBf"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 h-9 px-2 rounded-md text-[13px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+                    className="flex items-center justify-center gap-2 w-full h-8 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:bg-primary/90 transition-colors"
                   >
-                    <UsersRound className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Comunidade</span>}
+                    <UsersRound className="w-3.5 h-3.5" />
+                    Entrar na Comunidade
                   </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+                  <a
+                    href="https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20preciso%20de%20suporte."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full h-8 rounded-lg border border-border text-[12px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Falar com Suporte
+                  </a>
+                </div>
+              </div>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
