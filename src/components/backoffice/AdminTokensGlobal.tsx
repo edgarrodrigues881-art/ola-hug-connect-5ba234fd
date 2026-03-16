@@ -195,8 +195,8 @@ const AdminTokensGlobal = () => {
       </div>
 
       {/* Quick actions */}
-      {(data?.disconnected ?? 0) > 0 && (
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        {(data?.disconnected ?? 0) > 0 && (
           <Button
             variant="outline"
             size="sm"
@@ -206,8 +206,35 @@ const AdminTokensGlobal = () => {
             <WifiOff size={13} />
             Selecionar {data?.disconnected} desconectada(s)
           </Button>
-        </div>
-      )}
+        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={cleaningIdle || isPending}
+              className="gap-1.5 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10 rounded-lg h-8"
+            >
+              {cleaningIdle ? <Loader2 size={13} className="animate-spin" /> : <Key size={13} />}
+              Limpar tokens ociosos
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Limpar tokens ociosos?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground">
+                Remove apenas tokens com status <strong>available</strong> ou <strong>blocked</strong> que <strong>não estão vinculados</strong> a nenhuma instância. Tokens <strong>in_use</strong> serão preservados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCleanIdleTokens} className="bg-amber-600 text-white hover:bg-amber-700">
+                Limpar ociosos
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3">
