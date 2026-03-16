@@ -78,10 +78,14 @@ const CommunityPairsTab = () => {
             <span className="text-xs font-semibold text-emerald-400">{activePairs} ativos</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="default" size="sm" onClick={() => generatePairs.mutate()} disabled={generatePairs.isPending} className="gap-1.5 h-8 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="default" size="sm" onClick={() => generatePairs.mutate(false)} disabled={generatePairs.isPending} className="gap-1.5 h-8 text-xs">
             {generatePairs.isPending ? <Loader2 size={13} className="animate-spin" /> : <Shuffle size={13} />}
             Gerar Pares
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => generatePairs.mutate(true)} disabled={generatePairs.isPending} className="gap-1.5 h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+            <FlaskConical size={13} />
+            Forçar Teste (mesmo dono)
           </Button>
           <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-8 px-2">
             <RefreshCw size={13} />
