@@ -11,7 +11,7 @@ const Navbar = () => {
         <div className="flex items-center gap-2 flex-shrink-0">
           <img src={logo} alt="DG Contingência PRO" width={36} height={36} className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
           <span className="text-xs sm:text-sm font-bold text-white tracking-tight whitespace-nowrap">
-            Dg Contingencia <span className="text-[#07C160]">PRO</span>
+            DG Contingência <span className="text-[#07C160]">PRO</span>
           </span>
         </div>
 

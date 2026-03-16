@@ -11,7 +11,7 @@ const Footer = () => (
         A performance da operação depende da estratégia aplicada pelo usuário. A plataforma fornece infraestrutura e ferramentas de gestão.
       </p>
       <p className="text-xs text-white/30">
-        © {new Date().getFullYear()} DG Contingência. Todos os direitos reservados.
+        © {new Date().getFullYear()} DG Contingência PRO. Todos os direitos reservados.
       </p>
     </div>
   </footer>
