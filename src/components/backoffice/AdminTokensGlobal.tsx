@@ -163,7 +163,7 @@ const AdminTokensGlobal = () => {
           </div>
           <div>
             <h2 className="text-lg font-bold text-foreground">Instâncias UAZAPI</h2>
-            <p className="text-xs text-muted-foreground">Dados em tempo real do provedor</p>
+            <p className="text-xs text-muted-foreground">Dados do provedor com fallback automático dos tokens do banco</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-1.5 text-xs rounded-lg h-8">
