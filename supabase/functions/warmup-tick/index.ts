@@ -1637,63 +1637,78 @@ async function handleTick(db: any) {
         break;
       }
 
-      // ── COMMUNITY INTERACTION ──
+      // ── COMMUNITY INTERACTION (conversation-style with media) ──
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
         const peerIndex = job.payload?.peer_index ?? 0;
-        const isImage = job.payload?.is_image === true;
+        const mediaType = job.payload?.media_type || "text";
 
-        // Find peers: paired instances or other active cycles
+        // Find active pairs for this cycle
         const { data: pairs } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b")
           .eq("cycle_id", cycle.id).eq("status", "active");
 
-        const { data: otherCycles } = await db.from("warmup_cycles")
-          .select("id, device_id, user_id")
-          .eq("is_running", true).neq("device_id", job.device_id)
-          .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
-          .limit(50);
-
-        const peers: { deviceId: string; pairId?: string }[] = [];
+        // If no pairs yet, try to find from other cycles or fallback
+        let peerDeviceId: string | null = null;
 
         if (pairs?.length) {
-          for (const p of pairs) {
-            const partnerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
-            peers.push({ deviceId: partnerId, pairId: p.id });
-          }
-        }
-        if (otherCycles?.length) {
-          for (const oc of otherCycles) {
-            if (!peers.some(p => p.deviceId === oc.device_id)) {
-              peers.push({ deviceId: oc.device_id });
-            }
+          const selectedPair = pairs[peerIndex % pairs.length];
+          peerDeviceId = selectedPair.instance_id_a === job.device_id
+            ? selectedPair.instance_id_b
+            : selectedPair.instance_id_a;
+        } else {
+          // Fallback: find other community-enabled devices from different users
+          const { data: otherCycles } = await db.from("warmup_cycles")
+            .select("device_id, user_id")
+            .eq("is_running", true).neq("device_id", job.device_id).neq("user_id", job.user_id)
+            .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
+            .limit(10);
+
+          if (otherCycles?.length) {
+            const shuffled = otherCycles.sort(() => Math.random() - 0.5);
+            peerDeviceId = shuffled[peerIndex % shuffled.length].device_id;
           }
         }
 
-        if (peers.length === 0) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_peers", message: "Nenhum peer encontrado" });
+        if (!peerDeviceId) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_peers", message: `Nenhum peer encontrado para par ${peerIndex}` });
           break;
         }
 
-        const selectedPeer = peers[peerIndex % peers.length];
-        const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
+        const { data: pd } = await db.from("devices").select("number, status").eq("id", peerDeviceId).single();
 
         if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline` });
+          // Peer offline — skip this message (don't block the conversation)
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline — pulando` });
           break;
         }
 
         const targetPhone = pd.number.replace(/\+/g, "");
+        let sentDescription = "";
 
-        if (isImage) {
-          try {
-            await uazapiSendImage(baseUrl, token, targetPhone, pickRandom(imagePool), pickRandom(IMAGE_CAPTIONS));
-          } catch {
-            await uazapiSendText(baseUrl, token, targetPhone, generateNaturalMessage("community"));
+        try {
+          if (mediaType === "image") {
+            const imgUrl = pickRandom(imagePool);
+            const caption = pickRandom(IMAGE_CAPTIONS);
+            await uazapiSendImage(baseUrl, token, targetPhone, imgUrl, "");
+            await new Promise(r => setTimeout(r, randInt(1000, 3000)));
+            await uazapiSendText(baseUrl, token, targetPhone, caption);
+            sentDescription = `[IMG+TXT] ${caption}`;
+          } else if (mediaType === "sticker") {
+            const imgUrl = pickRandom(imagePool);
+            await uazapiSendSticker(baseUrl, token, targetPhone, imgUrl);
+            sentDescription = `[STICKER] 🎭`;
+          } else {
+            const msg = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, msg);
+            sentDescription = msg.substring(0, 50);
           }
-        } else {
-          await uazapiSendText(baseUrl, token, targetPhone, generateNaturalMessage("community"));
+        } catch (e) {
+          // Fallback to text if media fails
+          const fallbackMsg = generateNaturalMessage("community");
+          await uazapiSendText(baseUrl, token, targetPhone, fallbackMsg);
+          sentDescription = `[fallback] ${fallbackMsg.substring(0, 40)}`;
         }
 
         await db.from("warmup_cycles").update({
@@ -1704,7 +1719,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_msg_sent",
-          message: `Comunitário: ${isImage ? "📷" : "💬"} peer ${peerIndex} → ${targetPhone.substring(0, 6)}...`,
+          message: `Comunitário par ${peerIndex + 1}/3: ${sentDescription}`,
+          meta: { peer_device: peerDeviceId, media_type: mediaType, target: targetPhone.substring(0, 6) + "..." },
         });
         break;
       }
