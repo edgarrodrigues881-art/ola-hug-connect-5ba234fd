@@ -480,6 +480,15 @@ const WarmupInstances = () => {
   const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
   const [bulkStartDay, setBulkStartDay] = useState("1");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const safeBulkDaysTotal = String(Math.max(Number(bulkDaysTotal) || 1, Number(bulkStartDay) || 1));
+
+  const openBulkWarmupDialog = useCallback(() => {
+    setBulkSelected(new Set());
+    setBulkChipState("new");
+    setBulkStartDay("1");
+    setBulkDaysTotal("14");
+    setBulkOpen(true);
+  }, []);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -1321,12 +1330,7 @@ const WarmupInstances = () => {
               <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => setAddToFolderOpen(true)}>
                 <Plus className="w-3.5 h-3.5" /> Adicionar Instância
               </Button>
-              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
-                setBulkSelected(new Set());
-                setBulkChipState("new");
-                setBulkDaysTotal("14");
-                setBulkOpen(true);
-              }}>
+              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={openBulkWarmupDialog}>
                 <Flame className="w-3.5 h-3.5" /> Aquecer em massa
               </Button>
             </>
@@ -1341,12 +1345,7 @@ const WarmupInstances = () => {
               >
                 <Filter className="w-3 h-3" /> Filtros
               </Button>
-              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={() => {
-                setBulkSelected(new Set());
-                setBulkChipState("new");
-                setBulkDaysTotal("14");
-                setBulkOpen(true);
-              }}>
+              <Button size="sm" className="gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white" onClick={openBulkWarmupDialog}>
                 <Flame className="w-3.5 h-3.5" /> Aquecer em massa
               </Button>
             </>
@@ -1544,7 +1543,7 @@ const WarmupInstances = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Dia final</label>
-                  <Select value={bulkDaysTotal} onValueChange={setBulkDaysTotal}>
+                  <Select value={safeBulkDaysTotal} onValueChange={setBulkDaysTotal}>
                     <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
                       <SelectValue />
                     </SelectTrigger>
