@@ -1472,9 +1472,10 @@ async function handleTick(db: any) {
         }
 
         const poolGroup = groupsPoolMap[groupId];
-        if (!poolGroup?.external_group_ref) throw new Error(`Grupo ${groupName} sem link de convite`);
+        const directInviteLink = job.payload?.invite_link;
+        if (!directInviteLink && !poolGroup?.external_group_ref) throw new Error(`Grupo ${groupName} sem link de convite`);
 
-        const inviteLink = poolGroup.external_group_ref;
+        const inviteLink = directInviteLink || poolGroup.external_group_ref;
         const inviteCode = inviteLink.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "").split("?")[0].split("/")[0].trim();
         if (!inviteCode || inviteCode.length < 10) throw new Error(`Código inválido: ${inviteLink}`);
 

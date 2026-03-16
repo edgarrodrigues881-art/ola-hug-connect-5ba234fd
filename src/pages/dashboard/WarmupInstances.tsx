@@ -20,7 +20,7 @@ import {
   Phone, Search, Filter, Pause, Play, Pencil, X,
   QrCode, Key, Shield, Ban, CheckCircle2, XCircle,
   Smartphone, RefreshCw, Lock, Target, Timer, Zap,
-  FolderOpen, Tag,
+  FolderOpen, Tag, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -480,6 +480,10 @@ const WarmupInstances = () => {
   const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
   const [bulkStartDay, setBulkStartDay] = useState("1");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkGroupSource, setBulkGroupSource] = useState<"system" | "custom">("system");
+  const [customGroupDialogOpen, setCustomGroupDialogOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupLink, setNewGroupLink] = useState("");
   const safeBulkDaysTotal = String(Math.max(Number(bulkDaysTotal) || 1, Number(bulkStartDay) || 1));
 
   const openBulkWarmupDialog = useCallback(() => {
@@ -487,6 +491,7 @@ const WarmupInstances = () => {
     setBulkChipState("new");
     setBulkStartDay("1");
     setBulkDaysTotal("14");
+    setBulkGroupSource("system");
     setBulkOpen(true);
   }, []);
 
@@ -495,6 +500,45 @@ const WarmupInstances = () => {
   const { toast } = useToast();
   const engine = useWarmupEngine();
   const qc = useQueryClient();
+
+  // Fetch user's custom groups
+  const { data: userCustomGroups = [], refetch: refetchCustomGroups } = useQuery({
+    queryKey: ["warmup_custom_groups", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_groups" as any)
+        .select("id, name, link, is_custom, created_at")
+        .eq("is_custom", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!user,
+  });
+
+  const addCustomGroup = useCallback(async () => {
+    if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
+    const { error } = await supabase.from("warmup_groups" as any).insert({
+      user_id: user.id,
+      name: newGroupName.trim(),
+      link: newGroupLink.trim(),
+      is_custom: true,
+    });
+    if (error) {
+      toast({ title: "Erro ao adicionar grupo", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewGroupName("");
+    setNewGroupLink("");
+    refetchCustomGroups();
+    toast({ title: "Grupo adicionado" });
+  }, [newGroupName, newGroupLink, user, toast, refetchCustomGroups]);
+
+  const removeCustomGroup = useCallback(async (groupId: string) => {
+    await supabase.from("warmup_groups" as any).delete().eq("id", groupId);
+    refetchCustomGroups();
+    toast({ title: "Grupo removido" });
+  }, [refetchCustomGroups, toast]);
 
   const WARNING_DISMISS_KEY = "warmup_v2_warning_dismissed_v2";
   const [showWarning, setShowWarning] = useState(() =>
@@ -1566,6 +1610,85 @@ const WarmupInstances = () => {
               )}
             </div>
 
+            {/* ── Group source selector ── */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Grupos de aquecimento</p>
+              <div className="grid grid-cols-2 gap-2.5">
+                {([
+                  { value: "system" as const, label: "Grupos do sistema", desc: "Usar nossos grupos padrão", icon: Shield },
+                  { value: "custom" as const, label: "Meus grupos", desc: "Usar seus próprios grupos", icon: Users },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setBulkGroupSource(opt.value)}
+                    className={cn(
+                      "relative text-left p-4 rounded-2xl border-2 transition-all duration-300 overflow-hidden",
+                      bulkGroupSource === opt.value
+                        ? "border-primary/50 shadow-lg shadow-primary/15"
+                        : "border-border/20 hover:border-border/40 bg-card/40 hover:bg-card/60"
+                    )}
+                  >
+                    {bulkGroupSource === opt.value && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-60 pointer-events-none" />
+                    )}
+                    <div className="relative">
+                      <opt.icon className={cn("w-4 h-4 transition-all", bulkGroupSource === opt.value ? "text-primary" : "text-muted-foreground/40")} />
+                      <p className="text-[13px] font-black text-foreground mt-2.5 leading-tight">{opt.label}</p>
+                      <p className="text-[9px] text-muted-foreground mt-1 leading-snug font-medium">{opt.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {bulkGroupSource === "custom" && (
+                <div className="space-y-3 mt-2">
+                  {userCustomGroups.length > 0 ? (
+                    <div className="rounded-xl border border-border/15 bg-card/20 p-2.5 max-h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin">
+                      {userCustomGroups.map((g: any) => (
+                        <div key={g.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors">
+                          <Users className="w-3.5 h-3.5 text-primary/50 shrink-0" />
+                          <span className="text-[12px] font-semibold text-foreground truncate flex-1">{g.name}</span>
+                          <button onClick={() => removeCustomGroup(g.id)} className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+                      <p className="text-[10px] text-amber-400 font-bold">Nenhum grupo próprio cadastrado</p>
+                      <p className="text-[9px] text-muted-foreground mt-1">Adicione seus grupos abaixo para usá-los no aquecimento.</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nome do grupo"
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        className="h-9 text-xs rounded-lg bg-card/40 border-border/20"
+                      />
+                      <Input
+                        placeholder="Link do grupo (chat.whatsapp.com/...)"
+                        value={newGroupLink}
+                        onChange={(e) => setNewGroupLink(e.target.value)}
+                        className="h-9 text-xs rounded-lg bg-card/40 border-border/20 flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 px-3 rounded-lg shrink-0"
+                        disabled={!newGroupName.trim() || !newGroupLink.trim()}
+                        onClick={addCustomGroup}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* ── Instance selector ── */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
@@ -1690,7 +1813,7 @@ const WarmupInstances = () => {
                     const batch = ids.slice(i, i + BATCH);
                     const results = await Promise.allSettled(
                       batch.map(deviceId =>
-                        engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal), start_day: Number(bulkStartDay) > 1 ? Number(bulkStartDay) : undefined })
+                        engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal), start_day: Number(bulkStartDay) > 1 ? Number(bulkStartDay) : undefined, group_source: bulkGroupSource })
                       )
                     );
                     results.forEach(r => r.status === "fulfilled" ? ok++ : fail++);
