@@ -76,26 +76,16 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Progressão conservadora: 1→2→2→3→3→4 pares (anti-flood)
-  if (daysSinceCommunity <= 2) return 1;   // dias 0-2: 1 par
-  if (daysSinceCommunity <= 5) return 2;   // dias 3-5: 2 pares
-  if (daysSinceCommunity <= 10) return 2;  // dias 6-10: 2 pares
-  if (daysSinceCommunity <= 15) return 3;  // dias 11-15: 3 pares
-  if (daysSinceCommunity <= 20) return 3;  // dias 16-20: 3 pares
-  return 4;                                // dias 21+: 4 pares (teto)
+  // ULTRA CONSERVADOR — máximo 1 par para evitar bans
+  return 1;
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Bursts por par conservadores: 2→3→3→4→4→5
-  if (daysSinceCommunity <= 2) return 2;
-  if (daysSinceCommunity <= 5) return 3;
-  if (daysSinceCommunity <= 10) return 3;
-  if (daysSinceCommunity <= 15) return 4;
-  if (daysSinceCommunity <= 20) return 4;
-  return 5;
+  // ULTRA CONSERVADOR — máximo 1 burst por par por dia
+  return 1;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -1795,47 +1785,26 @@ async function handleTick(db: any) {
 
         const targetPhone = pd.number.replace(/\+/g, "");
 
-        // ── BURST: Send 2-4 messages in rapid succession (like a real conversation) ──
-        const burstSize = randInt(2, 4);
+        // ── BURST: Send exactly 2 TEXT messages (safe conversation) ──
+        // NO images, NO stickers — these inflate message count and trigger spam detection
+        const burstSize = 2;
         let sentCount = 0;
         const sentSummary: string[] = [];
 
         for (let b = 0; b < burstSize; b++) {
-          // Random delay between messages in burst: 5-30 seconds (typing simulation)
+          // Typing delay between messages: 8-45 seconds
           if (b > 0) {
-            await new Promise(r => setTimeout(r, randInt(5, 30) * 1000));
+            await new Promise(r => setTimeout(r, randInt(8, 45) * 1000));
           }
 
-          // ~15% image, ~5% sticker, ~80% text within burst
-          const roll = Math.random();
           try {
-            if (roll < 0.15) {
-              const imgUrl = pickRandom(imagePool);
-              const caption = pickRandom(IMAGE_CAPTIONS);
-              await uazapiSendImage(baseUrl, token, targetPhone, imgUrl, "");
-              await new Promise(r => setTimeout(r, randInt(1000, 3000)));
-              await uazapiSendText(baseUrl, token, targetPhone, caption);
-              sentSummary.push("📷");
-              sentCount += 2; // image + caption
-            } else if (roll < 0.20) {
-              const imgUrl = pickRandom(imagePool);
-              await uazapiSendSticker(baseUrl, token, targetPhone, imgUrl);
-              sentSummary.push("🎭");
-              sentCount++;
-            } else {
-              const msg = generateNaturalMessage("community");
-              await uazapiSendText(baseUrl, token, targetPhone, msg);
-              sentSummary.push("💬");
-              sentCount++;
-            }
+            const msg = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, msg);
+            sentSummary.push("💬");
+            sentCount++;
           } catch (e) {
-            // On failure within burst, send text fallback and continue
-            try {
-              const fallback = generateNaturalMessage("community");
-              await uazapiSendText(baseUrl, token, targetPhone, fallback);
-              sentSummary.push("💬↩");
-              sentCount++;
-            } catch { break; } // If even fallback fails, stop burst
+            // On failure, stop burst entirely — do NOT retry
+            break;
           }
         }
 
