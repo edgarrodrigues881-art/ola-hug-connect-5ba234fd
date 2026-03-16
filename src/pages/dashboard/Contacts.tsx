@@ -202,8 +202,18 @@ const Contacts = () => {
     const newList = [...customTags, tag];
     setCustomTags(newList);
     localStorage.setItem("contactCustomTags", JSON.stringify(newList));
+    const newColors = { ...tagColors, [tag]: newTagColorIdx };
+    setTagColors(newColors);
+    localStorage.setItem("contactTagColors", JSON.stringify(newColors));
+    setNewTagColorIdx((newTagColorIdx + 1) % TAG_COLORS.length);
     setCreateTagInput("");
     toast({ title: `Tag "${tag}" criada` });
+  };
+
+  const changeTagColor = (tag: string, colorIdx: number) => {
+    const newColors = { ...tagColors, [tag]: colorIdx };
+    setTagColors(newColors);
+    localStorage.setItem("contactTagColors", JSON.stringify(newColors));
   };
 
   const handleDeleteTag = (tag: string) => {
