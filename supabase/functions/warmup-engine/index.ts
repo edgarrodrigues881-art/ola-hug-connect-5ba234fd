@@ -862,7 +862,7 @@ async function handleResume(db: any, userId: string | null, body: any) {
   if (cycle.day_index <= 1) {
     const { data: pendingGroups } = await db
       .from("warmup_instance_groups")
-      .select("group_id, warmup_groups_pool(id, name)")
+      .select("group_id, group_name, invite_link")
       .eq("device_id", device_id)
       .eq("cycle_id", cycle.id)
       .eq("join_status", "pending");
@@ -874,10 +874,12 @@ async function handleResume(db: any, userId: string | null, body: any) {
 
       for (let i = 0; i < shuffled.length; i++) {
         const g = shuffled[i];
+        const jobPayload: any = { group_id: g.group_id, group_name: g.group_name || "Grupo" };
+        if (g.invite_link) jobPayload.invite_link = g.invite_link;
         joinJobs.push({
           user_id: userId, device_id, cycle_id: cycle.id,
           job_type: "join_group",
-          payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
+          payload: jobPayload,
           run_at: new Date(now.getTime() + cumulativeMs).toISOString(),
           status: "pending",
         });
