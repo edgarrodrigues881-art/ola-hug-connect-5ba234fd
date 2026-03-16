@@ -565,10 +565,11 @@ Deno.serve(async (req) => {
 async function handleStart(db: any, userId: string | null, body: any) {
   if (!userId) throw new Error("start requires authenticated user");
 
-  const { device_id, chip_state, days_total, plan_id } = body;
+  const { device_id, chip_state, days_total, plan_id, start_day } = body;
   if (!device_id) throw new Error("device_id required");
 
   const resolvedChipState = chip_state || "new";
+  const resolvedStartDay = Math.max(1, Math.min(start_day || 1, 30));
   const now = new Date();
 
   // 1. Clean up completed/orphan cycles for this device
@@ -592,9 +593,13 @@ async function handleStart(db: any, userId: string | null, body: any) {
     }
   }
 
-  // 2. Create cycle
+  // 2. Create cycle — if start_day > 1, skip pre_24h and start at correct phase
   const cycleDays = days_total || 30;
-  const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const skipPre24h = resolvedStartDay > 1;
+  const initialPhase = skipPre24h ? getPhaseForDay(resolvedStartDay, resolvedChipState) : "pre_24h";
+  const first24hEnds = skipPre24h
+    ? new Date(now.getTime() - 1000) // already past — skip 24h wait
+    : new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   const { data: cycle, error: cycleErr } = await db
     .from("warmup_cycles")
@@ -604,7 +609,8 @@ async function handleStart(db: any, userId: string | null, body: any) {
       chip_state: resolvedChipState,
       days_total: cycleDays,
       plan_id: plan_id || null,
-      phase: "pre_24h",
+      phase: initialPhase,
+      day_index: resolvedStartDay,
       is_running: true,
       started_at: now.toISOString(),
       first_24h_ends_at: first24hEnds.toISOString(),
