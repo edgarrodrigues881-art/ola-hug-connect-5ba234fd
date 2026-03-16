@@ -99,17 +99,38 @@ const Community = () => {
           {/* Outer glow pulse */}
           <div className="absolute w-72 h-72 rounded-2xl bg-[radial-gradient(circle,rgba(212,175,55,0.15)_0%,transparent_65%)] blur-2xl animate-[pulse_3s_ease-in-out_infinite]" />
           {/* Animated conic border with snake light */}
-          <div className="relative w-60 h-60 rounded-2xl p-[3px] shadow-[0_0_40px_rgba(212,175,55,0.3),0_0_80px_rgba(212,175,55,0.1)] overflow-hidden">
+          <div className="relative w-60 h-60 rounded-2xl p-[3px] shadow-[0_0_40px_rgba(212,175,55,0.3),0_0_80px_rgba(212,175,55,0.1)]">
             {/* Gold base border */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#b8860b] via-[#d4af37] to-[#b8860b]" />
-            {/* Snake white light */}
-            <div
-              className="absolute inset-[-50%]"
-              style={{
-                background: "conic-gradient(from 0deg, transparent 0%, transparent 70%, rgba(255,255,255,0.8) 78%, #ffffff 82%, rgba(255,255,255,0.8) 86%, transparent 94%, transparent 100%)",
-                animation: "spin-slow 1.5s linear infinite",
-              }}
-            />
+            {/* Snake white light - uses SVG rect animation to trace the border */}
+            <svg
+              className="absolute inset-[-2px] w-[calc(100%+4px)] h-[calc(100%+4px)] pointer-events-none z-[5]"
+              viewBox="0 0 244 244"
+              fill="none"
+            >
+              <rect
+                x="4" y="4" width="236" height="236" rx="16"
+                stroke="url(#snake-gradient)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                fill="none"
+                strokeDasharray="120 820"
+              >
+                <animate
+                  attributeName="stroke-dashoffset"
+                  values="940;0"
+                  dur="2.5s"
+                  repeatCount="indefinite"
+                />
+              </rect>
+              <defs>
+                <linearGradient id="snake-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
+                  <stop offset="50%" stopColor="rgba(255,255,255,0.4)" />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                </linearGradient>
+              </defs>
+            </svg>
             <div className="relative w-full h-full rounded-[13px] bg-background flex items-center justify-center overflow-hidden z-10">
               <img
                 src={dgLogo}
