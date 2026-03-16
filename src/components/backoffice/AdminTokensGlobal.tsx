@@ -6,10 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Key, Trash2, Loader2, Search, CircleDot, Zap, Lock,
-  AlertTriangle, RefreshCw, Wifi, WifiOff, Server
-} from "lucide-react";
+import { Key, Trash2, Loader2, Search, RefreshCw, Wifi, WifiOff, Server } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -17,7 +14,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UazapiInstance {
   name: string;
