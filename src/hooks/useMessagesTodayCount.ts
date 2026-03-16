@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 /**
- * Lightweight hook that polls only the warmup message count for today.
- * Filters out report_wa devices to match the instances panel.
+ * Lightweight hook that reads today's message count from the
+ * pre-aggregated warmup_daily_stats table (populated by DB trigger).
  */
 export function useMessagesTodayCount() {
   const { user } = useAuth();
@@ -12,26 +12,16 @@ export function useMessagesTodayCount() {
   return useQuery({
     queryKey: ["messages-today-count", user?.id],
     queryFn: async (): Promise<number> => {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
 
-      // Query audit logs directly by user_id so counts persist even if devices disconnect/are removed
-      const { count } = await supabase
-        .from("warmup_audit_logs")
-        .select("id", { count: "exact", head: true })
+      const { data } = await supabase
+        .from("warmup_daily_stats")
+        .select("messages_sent")
         .eq("user_id", user!.id)
-        .in("event_type", [
-          "group_msg_sent",
-          "autosave_msg_sent",
-          "community_msg_sent",
-          "autosave_interaction",
-          "community_interaction",
-          "group_interaction",
-        ])
-        .eq("level", "info")
-        .gte("created_at", todayStart.toISOString());
+        .eq("stat_date", today);
 
-      return count || 0;
+      if (!data || data.length === 0) return 0;
+      return data.reduce((sum, row) => sum + (row.messages_sent || 0), 0);
     },
     enabled: !!user?.id,
     refetchInterval: 15000,
