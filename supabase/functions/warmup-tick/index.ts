@@ -2054,15 +2054,16 @@ async function handleTick(db: any) {
         }
 
         // ── Classificar pares por prioridade ──
-        // Prioridade 1: Par com conversa ativa esperando MINHA resposta (mais urgente)
-        // Prioridade 2: Par livre sem conversa ativa, há mais tempo sem contato
-        // Prioridade 3: Par ocupado esperando a resposta DO OUTRO (pular)
-        // Prioridade 4: Par em cooldown (pular)
+        // Prioridade 1: Par com conversa ativa esperando MINHA resposta
+        // Prioridade 2: Par livre sem conversa ativa, mais tempo sem contato
+        // Prioridade 3: Par stale (resetado agora) — deprioritizado para dar chance a outros
+        // Pula: par esperando resposta do outro (< 10 min), par em cooldown
         type ScoredPair = { pair: any; priority: number; lastContactMs: number };
         const scored: ScoredPair[] = [];
 
         for (const pair of uniquePairs) {
           const meta = normalizeCommunityPairMeta(pair);
+          const rawMeta = pair.meta && typeof pair.meta === "object" ? pair.meta as Record<string, any> : {};
           const hasBusyConversation = Boolean(meta.conversation_id && meta.expected_sender_device_id);
           const myTurnToReply = hasBusyConversation && meta.expected_sender_device_id === job.device_id;
           const otherSideTurn = hasBusyConversation && meta.expected_sender_device_id !== job.device_id;
@@ -2071,25 +2072,33 @@ async function handleTick(db: any) {
           const lastCompletedMs = meta.last_completed_at ? new Date(meta.last_completed_at).getTime() : 0;
           const lastContactMs = Math.max(lastTurnMs, lastCompletedMs) || 0;
 
-          // Stale check (10 min) — se o outro lado não respondeu, tratar como livre
           const STALE_MS = 10 * 60 * 1000;
           const isStale = otherSideTurn && lastTurnMs && (Date.now() - lastTurnMs) > STALE_MS;
 
           if (myTurnToReply) {
-            // Prioridade máxima: alguém me mandou mensagem, preciso responder
             scored.push({ pair, priority: 1, lastContactMs });
           } else if (otherSideTurn && !isStale) {
-            // O outro lado precisa responder — não interfiro, pulo
-            continue;
+            continue; // Aguardando resposta do outro — pular
           } else if (isStale) {
-            // Conversa travada, vou resetar e iniciar nova
-            scored.push({ pair, priority: 2, lastContactMs: 0 }); // Tratar como nunca conversou
+            // Resetar conversa travada AGORA, mas dar prioridade baixa
+            const resetMeta = {
+              ...rawMeta, initiator: null, expected_sender_device_id: null,
+              last_sender_device_id: meta.last_sender_device_id,
+              turns_completed: 0, max_turns: 0, conversation_id: null,
+              last_turn_at: meta.last_turn_at, last_completed_at: new Date().toISOString(),
+            };
+            await db.from("community_pairs").update({ meta: resetMeta }).eq("id", pair.id);
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "community_stale_reset",
+              message: `Par não respondeu em 10 min — resetado, priorizando outro par`,
+              meta: { pair_id: pair.id, stale_peer: meta.expected_sender_device_id },
+            });
+            // Prioridade 3: só usar se não houver nenhum par livre
+            scored.push({ pair, priority: 3, lastContactMs: Date.now() });
           } else {
-            // Par livre — verificar cooldown
             const inCooldown = lastCompletedMs && (Date.now() - lastCompletedMs) < 5 * 60 * 1000;
             if (inCooldown) continue;
-
-            // Quanto mais tempo sem contato, maior prioridade (menor lastContactMs = prioridade)
             scored.push({ pair, priority: 2, lastContactMs });
           }
         }
@@ -2104,23 +2113,36 @@ async function handleTick(db: any) {
           break;
         }
 
-        // Ordenar: prioridade 1 primeiro, depois por tempo sem contato (mais antigo primeiro)
+        // Ordenar: prioridade 1 > 2 > 3, depois por tempo sem contato
         scored.sort((a, b) => {
           if (a.priority !== b.priority) return a.priority - b.priority;
-          return a.lastContactMs - b.lastContactMs; // Quem não conversa há mais tempo primeiro
+          return a.lastContactMs - b.lastContactMs;
         });
 
-        // Processar o par com maior prioridade
-        const chosen = scored[0];
-        const result = await processCommunityTurn(chosen.pair, 0, false);
+        // Tentar pares na ordem de prioridade até um funcionar
+        let pickedResult = "none";
+        let pickedPair: any = null;
+        let pickedPriority = 0;
+
+        for (const candidate of scored) {
+          const result = await processCommunityTurn(candidate.pair, 0, false);
+          if (result === "ok") {
+            pickedResult = result;
+            pickedPair = candidate.pair;
+            pickedPriority = candidate.priority;
+            break;
+          }
+          // Se falhou (offline, no_cycle, etc), tenta o próximo
+          pickedResult = result;
+        }
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_smart_pick",
-          message: `Par selecionado (prioridade ${chosen.priority}): ${result}`,
+          message: `Par selecionado (prioridade ${pickedPriority}): ${pickedResult}`,
           meta: {
-            pair_id: chosen.pair.id, priority: chosen.priority,
-            result, candidates: scored.length, total_pairs: uniquePairs.length,
+            pair_id: pickedPair?.id || null, priority: pickedPriority,
+            result: pickedResult, candidates: scored.length, total_pairs: uniquePairs.length,
           },
         });
 
