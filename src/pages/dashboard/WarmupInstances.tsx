@@ -1766,7 +1766,7 @@ const WarmupInstances = () => {
                 Cancelar
               </Button>
               <Button
-                disabled={bulkSelected.size === 0 || bulkLoading}
+                disabled={bulkSelected.size === 0 || bulkLoading || userCustomGroups.length === 0}
                 className={cn(
                   "flex-1 gap-2.5 h-12 rounded-xl font-black text-sm transition-all duration-300",
                   "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white",
