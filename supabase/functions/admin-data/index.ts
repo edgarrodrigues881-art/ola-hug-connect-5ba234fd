@@ -1331,30 +1331,17 @@ Deno.serve(async (req) => {
         let found = false;
         for (const authHeaders of authVariants) {
           try {
-            const fullUrl = `${BASE_URL}${endpoint}`;
-            console.log(`[fetch-uazapi] Trying ${fullUrl} with headers:`, JSON.stringify(Object.keys(authHeaders)));
-            const res = await fetch(fullUrl, {
+            const res = await fetch(BASE_URL + endpoint, {
               method: "GET",
               headers: { ...authHeaders, Accept: "application/json" },
             });
-            console.log(`[fetch-uazapi] ${fullUrl} => status ${res.status}`);
             if (res.status === 401) continue;
             if (res.ok) {
-              const data = await res.json();
-              console.log(`[fetch-uazapi] Response keys:`, JSON.stringify(Object.keys(data || {})), `isArray:`, Array.isArray(data), `length:`, Array.isArray(data) ? data.length : 'N/A');
-              // Handle different response shapes
-              instances = Array.isArray(data) ? data : (data.instances || data.data || data.result || []);
-              if (instances.length > 0) { 
-                console.log(`[fetch-uazapi] Found ${instances.length} instances via ${endpoint}`);
-                console.log(`[fetch-uazapi] Sample instance keys:`, JSON.stringify(Object.keys(instances[0] || {})));
-                found = true; break; 
-              } else {
-                console.log(`[fetch-uazapi] Empty instances from ${endpoint}, trying next...`);
-              }
+              const json = await res.json();
+              instances = Array.isArray(json) ? json : (json.instances || json.data || json.result || []);
+              if (instances.length > 0) { found = true; break; }
             }
-          } catch (err) { 
-            console.log(`[fetch-uazapi] Error on ${endpoint}:`, (err as any).message);
-          }
+          } catch (_) { /* next */ }
         }
         if (found) break;
       }
