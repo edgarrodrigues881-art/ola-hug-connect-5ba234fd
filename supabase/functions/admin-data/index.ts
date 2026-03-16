@@ -1272,8 +1272,45 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── LIST ALL TOKENS (global) ───
+    if (action === "list-all-tokens") {
+      const { data: allTokens, error: tokErr } = await adminClient
+        .from("user_api_tokens")
+        .select("id, user_id, token, label, status, healthy, device_id, created_at, last_checked_at")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (tokErr) throw tokErr;
 
-    if (action === "update-monitor-token") {
+      // Get profile names for all unique user_ids
+      const userIds = [...new Set((allTokens || []).map((t: any) => t.user_id))];
+      const { data: profiles } = await adminClient
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+      
+      const profileMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { profileMap[p.id] = p.full_name || "Sem nome"; });
+
+      // Get device names for tokens in use
+      const deviceIds = (allTokens || []).map((t: any) => t.device_id).filter(Boolean);
+      const { data: devices } = deviceIds.length > 0
+        ? await adminClient.from("devices").select("id, name").in("id", deviceIds)
+        : { data: [] };
+      const deviceMap: Record<string, string> = {};
+      (devices || []).forEach((d: any) => { deviceMap[d.id] = d.name; });
+
+      const enriched = (allTokens || []).map((t: any) => ({
+        ...t,
+        client_name: profileMap[t.user_id] || "Desconhecido",
+        device_name: t.device_id ? (deviceMap[t.device_id] || "—") : null,
+      }));
+
+      return new Response(JSON.stringify({ tokens: enriched, total: enriched.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
       const { target_user_id, whatsapp_monitor_token } = await req.json();
       console.log("[admin-data] update-monitor-token for:", target_user_id, "token:", whatsapp_monitor_token ? "***" : "(empty)");
       const { error: updErr } = await adminClient.from("profiles").update({
