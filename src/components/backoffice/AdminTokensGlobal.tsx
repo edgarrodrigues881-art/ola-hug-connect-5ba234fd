@@ -38,6 +38,7 @@ const AdminTokensGlobal = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [cleaningIdle, setCleaningIdle] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-global-tokens"],
