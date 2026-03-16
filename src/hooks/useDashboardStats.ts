@@ -64,70 +64,55 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ["dashboard-stats", user?.id],
     queryFn: async (): Promise<DashboardStats> => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      // Calculate date range for the week (Monday-Sunday)
+      const now = new Date();
+      const todayDow = now.getDay();
+      const mondayOffset = todayDow === 0 ? -6 : 1 - todayDow;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+      const mondayStr = monday.toLocaleDateString("en-CA"); // YYYY-MM-DD
 
-      // Paginated fetch for audit logs to avoid 1000 row limit
-      async function fetchAllAuditLogs() {
-        const PAGE_SIZE = 1000;
-        let allLogs: any[] = [];
-        let from = 0;
-        while (true) {
-          const { data } = await supabase
-            .from("warmup_audit_logs")
-            .select("device_id, level, event_type, created_at")
-            .eq("user_id", user!.id)
-            .gte("created_at", sevenDaysAgo)
-            .range(from, from + PAGE_SIZE - 1);
-          const batch = data || [];
-          allLogs = allLogs.concat(batch);
-          if (batch.length < PAGE_SIZE) break;
-          from += PAGE_SIZE;
-        }
-        return allLogs;
-      }
-
-      const [devicesRes, cyclesRes, auditLogs, proxiesRes] = await Promise.all([
+      const [devicesRes, cyclesRes, dailyStatsRes, proxiesRes] = await Promise.all([
         supabase.from("devices").select("id, name, number, status, proxy_id, profile_picture").eq("user_id", user!.id).neq("login_type", "report_wa"),
         supabase.from("warmup_cycles").select("id, device_id, is_running, phase, day_index, days_total, daily_interaction_budget_used, daily_interaction_budget_target, updated_at").eq("user_id", user!.id),
-        fetchAllAuditLogs(),
+        supabase.from("warmup_daily_stats").select("device_id, stat_date, messages_sent, messages_failed, messages_total").eq("user_id", user!.id).gte("stat_date", mondayStr),
         supabase.from("proxies").select("id, host"),
       ]);
 
       const devices = devicesRes.data || [];
       const cycles = cyclesRes.data || [];
+      const dailyStats = dailyStatsRes.data || [];
       const proxies = proxiesRes.data || [];
 
       const proxyMap: Record<string, string> = {};
       proxies.forEach((p) => { proxyMap[p.id] = p.host; });
 
-      // Only count logs from non-report_wa devices
+      // Only count stats from non-report_wa devices
       const validDeviceIds = new Set(devices.map((d) => d.id));
 
-      const interactionEvents = new Set([
-        "autosave_interaction", "community_interaction", "group_interaction",
-        "group_msg_sent", "autosave_msg_sent", "community_msg_sent",
-      ]);
-
+      // Aggregate totals from the daily stats table
       let totalSent = 0;
       let totalFailed = 0;
 
-      const allDayLogs: { date: string; sent: boolean }[] = [];
+      // Group daily stats by date for the evolution chart
+      const dayStatsMap: Record<string, { sent: number; failed: number; total: number }> = {};
 
-      // Filter audit logs to only include devices from the instances panel
-      auditLogs.forEach((l) => {
-        if (!validDeviceIds.has(l.device_id)) return; // skip report_wa devices
-        if (interactionEvents.has(l.event_type)) {
-          const isSent = l.level === "info";
-          const isFailed = l.level === "error";
-          if (isSent) totalSent++;
-          if (isFailed) totalFailed++;
-          allDayLogs.push({ date: new Date(l.created_at).toDateString(), sent: isSent });
-        }
+      dailyStats.forEach((s) => {
+        if (!validDeviceIds.has(s.device_id)) return;
+        totalSent += s.messages_sent || 0;
+        totalFailed += s.messages_failed || 0;
+
+        const dateKey = s.stat_date;
+        if (!dayStatsMap[dateKey]) dayStatsMap[dateKey] = { sent: 0, failed: 0, total: 0 };
+        dayStatsMap[dateKey].sent += s.messages_sent || 0;
+        dayStatsMap[dateKey].failed += s.messages_failed || 0;
+        dayStatsMap[dateKey].total += s.messages_total || 0;
       });
 
       const totalMessages = totalSent + totalFailed;
 
-      // Build chips — prefer warmup_cycles over warmup_sessions
+      // Build chips
       const chips: ChipInfo[] = devices.map((d) => {
         const cycle = cycles.find((c) => c.device_id === d.id && c.is_running);
         const activeCycle = cycle || cycles.find((c) => c.device_id === d.id && c.phase === "paused");
@@ -159,26 +144,16 @@ export function useDashboardStats() {
       const avgDeliveryRate = totalMessages > 0 ? Math.round((totalSent / totalMessages) * 100) : 100;
       const avgFailRate = totalMessages > 0 ? Math.round((totalFailed / totalMessages) * 100) : 0;
 
-      // Warmup evolution — week Monday to Sunday
-      const now = new Date();
-      const todayDow = now.getDay(); // 0=Sun, 1=Mon, ...
-      // Calculate Monday of this week
-      const mondayOffset = todayDow === 0 ? -6 : 1 - todayDow;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + mondayOffset);
-      monday.setHours(0, 0, 0, 0);
-
+      // Warmup evolution — week Monday to Sunday using aggregated stats
       const warmupEvolution: WarmupEvolutionPoint[] = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
-        const dayStr = d.toDateString();
+        const dateStr = d.toLocaleDateString("en-CA");
         const dayLabel = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
 
-        const dayItems = allDayLogs.filter((l) => l.date === dayStr);
-        const sent = dayItems.filter((l) => l.sent).length;
-        const total = dayItems.length;
+        const dayData = dayStatsMap[dateStr] || { sent: 0, failed: 0, total: 0 };
 
-        return { label: dayLabel, volume: total, entregas: sent, crescimento: 0 };
+        return { label: dayLabel, volume: dayData.total, entregas: dayData.sent, crescimento: 0 };
       });
 
       for (let i = 1; i < warmupEvolution.length; i++) {
@@ -191,7 +166,6 @@ export function useDashboardStats() {
       const firstDayVol = warmupEvolution[0]?.volume || 0;
       const lastDayVol = warmupEvolution[6]?.volume || 0;
       const growthLast7Days = firstDayVol > 0 ? Math.round(((lastDayVol - firstDayVol) / firstDayVol) * 100) : 0;
-      // Volume médio diário = total de interações de hoje ÷ chips ativos (com warmup rodando)
       const activeChipCount = runningCycles.length || 1;
       const avgDailyVolume = Math.round(totalDailyVolume / activeChipCount);
 
