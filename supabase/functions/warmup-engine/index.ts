@@ -554,7 +554,7 @@ async function handleStart(db: any, userId: string | null, body: any) {
 
   const resolvedChipState = chip_state || "new";
   const resolvedStartDay = Math.max(1, Math.min(start_day || 1, 30));
-  const resolvedGroupSource = group_source || "system";
+  const resolvedGroupSource = group_source || "custom";
   const now = new Date();
 
   // 1. Clean up completed/orphan cycles for this device
