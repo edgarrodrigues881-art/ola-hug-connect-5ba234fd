@@ -147,9 +147,9 @@ const Contacts = () => {
   const [createTagInput, setCreateTagInput] = useState("");
   const [newTagColorIdx, setNewTagColorIdx] = useState(0);
 
-  const getTagStyle = useCallback((tag: string) => {
+  const getTagColor = useCallback((tag: string): string => {
     const idx = tagColors[tag] ?? 0;
-    return TAG_COLORS[idx % TAG_COLORS.length];
+    return TAG_HEX_COLORS[idx % TAG_HEX_COLORS.length];
   }, [tagColors]);
 
   // Edit contact state
