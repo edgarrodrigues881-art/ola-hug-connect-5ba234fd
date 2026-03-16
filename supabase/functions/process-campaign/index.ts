@@ -1059,8 +1059,9 @@ Deno.serve(async (req) => {
               failedCount++;
               if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
-                await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
-                break;
+                const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+                if (didPause) break;
+                // If not paused, just skip this contact and continue
               }
               continue;
             }
