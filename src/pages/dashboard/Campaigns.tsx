@@ -1300,8 +1300,8 @@ const Campaigns = () => {
               </div>
 
               {/* Preview column */}
-              <div className="lg:col-span-2">
-                <div className="h-full">
+              <div className="lg:col-span-2 lg:sticky lg:top-4">
+                <div className="max-h-[500px]">
                   <WhatsAppPreview />
                 </div>
               </div>
