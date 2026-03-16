@@ -1518,22 +1518,53 @@ const WarmupInstances = () => {
               </div>
             </div>
 
-            {/* ── Duration selector ── */}
+            {/* ── Day range selector ── */}
             <div className="space-y-2.5">
-              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Duração do ciclo</p>
-              <Select value={bulkDaysTotal} onValueChange={setBulkDaysTotal}>
-                <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[7, 14, 21, 30].map(d => (
-                    <SelectItem key={d} value={String(d)}>
-                      <span className="font-semibold">{d} dias</span>
-                      {d === 14 && <span className="text-[10px] text-primary ml-2 font-bold">Recomendado</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Intervalo de dias</p>
+              <p className="text-[10px] text-muted-foreground font-medium -mt-1">Escolha o dia inicial e o dia final do ciclo</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Dia inicial</label>
+                  <Select value={bulkStartDay} onValueChange={(v) => {
+                    setBulkStartDay(v);
+                    if (Number(v) > Number(bulkDaysTotal)) setBulkDaysTotal(v);
+                  }}>
+                    <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
+                        <SelectItem key={d} value={String(d)}>
+                          <span className="font-semibold">Dia {d}</span>
+                          {d === 1 && <span className="text-[10px] text-primary ml-2 font-bold">Início</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Dia final</label>
+                  <Select value={bulkDaysTotal} onValueChange={setBulkDaysTotal}>
+                    <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 30 }, (_, i) => i + 1).filter(d => d >= Number(bulkStartDay)).map(d => (
+                        <SelectItem key={d} value={String(d)}>
+                          <span className="font-semibold">Dia {d}</span>
+                          {d === 30 && <span className="text-[10px] text-primary ml-2 font-bold">Máximo</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {Number(bulkStartDay) > 1 && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 mt-2">
+                  <p className="text-[10px] text-amber-400 font-bold">⚡ Início avançado — Dia {bulkStartDay}</p>
+                  <p className="text-[9px] text-muted-foreground mt-1">O ciclo vai pular as fases anteriores e iniciar direto na fase correspondente ao dia {bulkStartDay}. Os grupos serão marcados como já ingressados.</p>
+                </div>
+              )}
             </div>
 
             {/* ── Instance selector ── */}
