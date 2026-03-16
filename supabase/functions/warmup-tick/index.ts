@@ -621,12 +621,21 @@ function buildMsg(ctx: MsgCtx): string {
 // ══════════════════════════════════════════════════════════
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
-  const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
-    { path: "/send/text", body: { number, text } },
-    { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
-    { path: "/message/sendText", body: { chatId: number, text } },
-    { path: "/message/sendText", body: { to: number, text } },
-  ];
+  // For group JIDs (@g.us), prioritize endpoints that accept group format
+  const isGroup = number.includes("@g.us");
+  
+  const attempts: Array<{ path: string; body: Record<string, unknown> }> = isGroup
+    ? [
+        { path: "/send/text", body: { number, text } },
+        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
+        { path: "/send/text", body: { chatId: number, text } },
+      ]
+    : [
+        { path: "/send/text", body: { number, text } },
+        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
+        { path: "/message/sendText", body: { chatId: number, text } },
+        { path: "/message/sendText", body: { to: number, text } },
+      ];
 
   let lastErr = "";
   for (const at of attempts) {
@@ -640,31 +649,23 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
       if (res.ok) {
         try {
           const parsed = raw ? JSON.parse(raw) : {};
-          // Detect error responses that come with 200 status
           if (parsed?.error) {
             lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-            // If it's a definitive "not on WhatsApp" error, throw immediately
             if (typeof parsed.error === "string" && (parsed.error.includes("not on WhatsApp") || parsed.error.includes("not registered"))) {
               throw new Error(`API 500: ${raw.substring(0, 240)}`);
             }
             continue;
           }
-          if (parsed?.code === 404) {
-            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-            continue;
-          }
-          // Check for status: "error" pattern
-          if (parsed?.status === "error") {
-            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-            continue;
-          }
+          if (parsed?.code === 404) { lastErr = `${at.path}: ${raw.substring(0, 240)}`; continue; }
+          if (parsed?.status === "error") { lastErr = `${at.path}: ${raw.substring(0, 240)}`; continue; }
           return parsed;
         } catch (parseErr) {
-          // If it was our thrown error, re-throw
           if (parseErr instanceof Error && parseErr.message.startsWith("API 500:")) throw parseErr;
           return { ok: true, raw };
         }
       }
+      // Skip 405 for groups — try next endpoint instead of failing
+      if (res.status === 405) { lastErr = `405 @ ${at.path}`; continue; }
       lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
     } catch (e) {
       lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
@@ -1460,6 +1461,25 @@ async function handleTick(db: any) {
         let joinJid: string | null = null;
         let joinError: string | null = null;
 
+        // Helper to extract JID from any API response shape
+        const extractJid = (parsed: any): string | null => {
+          const candidates = [
+            parsed?.group?.JID, parsed?.group?.jid, parsed?.group?.id,
+            parsed?.data?.group?.JID, parsed?.data?.group?.jid, parsed?.data?.group?.id,
+            parsed?.data?.JID, parsed?.data?.jid, parsed?.data?.id,
+            parsed?.data?.gid, parsed?.data?.groupId, parsed?.data?.chatId,
+            parsed?.gid, parsed?.groupId, parsed?.jid, parsed?.id, parsed?.chatId,
+          ];
+          for (const c of candidates) {
+            if (c && typeof c === "string" && c.includes("@g.us")) return c;
+          }
+          // Deep search: find any string with @g.us in the response
+          const jsonStr = JSON.stringify(parsed);
+          const jidMatch = jsonStr.match(/(\d+@g\.us)/);
+          if (jidMatch) return jidMatch[1];
+          return null;
+        };
+
         const endpoints = [
           { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
           { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteLink.split("?")[0] }) },
@@ -1482,7 +1502,7 @@ async function handleTick(db: any) {
 
             if (res.ok || res.status === 409) {
               joinOk = true;
-              joinJid = parsed?.group?.JID || parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
+              joinJid = extractJid(parsed);
               const msg = (parsed?.message || parsed?.msg || "").toLowerCase();
               if (msg.includes("already") || msg.includes("já")) joinOk = true;
               break;
@@ -1493,6 +1513,47 @@ async function handleTick(db: any) {
         }
 
         if (joinOk) {
+          // If JID not found in join response, resolve via live groups API
+          if (!joinJid) {
+            try {
+              const liveEndpoints = [
+                `${baseUrl}/group/fetchAllGroups`,
+                `${baseUrl}/group/fetchAllGroups?getParticipants=false`,
+                `${baseUrl}/group/list?GetParticipants=false&count=500`,
+              ];
+              const normName = (v: string) => String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+              const targetName = normName(groupName);
+              
+              for (const ep of liveEndpoints) {
+                try {
+                  const res = await fetch(ep, {
+                    method: "GET",
+                    headers: { token, Accept: "application/json" },
+                  });
+                  if (!res.ok) continue;
+                  const raw = await res.text();
+                  const parsed = raw ? JSON.parse(raw) : null;
+                  if (!parsed) continue;
+                  
+                  const arrCandidates = [parsed, parsed?.groups, parsed?.data, parsed?.data?.groups];
+                  for (const arr of arrCandidates) {
+                    if (!Array.isArray(arr)) continue;
+                    for (const g of arr) {
+                      const gName = normName(g?.subject || g?.name || g?.Name || g?.title || "");
+                      const gJid = g?.JID || g?.jid || g?.id || g?.groupJid || g?.chatId || "";
+                      if (gName === targetName && String(gJid).includes("@g.us")) {
+                        joinJid = gJid;
+                        break;
+                      }
+                    }
+                    if (joinJid) break;
+                  }
+                  if (joinJid) break;
+                } catch { continue; }
+              }
+            } catch { /* ignore */ }
+          }
+
           await db.from("warmup_instance_groups")
             .update({ join_status: "joined", joined_at: new Date().toISOString(), ...(joinJid ? { group_jid: joinJid } : {}) })
             .eq("device_id", job.device_id).eq("group_id", groupId);
@@ -1500,7 +1561,7 @@ async function handleTick(db: any) {
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_joined",
-            message: `Entrou no grupo ${groupName}${joinJid ? ` (JID: ${joinJid})` : ""}`,
+            message: `Entrou no grupo ${groupName}${joinJid ? ` (JID: ${joinJid})` : " (JID não resolvido — será resolvido na interação)"}`,
             meta: { group_name: groupName, jid: joinJid },
           });
 
