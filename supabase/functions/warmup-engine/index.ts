@@ -565,10 +565,11 @@ Deno.serve(async (req) => {
 async function handleStart(db: any, userId: string | null, body: any) {
   if (!userId) throw new Error("start requires authenticated user");
 
-  const { device_id, chip_state, days_total, plan_id } = body;
+  const { device_id, chip_state, days_total, plan_id, start_day } = body;
   if (!device_id) throw new Error("device_id required");
 
   const resolvedChipState = chip_state || "new";
+  const resolvedStartDay = Math.max(1, Math.min(start_day || 1, 30));
   const now = new Date();
 
   // 1. Clean up completed/orphan cycles for this device
@@ -592,9 +593,13 @@ async function handleStart(db: any, userId: string | null, body: any) {
     }
   }
 
-  // 2. Create cycle
+  // 2. Create cycle — if start_day > 1, skip pre_24h and start at correct phase
   const cycleDays = days_total || 30;
-  const first24hEnds = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const skipPre24h = resolvedStartDay > 1;
+  const initialPhase = skipPre24h ? getPhaseForDay(resolvedStartDay, resolvedChipState) : "pre_24h";
+  const first24hEnds = skipPre24h
+    ? new Date(now.getTime() - 1000) // already past — skip 24h wait
+    : new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   const { data: cycle, error: cycleErr } = await db
     .from("warmup_cycles")
@@ -604,7 +609,8 @@ async function handleStart(db: any, userId: string | null, body: any) {
       chip_state: resolvedChipState,
       days_total: cycleDays,
       plan_id: plan_id || null,
-      phase: "pre_24h",
+      phase: initialPhase,
+      day_index: resolvedStartDay,
       is_running: true,
       started_at: now.toISOString(),
       first_24h_ends_at: first24hEnds.toISOString(),
@@ -656,31 +662,57 @@ async function handleStart(db: any, userId: string | null, body: any) {
     }
   }
 
-  // 4. Schedule join_group jobs: 4-6h after start, 5-30min between each
+  // 4. Schedule jobs based on start_day
   const jobs: any[] = [];
-  const joinStartMs = randInt(4, 6) * 60 * 60 * 1000;
-  let cumulativeDelay = joinStartMs;
 
-  for (let i = 0; i < allGroups.length; i++) {
-    if (i > 0) {
-      cumulativeDelay += randInt(5, 30) * 60 * 1000;
+  if (skipPre24h) {
+    // Starting from a later day: mark all groups as joined and schedule day jobs immediately
+    await db.from("warmup_instance_groups")
+      .update({ join_status: "joined", joined_at: now.toISOString() })
+      .eq("device_id", device_id)
+      .eq("cycle_id", cycle.id);
+
+    // Enable community membership if phase requires it
+    if (["community_enabled", "community_light"].includes(initialPhase)) {
+      await db.from("warmup_community_membership").upsert({
+        user_id: userId,
+        device_id,
+        cycle_id: cycle.id,
+        is_enabled: true,
+        is_eligible: true,
+        enabled_at: now.toISOString(),
+      }, { onConflict: "device_id" });
     }
-    jobs.push({
-      user_id: userId, device_id, cycle_id: cycle.id,
-      job_type: "join_group",
-      payload: { group_id: allGroups[i].id, group_name: allGroups[i].name },
-      run_at: new Date(now.getTime() + cumulativeDelay).toISOString(),
-      status: "pending",
-    });
+
+    // Schedule day jobs for the starting day immediately
+    await scheduleDayJobs(db, cycle.id, userId, device_id, resolvedStartDay, initialPhase, resolvedChipState, true);
+  } else {
+    // Normal start from day 1: schedule join_group jobs 4-6h after start
+    const joinStartMs = randInt(4, 6) * 60 * 60 * 1000;
+    let cumulativeDelay = joinStartMs;
+
+    for (let i = 0; i < allGroups.length; i++) {
+      if (i > 0) {
+        cumulativeDelay += randInt(5, 30) * 60 * 1000;
+      }
+      jobs.push({
+        user_id: userId, device_id, cycle_id: cycle.id,
+        job_type: "join_group",
+        payload: { group_id: allGroups[i].id, group_name: allGroups[i].name },
+        run_at: new Date(now.getTime() + cumulativeDelay).toISOString(),
+        status: "pending",
+      });
+    }
   }
 
   // 5. Phase transition is now triggered automatically after last group joins
   //    (handled in warmup-tick join_group handler)
 
-  // 6. Schedule first daily_reset at 00:05 BRT (03:05 UTC) after 24h window
-  const firstReset = new Date(first24hEnds);
+  // 6. Schedule first daily_reset
+  const resetBase = skipPre24h ? now : first24hEnds;
+  const firstReset = new Date(resetBase);
   firstReset.setUTCHours(3, 5, 0, 0);
-  if (firstReset.getTime() <= first24hEnds.getTime()) {
+  if (firstReset.getTime() <= now.getTime()) {
     firstReset.setUTCDate(firstReset.getUTCDate() + 1);
   }
   jobs.push({
@@ -716,11 +748,13 @@ async function handleStart(db: any, userId: string | null, body: any) {
   await db.from("warmup_audit_logs").insert({
     user_id: userId, device_id, cycle_id: cycle.id,
     level: "info", event_type: "cycle_started",
-    message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias.${groupSchedule ? ` Agenda: ${groupSchedule}` : ""}`,
+    message: `Ciclo ${chipLabel} iniciado: Dia ${resolvedStartDay} até Dia ${cycleDays} (${initialPhase}).${groupSchedule ? ` Agenda: ${groupSchedule}` : ""}`,
     meta: {
       chip_state: resolvedChipState,
       groups: allGroups.map(g => g.name),
       total_days: cycleDays,
+      start_day: resolvedStartDay,
+      initial_phase: initialPhase,
     },
   });
 
@@ -730,6 +764,8 @@ async function handleStart(db: any, userId: string | null, body: any) {
     chip_state: resolvedChipState,
     jobs_scheduled: jobs.length,
     total_days: cycleDays,
+    start_day: resolvedStartDay,
+    initial_phase: initialPhase,
   });
 }
 
