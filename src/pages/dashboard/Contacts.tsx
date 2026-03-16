@@ -719,7 +719,7 @@ const Contacts = () => {
                     <div className="space-y-0.5 max-h-48 overflow-y-auto">
                       {customTags.map(tag => {
                         const isSelected = (editContact.tags || []).includes(tag);
-                        const style = getTagStyle(tag);
+                        const color = getTagColor(tag);
                         return (
                           <button
                             key={tag}
@@ -731,7 +731,7 @@ const Contacts = () => {
                             })}
                             className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg flex items-center gap-2 hover:bg-muted/50 transition-colors", isSelected && "bg-muted font-medium")}
                           >
-                            <span className={cn("w-2 h-2 rounded-full shrink-0", style.dot)} />
+                            <span className="w-2.5 h-2.5 rounded-md shrink-0" style={{ backgroundColor: color }} />
                             {tag}
                             {isSelected && <CheckCircle2 className="w-3 h-3 text-primary ml-auto" />}
                           </button>
