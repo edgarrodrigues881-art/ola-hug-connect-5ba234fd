@@ -1847,59 +1847,182 @@ async function handleTick(db: any) {
         break;
       }
 
-      // ── COMMUNITY INTERACTION (real 1v1 ping-pong conversation) ──
-      // O iniciador ORQUESTRA a conversa inteira: A→B, B→A, A→B, B→A
-      // Usa credenciais de AMBOS os dispositivos para simular diálogo real
+      // ── COMMUNITY INTERACTION (strict 1v1 turn-by-turn conversation) ──
+      // Cada job envia UM turno e agenda a próxima resposta do outro lado.
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
         const peerIndex = job.payload?.peer_index ?? 0;
+        const isReplyTurn = typeof job.payload?.pair_id === "string" && typeof job.payload?.conversation_id === "string";
 
-        // Find active pairs by device_id (either side)
-        const { data: pairsAsA } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_a", job.device_id).eq("status", "active");
-        const { data: pairsAsB } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_b", job.device_id).eq("status", "active");
+        let selectedPair: any = null;
 
-        const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
-        const seenPairIds = new Set<string>();
-        const pairs = allPairs.filter(p => { if (seenPairIds.has(p.id)) return false; seenPairIds.add(p.id); return true; });
+        if (isReplyTurn) {
+          const { data: replyPair } = await db.from("community_pairs")
+            .select("id, instance_id_a, instance_id_b, meta")
+            .eq("id", job.payload.pair_id)
+            .eq("status", "active")
+            .maybeSingle();
+          selectedPair = replyPair;
+        } else {
+          const { data: pairsAsA } = await db.from("community_pairs")
+            .select("id, instance_id_a, instance_id_b, meta")
+            .eq("instance_id_a", job.device_id)
+            .eq("status", "active");
+          const { data: pairsAsB } = await db.from("community_pairs")
+            .select("id, instance_id_a, instance_id_b, meta")
+            .eq("instance_id_b", job.device_id)
+            .eq("status", "active");
 
-        if (!pairs?.length) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_pairs", message: `Nenhum par ativo — pulando` });
+          const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
+          const seenPairIds = new Set<string>();
+          const pairs = allPairs.filter((p: any) => {
+            if (seenPairIds.has(p.id)) return false;
+            seenPairIds.add(p.id);
+            return true;
+          });
+
+          if (pairs?.length) {
+            selectedPair = pairs[peerIndex % pairs.length];
+          }
+        }
+
+        if (!selectedPair) {
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "warn",
+            event_type: "community_no_pairs",
+            message: "Nenhum par ativo para conversar",
+          });
           break;
         }
 
-        const selectedPair = pairs[peerIndex % pairs.length];
-        const peerDeviceId = selectedPair.instance_id_a === job.device_id
-          ? selectedPair.instance_id_b
-          : selectedPair.instance_id_a;
-
-        // Only the initiator orchestrates — prevents both sides triggering
-        const meta = selectedPair.meta as any;
-        const initiatorSide = meta?.initiator || "a";
-        const iAmA = selectedPair.instance_id_a === job.device_id;
-        const iAmInitiator = (initiatorSide === "a" && iAmA) || (initiatorSide === "b" && !iAmA);
-
-        if (!iAmInitiator) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_skip_non_initiator", message: `Par ${peerIndex}: não sou o orquestrador — pulando` });
+        if (![selectedPair.instance_id_a, selectedPair.instance_id_b].includes(job.device_id)) {
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "warn",
+            event_type: "community_stale_turn",
+            message: "Job comunitário stale: dispositivo não pertence mais ao par",
+            meta: { pair_id: selectedPair.id },
+          });
           break;
         }
 
-        // Fetch BOTH devices' full credentials
+        const rawPairMeta = selectedPair.meta && typeof selectedPair.meta === "object"
+          ? selectedPair.meta as Record<string, any>
+          : {};
+        const pairMeta = normalizeCommunityPairMeta(selectedPair);
+        const initiatorDeviceId = getCommunityInitiatorDeviceId(selectedPair, pairMeta.initiator);
+        const peerDeviceId = getCommunityPeerDeviceId(selectedPair, job.device_id);
+        const iAmInitiator = job.device_id === initiatorDeviceId;
+        const currentTurnIndex = isReplyTurn ? Number(job.payload?.turn_index) : 0;
+
+        if (!isReplyTurn && !iAmInitiator) {
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "info",
+            event_type: "community_skip_non_initiator",
+            message: `Par ${peerIndex + 1}: aguardando o iniciador abrir a conversa`,
+            meta: { pair_id: selectedPair.id },
+          });
+          break;
+        }
+
+        if (isReplyTurn) {
+          if (!Number.isFinite(currentTurnIndex)) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "warn",
+              event_type: "community_stale_turn",
+              message: "Turno comunitário inválido — descartado",
+              meta: { pair_id: selectedPair.id },
+            });
+            break;
+          }
+
+          if (pairMeta.conversation_id !== job.payload.conversation_id) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "info",
+              event_type: "community_stale_turn",
+              message: "Turno antigo ignorado: conversa já mudou",
+              meta: { pair_id: selectedPair.id, job_conversation_id: job.payload.conversation_id, active_conversation_id: pairMeta.conversation_id },
+            });
+            break;
+          }
+
+          if (pairMeta.expected_sender_device_id !== job.device_id || pairMeta.turns_completed !== currentTurnIndex) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "info",
+              event_type: "community_out_of_turn",
+              message: "Turno fora de ordem ignorado para manter o x1 natural",
+              meta: {
+                pair_id: selectedPair.id,
+                expected_sender_device_id: pairMeta.expected_sender_device_id,
+                turns_completed: pairMeta.turns_completed,
+                current_turn_index: currentTurnIndex,
+              },
+            });
+            break;
+          }
+        } else {
+          const pairBusy = Boolean(pairMeta.conversation_id && pairMeta.expected_sender_device_id);
+          if (pairBusy) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "info",
+              event_type: "community_waiting_reply",
+              message: "Conversa x1 já está em andamento — aguardando resposta do outro lado",
+              meta: { pair_id: selectedPair.id, conversation_id: pairMeta.conversation_id },
+            });
+            break;
+          }
+
+          const lastTurnMs = pairMeta.last_turn_at ? new Date(pairMeta.last_turn_at).getTime() : 0;
+          if (lastTurnMs && !Number.isNaN(lastTurnMs) && (Date.now() - lastTurnMs) < 45 * 60 * 1000) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "info",
+              event_type: "community_recent_conversation",
+              message: "Par acabou de conversar — segurando novo início para não parecer flood",
+              meta: { pair_id: selectedPair.id, last_turn_at: pairMeta.last_turn_at },
+            });
+            break;
+          }
+        }
+
         const { data: peerDev } = await db.from("devices")
-          .select("id, number, status, uazapi_token, uazapi_base_url")
-          .eq("id", peerDeviceId).single();
+          .select("id, number, status")
+          .eq("id", peerDeviceId)
+          .maybeSingle();
 
         if (!peerDev?.number || !CONNECTED_STATUSES.includes(peerDev.status)) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer offline — pulando` });
-          break;
-        }
-
-        if (!peerDev.uazapi_base_url || !peerDev.uazapi_token) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_no_creds", message: `Peer sem credenciais UAZAPI — pulando` });
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "warn",
+            event_type: "community_peer_offline",
+            message: "Par offline — conversa x1 não iniciada/continuada",
+            meta: { pair_id: selectedPair.id, peer_device: peerDeviceId },
+          });
           break;
         }
 
@@ -1907,56 +2030,119 @@ async function handleTick(db: any) {
         const peerPhone = peerDev.number.replace(/\+/g, "");
 
         if (!myPhone) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_number", message: `Meu dispositivo sem número — pulando` });
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "warn",
+            event_type: "community_no_number",
+            message: "Meu dispositivo está sem número — conversa x1 cancelada",
+            meta: { pair_id: selectedPair.id },
+          });
           break;
         }
 
-        // ── PING-PONG: Real 1v1 conversation ──
-        // Alternating: A→B, B→A, A→B, B→A (4 messages total, 2 each)
-        const conversation = [
-          { sender: "me",   senderUrl: baseUrl, senderToken: token, targetPhone: peerPhone },
-          { sender: "peer", senderUrl: peerDev.uazapi_base_url, senderToken: peerDev.uazapi_token, targetPhone: myPhone },
-          { sender: "me",   senderUrl: baseUrl, senderToken: token, targetPhone: peerPhone },
-          { sender: "peer", senderUrl: peerDev.uazapi_base_url, senderToken: peerDev.uazapi_token, targetPhone: myPhone },
-        ];
+        const nextTurnNumber = currentTurnIndex + 1;
+        const maxTurns = pairMeta.max_turns || 4;
+        const hasNextTurn = nextTurnNumber < maxTurns;
+        let nextCycle: any = null;
 
-        let sentCount = 0;
-        const sentSummary: string[] = [];
+        if (hasNextTurn) {
+          const { data: nextCycleData } = await db.from("warmup_cycles")
+            .select("id, user_id")
+            .eq("device_id", peerDeviceId)
+            .eq("is_running", true)
+            .neq("phase", "completed")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        for (let i = 0; i < conversation.length; i++) {
-          const turn = conversation[i];
+          nextCycle = nextCycleData;
 
-          // Typing delay: 10-60 seconds between each message (realistic conversation pace)
-          if (i > 0) {
-            await new Promise(r => setTimeout(r, randInt(10, 60) * 1000));
-          }
-
-          try {
-            const msg = generateNaturalMessage("community");
-            await uazapiSendText(turn.senderUrl, turn.senderToken, turn.targetPhone, msg);
-            sentSummary.push(turn.sender === "me" ? "→" : "←");
-            sentCount++;
-          } catch (e) {
-            // On any failure, stop conversation — don't force it
-            bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_turn_failed", message: `Turno ${i + 1} falhou (${turn.sender}) — parando conversa`, meta: { error: e instanceof Error ? e.message : String(e) } });
+          if (!nextCycle) {
+            bufferAudit({
+              user_id: job.user_id,
+              device_id: job.device_id,
+              cycle_id: job.cycle_id,
+              level: "warn",
+              event_type: "community_peer_no_cycle",
+              message: "O outro lado não está pronto para responder — conversa não enviada",
+              meta: { pair_id: selectedPair.id, peer_device: peerDeviceId },
+            });
             break;
           }
         }
 
-        // Update budget
-        if (sentCount > 0) {
-          await db.from("warmup_cycles").update({
-            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-          }).eq("id", cycle.id);
-          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
-        }
+        const msg = generateNaturalMessage("community");
+        await uazapiSendText(baseUrl, token, peerPhone, msg);
 
-        bufferAudit({
-          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "info", event_type: "community_burst_sent",
-          message: `Comunitário 1v1: ${sentSummary.join("")} (${sentCount} msgs, par ${peerIndex + 1})`,
-          meta: { peer_device: peerDeviceId, sent: sentCount, pattern: sentSummary.join(""), target: peerPhone.substring(0, 6) + "..." },
-        });
+        const nowIso = new Date().toISOString();
+        const conversationId = isReplyTurn ? String(job.payload.conversation_id) : job.id;
+        const nextMeta = {
+          ...rawPairMeta,
+          initiator: pairMeta.initiator,
+          expected_sender_device_id: hasNextTurn ? peerDeviceId : null,
+          last_sender_device_id: job.device_id,
+          turns_completed: hasNextTurn ? nextTurnNumber : 0,
+          max_turns: maxTurns,
+          conversation_id: hasNextTurn ? conversationId : null,
+          last_turn_at: nowIso,
+          last_completed_at: hasNextTurn ? pairMeta.last_completed_at : nowIso,
+        };
+
+        await db.from("community_pairs")
+          .update({ meta: nextMeta })
+          .eq("id", selectedPair.id);
+
+        await db.from("warmup_cycles").update({
+          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
+        }).eq("id", cycle.id);
+        cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+
+        if (hasNextTurn && nextCycle) {
+          const replyDelaySeconds = randInt(45, 150);
+          await enqueueCommunityTurn(db, {
+            user_id: nextCycle.user_id,
+            device_id: peerDeviceId,
+            cycle_id: nextCycle.id,
+            pair_id: selectedPair.id,
+            conversation_id: conversationId,
+            turn_index: nextTurnNumber,
+            delay_seconds: replyDelaySeconds,
+          });
+
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "info",
+            event_type: "community_turn_sent",
+            message: `Comunitário x1: turno ${nextTurnNumber}/${maxTurns} enviado — agora aguardando a resposta do outro lado`,
+            meta: {
+              pair_id: selectedPair.id,
+              peer_device: peerDeviceId,
+              conversation_id: conversationId,
+              next_sender_device_id: peerDeviceId,
+              next_turn_index: nextTurnNumber,
+              reply_delay_seconds: replyDelaySeconds,
+            },
+          });
+        } else {
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "info",
+            event_type: "community_conversation_completed",
+            message: `Comunitário x1 concluído com ${maxTurns} turnos alternados`,
+            meta: {
+              pair_id: selectedPair.id,
+              peer_device: peerDeviceId,
+              conversation_id: conversationId,
+              turns: maxTurns,
+            },
+          });
+        }
         break;
       }
 
