@@ -1442,17 +1442,17 @@ Deno.serve(async (req) => {
       const matchedDbTokenIds = new Set<string>();
 
       const providerInstances = instances.map((inst: any) => {
-        const name = inst.name || inst.instance_name || inst.instanceName || "";
-        const token = inst.token || inst.apiToken || inst.api_token || "";
-        const rawStatus = inst.status || inst.connectionStatus || inst.state || "unknown";
+        const name = inst.name || inst.instance_name || inst.instanceName || inst.instance || "";
+        const token = inst.token || inst.apiToken || inst.api_token || inst.auth?.jwt || inst.auth?.token || "";
+        const rawStatus = inst.status || inst.connectionStatus || inst.state || inst.connection?.status || "unknown";
         const dbMatch = tokenMap[token] || labelMap[name] || null;
         const device = dbMatch?.device_id ? deviceMap[dbMatch.device_id] : null;
 
         if (dbMatch?.id) matchedDbTokenIds.add(dbMatch.id);
 
         const status = rawStatus || dbMatch?.status || device?.status || "unknown";
-        const phone = inst.phone || inst.number || inst.ownerJid || device?.number || "";
-        const profileName = inst.profileName || inst.pushname || device?.profile_name || "";
+        const phone = inst.phone || inst.number || inst.owner || inst.ownerJid || device?.number || "";
+        const profileName = inst.profileName || inst.pushname || inst.profile_picture || inst.profilePictureUrl || device?.profile_name || "";
 
         return {
           name,
