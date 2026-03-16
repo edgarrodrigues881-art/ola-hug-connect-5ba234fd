@@ -786,6 +786,7 @@ Deno.serve(async (req) => {
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
+      const pauseOnDisconnect = campaign.pause_on_disconnect !== false;
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
       const randomPicker = new RandomPicker(messageVariants.length);
