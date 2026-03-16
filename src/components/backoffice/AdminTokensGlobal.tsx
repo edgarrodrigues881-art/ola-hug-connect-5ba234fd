@@ -6,10 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Key, Trash2, Loader2, Search, CircleDot, Zap, Lock,
-  AlertTriangle, RefreshCw, Wifi, WifiOff, Server
-} from "lucide-react";
+import { Key, Trash2, Loader2, Search, RefreshCw, Wifi, WifiOff, Server } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -17,7 +14,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UazapiInstance {
   name: string;
@@ -167,7 +163,7 @@ const AdminTokensGlobal = () => {
           </div>
           <div>
             <h2 className="text-lg font-bold text-foreground">Instâncias UAZAPI</h2>
-            <p className="text-xs text-muted-foreground">Dados em tempo real do provedor</p>
+            <p className="text-xs text-muted-foreground">Dados do provedor com fallback automático dos tokens do banco</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-1.5 text-xs rounded-lg h-8">

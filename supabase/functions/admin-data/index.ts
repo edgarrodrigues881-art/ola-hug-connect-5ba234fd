@@ -1346,7 +1346,7 @@ Deno.serve(async (req) => {
         if (found) break;
       }
 
-      // Enrich with DB info: match by token or instance name
+      // Enrich with DB info: merge provider instances + DB tokens fallback
       const { data: dbTokens } = await adminClient
         .from("user_api_tokens")
         .select("id, user_id, token, label, status, device_id")
@@ -1356,8 +1356,22 @@ Deno.serve(async (req) => {
         .from("profiles")
         .select("id, full_name")
         .limit(2000);
+
+      const { data: devices } = await adminClient
+        .from("devices")
+        .select("id, name, number, status, profile_name")
+        .limit(2000);
+
+      const connectedStatuses = ["open", "connected", "Connected", "Ready", "authenticated"];
       const profileMap: Record<string, string> = {};
-      (profiles || []).forEach((p: any) => { profileMap[p.id] = p.full_name || "Sem nome"; });
+      (profiles || []).forEach((p: any) => {
+        profileMap[p.id] = p.full_name || "Sem nome";
+      });
+
+      const deviceMap: Record<string, any> = {};
+      (devices || []).forEach((d: any) => {
+        deviceMap[d.id] = d;
+      });
 
       const tokenMap: Record<string, any> = {};
       const labelMap: Record<string, any> = {};
@@ -1366,15 +1380,20 @@ Deno.serve(async (req) => {
         if (t.label) labelMap[t.label] = t;
       });
 
-      const enriched = instances.map((inst: any) => {
+      const matchedDbTokenIds = new Set<string>();
+
+      const providerInstances = instances.map((inst: any) => {
         const name = inst.name || inst.instance_name || inst.instanceName || "";
         const token = inst.token || inst.apiToken || inst.api_token || "";
-        const status = inst.status || inst.connectionStatus || inst.state || "unknown";
-        const phone = inst.phone || inst.number || inst.ownerJid || "";
-        const profileName = inst.profileName || inst.pushname || "";
-
-        // Try matching DB record
+        const rawStatus = inst.status || inst.connectionStatus || inst.state || "unknown";
         const dbMatch = tokenMap[token] || labelMap[name] || null;
+        const device = dbMatch?.device_id ? deviceMap[dbMatch.device_id] : null;
+
+        if (dbMatch?.id) matchedDbTokenIds.add(dbMatch.id);
+
+        const status = rawStatus || dbMatch?.status || device?.status || "unknown";
+        const phone = inst.phone || inst.number || inst.ownerJid || device?.number || "";
+        const profileName = inst.profileName || inst.pushname || device?.profile_name || "";
 
         return {
           name,
@@ -1383,7 +1402,7 @@ Deno.serve(async (req) => {
           status,
           phone,
           profile_name: profileName,
-          connected: ["open", "connected", "Connected", "Ready", "authenticated"].includes(status),
+          connected: connectedStatuses.includes(status),
           db_token_id: dbMatch?.id || null,
           db_user_id: dbMatch?.user_id || null,
           db_status: dbMatch?.status || null,
@@ -1391,11 +1410,39 @@ Deno.serve(async (req) => {
         };
       });
 
-      // Sort: disconnected first
-      enriched.sort((a: any, b: any) => (a.connected === b.connected ? 0 : a.connected ? 1 : -1));
+      const dbOnlyTokens = (dbTokens || [])
+        .filter((t: any) => !matchedDbTokenIds.has(t.id))
+        .map((t: any) => {
+          const device = t.device_id ? deviceMap[t.device_id] : null;
+          const resolvedStatus = device?.status || t.status || "unknown";
+          const fallbackName = t.label || device?.name || `token-${String(t.token || "").substring(0, 8)}`;
 
-      return new Response(JSON.stringify({ 
-        instances: enriched, 
+          return {
+            name: fallbackName,
+            token: t.token ? `${t.token.substring(0, 12)}...` : "—",
+            token_full: t.token || "",
+            status: resolvedStatus,
+            phone: device?.number || "",
+            profile_name: device?.profile_name || "",
+            connected: connectedStatuses.includes(resolvedStatus),
+            db_token_id: t.id,
+            db_user_id: t.user_id,
+            db_status: t.status || null,
+            client_name: profileMap[t.user_id] || "Desconhecido",
+          };
+        });
+
+      const enriched = [...providerInstances, ...dbOnlyTokens];
+
+      // Sort: disconnected first, then linked tokens first
+      enriched.sort((a: any, b: any) => {
+        if (a.connected !== b.connected) return a.connected ? 1 : -1;
+        if (!!a.db_token_id !== !!b.db_token_id) return a.db_token_id ? -1 : 1;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+
+      return new Response(JSON.stringify({
+        instances: enriched,
         total: enriched.length,
         connected: enriched.filter((i: any) => i.connected).length,
         disconnected: enriched.filter((i: any) => !i.connected).length,
