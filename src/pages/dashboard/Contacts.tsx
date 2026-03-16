@@ -705,12 +705,11 @@ const Contacts = () => {
                   <PopoverTrigger asChild>
                     <button type="button" className="w-full flex flex-wrap items-center gap-1.5 min-h-[36px] p-2 rounded-md border border-border/50 bg-background text-xs hover:border-primary/30 transition-colors cursor-pointer">
                       {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => {
-                        const style = getTagStyle(tag);
+                        const color = getTagColor(tag);
                         return (
-                          <span key={tag} className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border", style.bg, style.text, style.border)} onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
-                            <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+                          <span key={tag} className="group inline-flex items-center gap-1 pl-2 pr-1.5 py-0.5 rounded-md text-[10px] font-semibold text-white shadow-sm" style={{ backgroundColor: color }} onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
                             {tag}
-                            <X className="w-2.5 h-2.5" />
+                            <X className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
                           </span>
                         );
                       }) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
