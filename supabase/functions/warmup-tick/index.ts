@@ -88,10 +88,12 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
 
-  // Community: 3 pares, 25-45 msgs cada lado (50-90 total por par)
+  // Community: 3 pares, cada par troca 50-90 msgs/dia
+  // Cada burst = 3-7 msgs de uma vez (conversa real)
+  // Total de bursts por par = 8-12 (cada lado manda ~4-6 bursts)
   if (phase === "community_enabled") {
     v.communityPeers = 3;
-    v.communityMsgsPerPeer = randInt(25, 45);
+    v.communityMsgsPerPeer = randInt(8, 12); // bursts, not individual msgs
   }
 
   return v;
