@@ -240,7 +240,9 @@ export function AppSidebar() {
         <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
         {!collapsed && (
           <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
-            DG Contingência PRO
+            <span className="text-primary">DG</span> Contingência <span className="text-primary">PRO</span>
+          </span>
+        )}
           </span>
         )}
       </div>
