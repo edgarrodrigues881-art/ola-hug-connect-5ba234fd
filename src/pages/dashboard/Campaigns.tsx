@@ -221,6 +221,7 @@ const Campaigns = () => {
   const [showContactTools, setShowContactTools] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
+  const [pauseOnDisconnect, setPauseOnDisconnect] = useState(true);
   const [showContactTable, setShowContactTable] = useState(false);
   const [manualPhone, setManualPhone] = useState("");
   const [manualName, setManualName] = useState("");
@@ -537,6 +538,7 @@ const Campaigns = () => {
       device_id: selectedDevices[0],
       device_ids: selectedDevices,
       messages_per_instance: sendMode === "rotation" ? messagesPerInstance : (sendMode === "parallel" ? -1 : 0),
+      pause_on_disconnect: pauseOnDisconnect,
     }, {
       onSuccess: (newCampaign) => {
         if (scheduleEnabled && scheduleDate) {
@@ -1962,6 +1964,25 @@ const Campaigns = () => {
                 </div>
               </SurfaceCard>
             </div>
+
+            {/* Safety: Pause on disconnect */}
+            <SurfaceCard className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-foreground">Pausar se desconectar</p>
+                    <p className="text-[10px] text-muted-foreground/50">Pausa a campanha se uma instância for desconectada</p>
+                  </div>
+                </div>
+                <Switch checked={pauseOnDisconnect} onCheckedChange={setPauseOnDisconnect} />
+              </div>
+              {!pauseOnDisconnect && (
+                <p className="text-[10px] text-amber-400/70 mt-2 ml-11">⚠ O envio continuará mesmo se contas forem banidas ou desconectadas</p>
+              )}
+            </SurfaceCard>
 
           </div>
         )}

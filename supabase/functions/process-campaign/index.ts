@@ -426,7 +426,11 @@ async function heartbeatLock(serviceClient: any, campaignId: string) {
   await serviceClient.rpc("heartbeat_device_lock", { _campaign_id: campaignId });
 }
 
-async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], _failedCount: number, campaignName?: string, userId?: string) {
+async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], _failedCount: number, campaignName?: string, userId?: string, pauseOnDisconnect: boolean = true) {
+  if (!pauseOnDisconnect) {
+    console.log(`⚠️ Disconnect detected for campaign ${campaignId}, but pause_on_disconnect=false — continuing`);
+    return false; // signal: don't break the loop
+  }
   console.log(`⚠️ Disconnect detected for campaign ${campaignId}, pausing to preserve contacts`);
   await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
   const realStats = await getRealCampaignStats(serviceClient, campaignId);
@@ -442,6 +446,7 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
   if (userId) {
     sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", realStats);
   }
+  return true; // signal: campaign was paused, break the loop
 }
 
 // Sync campaign counters from source of truth (campaign_contacts table)
@@ -649,7 +654,7 @@ Deno.serve(async (req) => {
       }
       const startTime = Date.now();
 
-      const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("id, user_id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, messages_per_instance, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, sent_count, failed_count, started_at, total_contacts").eq("id", campaignId).single();
+      const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("id, user_id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, messages_per_instance, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, sent_count, failed_count, started_at, total_contacts, pause_on_disconnect").eq("id", campaignId).single();
       if (campErr || !campaign) {
         return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -781,6 +786,7 @@ Deno.serve(async (req) => {
       const mediaUrl = campaign.media_url || null;
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
+      const pauseOnDisconnect = campaign.pause_on_disconnect !== false;
       const usedRand4 = new Set<string>();
       const usedRand3 = new Set<string>();
       const randomPicker = new RandomPicker(messageVariants.length);
@@ -957,7 +963,8 @@ Deno.serve(async (req) => {
           const { data: devStatuses } = await serviceClient.from("devices").select("id, status").in("id", deviceIds);
           const allDisconnected = devStatuses?.every(d => !connectedStatuses.includes(d.status));
           if (allDisconnected) {
-            await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
+            const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+            if (!didPause) { needsContinue = true; }
           }
         }
 
@@ -1052,8 +1059,9 @@ Deno.serve(async (req) => {
               failedCount++;
               if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
               if (check.error === "WhatsApp desconectado") {
-                await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
-                break;
+                const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+                if (didPause) break;
+                // If not paused, just skip this contact and continue
               }
               continue;
             }
@@ -1072,7 +1080,8 @@ Deno.serve(async (req) => {
                   failedCount++;
                   if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                   if (isDisconnectError(lastSendError)) {
-                    await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
+                    const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+                    if (didPause) break;
                   }
                   break;
                 }
@@ -1093,8 +1102,8 @@ Deno.serve(async (req) => {
                 failedCount++;
                 if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                 if (isDisconnectError(result.error || "")) {
-                  await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
-                  break;
+                  const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+                  if (didPause) break;
                 }
                 continue;
               }
@@ -1138,8 +1147,8 @@ Deno.serve(async (req) => {
             failedCount++;
             await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
             if (isDisconnectError(err.message || "")) {
-              await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
-              break;
+              const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+              if (didPause) break;
             }
           }
         }

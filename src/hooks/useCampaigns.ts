@@ -102,6 +102,7 @@ export function useCreateCampaign() {
       device_id?: string;
       device_ids?: string[];
       messages_per_instance?: number;
+      pause_on_disconnect?: boolean;
       contacts: { phone: string; name?: string; var1?: string; var2?: string; var3?: string; var4?: string; var5?: string; var6?: string; var7?: string; var8?: string; var9?: string; var10?: string }[];
     }) => {
       const { contacts, ...campaignData } = campaign;
@@ -138,6 +139,7 @@ export function useCreateCampaign() {
           device_id: validDeviceId,
           device_ids: campaignData.device_ids || [],
           messages_per_instance: campaignData.messages_per_instance || 0,
+          pause_on_disconnect: campaignData.pause_on_disconnect ?? true,
           user_id: user!.id,
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",

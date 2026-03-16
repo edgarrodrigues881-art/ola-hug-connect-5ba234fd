@@ -296,6 +296,7 @@ export type Database = {
           pause_duration_min: number
           pause_every_max: number
           pause_every_min: number
+          pause_on_disconnect: boolean
           scheduled_at: string | null
           sent_count: number | null
           started_at: string | null
@@ -325,6 +326,7 @@ export type Database = {
           pause_duration_min?: number
           pause_every_max?: number
           pause_every_min?: number
+          pause_on_disconnect?: boolean
           scheduled_at?: string | null
           sent_count?: number | null
           started_at?: string | null
@@ -354,6 +356,7 @@ export type Database = {
           pause_duration_min?: number
           pause_every_max?: number
           pause_every_min?: number
+          pause_on_disconnect?: boolean
           scheduled_at?: string | null
           sent_count?: number | null
           started_at?: string | null
