@@ -2646,10 +2646,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error("[admin-data] ERROR:", error.message, error.stack);
-    const status = error.message?.includes("autorizado") ? 401 : error.message?.includes("negado") ? 403 : 500;
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: any) {
+    console.error("[admin-data] ERROR:", error?.message, error?.stack);
+    const status = error?.message?.includes("autorizado") ? 401 : error?.message?.includes("negado") ? 403 : 500;
+    return new Response(JSON.stringify({ error: error?.message || "Unknown error" }), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
