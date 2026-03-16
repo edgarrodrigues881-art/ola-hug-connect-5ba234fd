@@ -107,7 +107,7 @@ const Community = () => {
               className="absolute inset-[-50%]"
               style={{
                 background: "conic-gradient(from 0deg, transparent 0%, transparent 70%, rgba(255,255,255,0.8) 78%, #ffffff 82%, rgba(255,255,255,0.8) 86%, transparent 94%, transparent 100%)",
-                animation: "spin-slow 3s linear infinite",
+                animation: "spin-slow 1.5s linear infinite",
               }}
             />
             <div className="relative w-full h-full rounded-[13px] bg-background flex items-center justify-center overflow-hidden z-10">
