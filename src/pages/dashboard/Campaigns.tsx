@@ -1020,7 +1020,7 @@ const Campaigns = () => {
 
         {/* ── Chat Area ── */}
         <div
-          className="p-4 flex-1 min-h-0 overflow-y-auto flex flex-col"
+          className="p-4 flex-1 min-h-0 overflow-y-auto flex flex-col justify-end"
           style={{
             backgroundColor: "#0B141A",
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M50 50v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm30-30v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/svg%3E")`,
