@@ -1761,6 +1761,12 @@ const WarmupInstances = () => {
 
           {/* ── Footer ── */}
           <div className="px-7 pb-7 pt-3 border-t border-border/10">
+            {userCustomGroups.length === 0 && (
+              <div className="flex items-center gap-2 p-3 mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
+                <span>⚠️</span>
+                <span>Cadastre pelo menos 1 grupo na página <strong>Grupos</strong> para iniciar o aquecimento.</span>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-border/20" onClick={() => setBulkOpen(false)}>
                 Cancelar
