@@ -1130,6 +1130,13 @@ const Devices = () => {
       }
       closeProfileDialog();
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+      setTimeout(() => {
+        supabase.functions.invoke("sync-devices").then(() => {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        }).catch(() => {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        });
+      }, 1500);
     } catch (err: any) {
       console.error("Profile update error:", err);
       toast({ title: "Erro ao atualizar perfil", description: err?.message || "Erro desconhecido", variant: "destructive" });
