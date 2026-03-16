@@ -480,7 +480,7 @@ const WarmupInstances = () => {
   const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
   const [bulkStartDay, setBulkStartDay] = useState("1");
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkGroupSource, setBulkGroupSource] = useState<"system" | "custom">("system");
+  const bulkGroupSource = "custom" as const;
   const [customGroupDialogOpen, setCustomGroupDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupLink, setNewGroupLink] = useState("");
