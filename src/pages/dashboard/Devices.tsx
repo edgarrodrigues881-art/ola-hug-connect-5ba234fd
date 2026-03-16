@@ -289,52 +289,10 @@ const Devices = () => {
     return ids;
   }, [activeCampaigns]);
 
-  // Fetch user subscription for plan gating
-  const { data: subscription } = useQuery({
-    queryKey: ["my_subscription"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("plan_name, plan_price, max_instances, expires_at")
-        .eq("user_id", session!.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session,
-  });
-
-  const { data: profile } = useQuery({
-    queryKey: ["my_profile"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("status, instance_override")
-        .eq("id", session!.user.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session,
-  });
-
-  const planState: PlanState = useMemo(() => {
-    if (profile?.status === "suspended" || profile?.status === "cancelled") return "suspended";
-    if (!subscription) return "noPlan";
-    if (new Date(subscription.expires_at) < new Date()) return "expired";
-    return "active";
-  }, [subscription, profile]);
-
-  const maxInstancesAllowed = useMemo(() => {
-    if (planState !== "active") return 0;
-    return (subscription?.max_instances ?? 0) + (profile?.instance_override ?? 0);
-  }, [planState, subscription, profile]);
+  // Use shared plan gate hook instead of duplicating queries
+  const { planState, isBlocked, subscription, profile, maxInstances: maxInstancesAllowed, planBadgeText } = usePlanGate();
 
   const canCreateInstance = planState === "active" && devices.length < maxInstancesAllowed;
-
-  const planBadgeText = planState === "noPlan" ? "Sem plano" : planState === "expired" ? "Plano vencido" : planState === "suspended" ? "Conta suspensa" : null;
 
   // Lightweight health score — no extra queries needed
   const deviceHealthScores = useMemo(() => {
