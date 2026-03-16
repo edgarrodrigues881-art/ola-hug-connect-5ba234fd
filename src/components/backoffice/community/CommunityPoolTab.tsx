@@ -14,9 +14,9 @@ const CommunityPoolTab = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("connected");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [filterEnrolled, setFilterEnrolled] = useState("all");
-  const [filterPhase, setFilterPhase] = useState("all");
+  const [filterPhase, setFilterPhase] = useState("community");
   const [showFilters, setShowFilters] = useState(false);
   const [showOnlyWithCycle, setShowOnlyWithCycle] = useState(true);
 
@@ -52,7 +52,8 @@ const CommunityPoolTab = () => {
     if (filterStatus === "disconnected" && d.status?.toLowerCase() !== "disconnected") return false;
     if (filterEnrolled === "yes" && !d.is_enrolled) return false;
     if (filterEnrolled === "no" && d.is_enrolled) return false;
-    if (filterPhase !== "all" && d.cycle_phase !== filterPhase) return false;
+    if (filterPhase === "community" && !["community_enabled", "community_light"].includes(d.cycle_phase)) return false;
+    if (filterPhase !== "all" && filterPhase !== "community" && d.cycle_phase !== filterPhase) return false;
     if (showOnlyWithCycle && !d.cycle_active) return false;
     return true;
   });
@@ -60,7 +61,7 @@ const CommunityPoolTab = () => {
   const allData = data || [];
   const enrolled = allData.filter((d: any) => d.is_enrolled).length;
   const connected = allData.filter((d: any) => ["connected", "ready"].includes(d.status?.toLowerCase())).length;
-  const hasActiveFilter = filterStatus !== "connected" || filterEnrolled !== "all" || filterPhase !== "all" || !showOnlyWithCycle;
+  const hasActiveFilter = filterStatus !== "all" || filterEnrolled !== "all" || filterPhase !== "community" || !showOnlyWithCycle;
 
   const statusColor = (s: string) => {
     const lower = s?.toLowerCase();
@@ -140,6 +141,7 @@ const CommunityPoolTab = () => {
                 <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Phase" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas phases</SelectItem>
+                  <SelectItem value="community">🔥 Comunitário (enabled + light)</SelectItem>
                   <SelectItem value="pre_24h">pre_24h</SelectItem>
                   <SelectItem value="groups_only">groups_only</SelectItem>
                   <SelectItem value="autosave_enabled">autosave_enabled</SelectItem>
