@@ -43,7 +43,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { resolvedTheme, setTheme } = useTheme();
 
   // Global auto-sync of device statuses every 5s across all dashboard pages
-  useAutoSyncDevices(5000);
+  useAutoSyncDevices(15_000);
 
   return (
     <SidebarProvider>
