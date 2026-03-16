@@ -169,16 +169,18 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   if (mediaUrl) {
     const mediaType = detectMediaType(mediaUrl);
     if (mediaType === "audio") {
-      // Send text first, then audio as separate messages
+      // Send text first, then audio (voice note) as separate messages
       if (body && body.trim()) {
         await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
         // Small delay between text and audio to ensure order
         await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
       }
-      return await uazapiRequest(baseUrl, token, "/send/audio", {
+      // Use /send/media with type "ptt" for voice note (recorded-style)
+      return await uazapiRequest(baseUrl, token, "/send/media", {
         number: phone,
+        media: mediaUrl,
         file: mediaUrl,
-        ptt: true,
+        type: "ptt",
       });
     }
     const payload: any = { number: phone, file: mediaUrl, media: mediaUrl, type: mediaType };
