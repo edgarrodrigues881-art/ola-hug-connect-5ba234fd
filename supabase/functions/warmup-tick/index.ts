@@ -1970,11 +1970,12 @@ async function handleTick(db: any) {
         const oldPhase = cycle.phase;
         const newPhase = getPhaseForDay(newDay, chipState);
 
-        // Cancel old interaction jobs and join_group jobs (join only on day 1)
+        // Cancel old interaction jobs and orphan enable_* jobs
+        // [BUG B FIX] Do NOT cancel join_group here — reschedule failed ones below
         await db.from("warmup_jobs")
           .update({ status: "cancelled", last_error: "Cancelado: reset diário" })
           .eq("cycle_id", cycle.id).eq("status", "pending")
-          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community", "join_group"]);
+          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community"]);
 
         const resetAt = new Date().toISOString();
 
@@ -2107,6 +2108,9 @@ async function handleTick(db: any) {
           }
         }
 
+        // [BUG B FIX] Reschedule pending join_group jobs for groups still not joined
+        await ensureJoinGroupJobs(db, cycle.id, job.user_id, job.device_id);
+
         // Schedule today's jobs
         await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
@@ -2186,18 +2190,107 @@ async function handleDailyReset(db: any) {
       continue;
     }
 
+    const oldPhase = cycle.phase;
     const newPhase = getPhaseForDay(newDay, chipState);
 
+    // Cancel old pending jobs (interactions + orphan enable_* + join_group)
     await db.from("warmup_jobs")
       .update({ status: "cancelled", last_error: "Cancelado: reset diário manual" })
       .eq("cycle_id", cycle.id).eq("status", "pending")
-      .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community"]);
+      .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community", "join_group"]);
+
+    const resetAt = new Date().toISOString();
 
     await db.from("warmup_cycles").update({
       day_index: newDay, phase: newPhase,
-      last_daily_reset_at: new Date().toISOString(),
+      last_daily_reset_at: resetAt,
       daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
     }).eq("id", cycle.id);
+
+    // [BUG A FIX] Activate community membership on phase transition (mirrors job-based daily_reset)
+    if (newPhase !== oldPhase && ["autosave_enabled", "community_enabled"].includes(newPhase)) {
+      const { data: membership } = await db.from("warmup_community_membership")
+        .select("id, is_enabled").eq("device_id", cycle.device_id).maybeSingle();
+
+      if (!membership) {
+        await db.from("warmup_community_membership").insert({
+          user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+          is_eligible: true, is_enabled: true, enabled_at: resetAt,
+        });
+      } else if (!membership.is_enabled) {
+        await db.from("warmup_community_membership")
+          .update({ is_enabled: true, is_eligible: true, enabled_at: resetAt, cycle_id: cycle.id })
+          .eq("id", membership.id);
+      }
+    }
+
+    // [BUG A FIX] Rotate community pairs on daily reset (mirrors job-based daily_reset)
+    if (newPhase === "community_enabled") {
+      const targetPeers = getCommunityPeers(newDay, chipState);
+
+      const { data: existingPairs } = await db.from("community_pairs")
+        .select("id, instance_id_a, instance_id_b")
+        .eq("cycle_id", cycle.id).eq("status", "active");
+
+      const keepCount = Math.min(Math.floor(targetPeers * 0.4), existingPairs?.length || 0);
+      const keptDevices = new Set<string>();
+
+      if (existingPairs?.length) {
+        const shuffledExisting = existingPairs.sort(() => Math.random() - 0.5);
+        const toKeep = shuffledExisting.slice(0, keepCount);
+        const toClose = shuffledExisting.slice(keepCount);
+
+        if (toClose.length > 0) {
+          await db.from("community_pairs")
+            .update({ status: "closed", closed_at: resetAt })
+            .in("id", toClose.map((p: any) => p.id));
+        }
+
+        for (const p of toKeep) {
+          const peerId = p.instance_id_a === cycle.device_id ? p.instance_id_b : p.instance_id_a;
+          keptDevices.add(peerId);
+        }
+      }
+
+      const newNeeded = targetPeers - keepCount;
+      if (newNeeded > 0) {
+        const { data: eligible } = await db.from("warmup_community_membership")
+          .select("device_id, user_id")
+          .eq("is_enabled", true).eq("is_eligible", true)
+          .neq("device_id", cycle.device_id).limit(100);
+
+        if (eligible?.length) {
+          const shuffled = eligible.sort(() => Math.random() - 0.5);
+          const usedDevices = new Set<string>(keptDevices);
+          let created = 0;
+
+          for (const e of shuffled) {
+            if (created >= newNeeded) break;
+            if (usedDevices.has(e.device_id)) continue;
+
+            const { data: pd } = await db.from("devices")
+              .select("status, number").eq("id", e.device_id).single();
+            if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
+
+            await db.from("community_pairs").insert({
+              cycle_id: cycle.id, instance_id_a: cycle.device_id, instance_id_b: e.device_id,
+              status: "active", meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
+            });
+            usedDevices.add(e.device_id);
+            created++;
+          }
+        }
+      }
+    }
+
+    // [BUG B FIX] Reschedule failed join_group jobs instead of just cancelling them
+    const { data: failedJoinGroups } = await db.from("warmup_instance_groups")
+      .select("group_id, warmup_groups_pool(id, name)")
+      .eq("device_id", cycle.device_id).eq("join_status", "pending");
+
+    if (failedJoinGroups?.length > 0) {
+      await ensureJoinGroupJobs(db, cycle.id, cycle.user_id, cycle.device_id);
+    }
 
     await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, newDay, newPhase, chipState);
 
