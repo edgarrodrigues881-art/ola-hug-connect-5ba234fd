@@ -1754,12 +1754,14 @@ async function handleTick(db: any) {
           }
         }
 
-        // Update budget with total messages sent in this burst
+        // Update budget: count burst as 1 interaction unit (not per-message)
+        // This prevents premature cancellation — scheduleDayJobs counts each community_interaction
+        // job as 1 unit, so budget_used must match that granularity.
         if (sentCount > 0) {
           await db.from("warmup_cycles").update({
-            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + sentCount,
+            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
-          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + sentCount;
+          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
         }
 
         bufferAudit({
@@ -1812,10 +1814,17 @@ async function handleTick(db: any) {
           .neq("device_id", job.device_id)
           .limit(100);
 
-        // Get existing active pairs to decide which to keep
-        const { data: existingPairs } = await db.from("community_pairs")
+        // Get existing active pairs by device_id (not cycle_id) to find pairs from either side
+        const { data: ecPairsA } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b, meta")
-          .eq("cycle_id", cycle.id).eq("status", "active");
+          .eq("instance_id_a", job.device_id).eq("status", "active");
+        const { data: ecPairsB } = await db.from("community_pairs")
+          .select("id, instance_id_a, instance_id_b, meta")
+          .eq("instance_id_b", job.device_id).eq("status", "active");
+        const ecDedupSet = new Set<string>();
+        const existingPairs = [...(ecPairsA || []), ...(ecPairsB || [])].filter(p => {
+          if (ecDedupSet.has(p.id)) return false; ecDedupSet.add(p.id); return true;
+        });
 
         // Strategy: keep ~40% of existing pairs (old contacts), fill rest with new
         const keepCount = Math.min(
@@ -2022,10 +2031,18 @@ async function handleTick(db: any) {
         if (newPhase === "community_enabled") {
           const targetPeers = getCommunityPeers(newDay, chipState);
 
-          // Get existing active pairs
-          const { data: existingPairs } = await db.from("community_pairs")
+          // Get existing active pairs by device_id (not cycle_id) — device B may have
+          // pairs created by device A's cycle, so cycle_id lookup would miss them
+          const { data: pairsA } = await db.from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
-            .eq("cycle_id", cycle.id).eq("status", "active");
+            .eq("instance_id_a", job.device_id).eq("status", "active");
+          const { data: pairsB } = await db.from("community_pairs")
+            .select("id, instance_id_a, instance_id_b")
+            .eq("instance_id_b", job.device_id).eq("status", "active");
+          const dedupSet = new Set<string>();
+          const existingPairs = [...(pairsA || []), ...(pairsB || [])].filter(p => {
+            if (dedupSet.has(p.id)) return false; dedupSet.add(p.id); return true;
+          });
 
           // Keep ~40% of old pairs (familiar contacts), close rest
           const keepCount = Math.min(
@@ -2228,9 +2245,17 @@ async function handleDailyReset(db: any) {
     if (newPhase === "community_enabled") {
       const targetPeers = getCommunityPeers(newDay, chipState);
 
-      const { data: existingPairs } = await db.from("community_pairs")
+      // Query pairs by device_id (same fix as job-based daily_reset)
+      const { data: manualPairsA } = await db.from("community_pairs")
         .select("id, instance_id_a, instance_id_b")
-        .eq("cycle_id", cycle.id).eq("status", "active");
+        .eq("instance_id_a", cycle.device_id).eq("status", "active");
+      const { data: manualPairsB } = await db.from("community_pairs")
+        .select("id, instance_id_a, instance_id_b")
+        .eq("instance_id_b", cycle.device_id).eq("status", "active");
+      const manualDedupSet = new Set<string>();
+      const existingPairs = [...(manualPairsA || []), ...(manualPairsB || [])].filter(p => {
+        if (manualDedupSet.has(p.id)) return false; manualDedupSet.add(p.id); return true;
+      });
 
       const keepCount = Math.min(Math.floor(targetPeers * 0.4), existingPairs?.length || 0);
       const keptDevices = new Set<string>();
