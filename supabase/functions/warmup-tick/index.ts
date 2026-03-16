@@ -2100,7 +2100,7 @@ async function handleTick(db: any) {
         cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
 
         if (hasNextTurn && nextCycle) {
-          const replyDelaySeconds = randInt(45, 150);
+          const replyDelaySeconds = randInt(8, 35);
           await enqueueCommunityTurn(db, {
             user_id: nextCycle.user_id,
             device_id: peerDeviceId,
