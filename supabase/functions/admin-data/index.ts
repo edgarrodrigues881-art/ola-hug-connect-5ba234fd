@@ -688,8 +688,8 @@ Deno.serve(async (req) => {
           }).eq("id", token.id);
 
           reassigned++;
-        } catch (e: any) {
-          errors.push(`${device.name}: ${e.message}`);
+        } catch (e) {
+          errors.push(`${device.name}: ${(e as any).message}`);
         }
       }
 
@@ -1178,7 +1178,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── Helper: delete instance from UAZAPI by token ───
-    async function deleteInstanceFromProvider(tokenValue: string, label?: string | null) {
+    const deleteInstanceFromProvider = async (tokenValue: string, label?: string | null) => {
       const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
       const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
       if (!BASE_URL || !ADMIN_TOKEN) return { deleted: false, reason: "no_config" };
@@ -1209,7 +1209,7 @@ Deno.serve(async (req) => {
         }
       }
       return { deleted: false, reason: "api_failed" };
-    }
+    };
 
     // ─── DELETE TOKEN ───
     if (action === "delete-token" && req.method === "POST") {
@@ -1331,18 +1331,17 @@ Deno.serve(async (req) => {
         let found = false;
         for (const authHeaders of authVariants) {
           try {
-            const res = await fetch(`${BASE_URL}${endpoint}`, {
+            const res = await fetch(BASE_URL + endpoint, {
               method: "GET",
               headers: { ...authHeaders, Accept: "application/json" },
             });
             if (res.status === 401) continue;
             if (res.ok) {
-              const data = await res.json();
-              // Handle different response shapes
-              instances = Array.isArray(data) ? data : (data.instances || data.data || data.result || []);
+              const json = await res.json();
+              instances = Array.isArray(json) ? json : (json.instances || json.data || json.result || []);
               if (instances.length > 0) { found = true; break; }
             }
-          } catch { /* try next */ }
+          } catch (_) { /* next */ }
         }
         if (found) break;
       }
@@ -1504,7 +1503,9 @@ Deno.serve(async (req) => {
       });
     }
 
-
+    // ─── UPDATE MONITOR TOKEN ───
+    if (action === "update-monitor-token" && req.method === "POST") {
+      const { target_user_id, whatsapp_monitor_token } = await req.json();
       console.log("[admin-data] update-monitor-token for:", target_user_id, "token:", whatsapp_monitor_token ? "***" : "(empty)");
       const { error: updErr } = await adminClient.from("profiles").update({
         whatsapp_monitor_token: whatsapp_monitor_token || null,
@@ -2631,14 +2632,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Ação inválida" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("[admin-data] ERROR:", error.message, error.stack);
-    const status = error.message?.includes("autorizado") ? 401 : error.message?.includes("negado") ? 403 : 500;
-    return new Response(JSON.stringify({ error: error.message }), {
-      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Ação inválida" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : "";
+    console.error("[admin-data] ERROR:", msg, stack);
+    const status = msg.includes("autorizado") ? 401 : msg.includes("negado") ? 403 : 500;
+    return new Response(
+      JSON.stringify({ error: msg }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

@@ -45,9 +45,7 @@ const AdminTokensGlobal = () => {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-uazapi-instances"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("admin-data", {
-        body: { action: "fetch-uazapi-instances" },
-      });
+      const { data, error } = await supabase.functions.invoke("admin-data?action=fetch-uazapi-instances");
       if (error) throw error;
       return data as { instances: UazapiInstance[]; total: number; connected: number; disconnected: number };
     },
