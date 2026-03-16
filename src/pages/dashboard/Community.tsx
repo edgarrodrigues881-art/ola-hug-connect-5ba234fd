@@ -115,7 +115,7 @@ const Community = () => {
                 strokeLinecap="round"
                 fill="none"
                 strokeDasharray="80 860"
-                opacity="0.7"
+                opacity="1"
               >
                 <animate
                   attributeName="stroke-dashoffset"
@@ -125,7 +125,7 @@ const Community = () => {
                 />
                 <animate
                   attributeName="opacity"
-                  values="0.3;0.8;0.3"
+                  values="0.5;1;0.5"
                   dur="5s"
                   repeatCount="indefinite"
                 />
