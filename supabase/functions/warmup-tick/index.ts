@@ -88,7 +88,12 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
 
-  // Community desativado para testes
+  // Community: 3 pares, 25-45 msgs cada lado (50-90 total por par)
+  if (phase === "community_enabled") {
+    v.communityPeers = 3;
+    v.communityMsgsPerPeer = randInt(25, 45);
+  }
+
   return v;
 }
 
