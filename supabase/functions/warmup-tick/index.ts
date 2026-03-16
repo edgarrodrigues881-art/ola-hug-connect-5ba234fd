@@ -956,7 +956,10 @@ const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
 const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
 
 // Max active pairs a device can participate in (as A or B)
-const MAX_ACTIVE_PAIRS_PER_DEVICE = 2;
+// Unstable chips get only 1 pair; new/recovered get 2
+function getMaxPairsForChip(chipState: string): number {
+  return chipState === "unstable" ? 1 : 2;
+}
 
 async function getActivePairCount(db: any, deviceId: string): Promise<number> {
   const { count: countA } = await db.from("community_pairs")
@@ -966,6 +969,12 @@ async function getActivePairCount(db: any, deviceId: string): Promise<number> {
     .select("id", { count: "exact", head: true })
     .eq("instance_id_b", deviceId).eq("status", "active");
   return (countA || 0) + (countB || 0);
+}
+
+async function getDeviceChipState(db: any, deviceId: string): Promise<string> {
+  const { data } = await db.from("warmup_cycles")
+    .select("chip_state").eq("device_id", deviceId).eq("is_running", true).limit(1).single();
+  return data?.chip_state || "new";
 }
 
 type CommunityPairMeta = {
