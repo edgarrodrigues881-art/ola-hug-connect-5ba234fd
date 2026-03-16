@@ -1125,6 +1125,19 @@ const WarmupInstanceDetail = () => {
                   🧪 Testar Auto Save
                 </Button>
               )}
+
+              {/* Test Community button */}
+              {cycle.is_running && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm"
+                  onClick={handleTestCommunity}
+                  disabled={testingCommunity}
+                >
+                  {testingCommunity ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  🧪 Testar Comunitário
+                </Button>
+              )}
             </div>
           )}
         </div>
