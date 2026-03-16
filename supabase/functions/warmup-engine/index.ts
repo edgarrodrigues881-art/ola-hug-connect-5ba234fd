@@ -639,21 +639,11 @@ async function handleStart(db: any, userId: string | null, body: any) {
   }
 
   if (resolvedGroupSource === "custom") {
-    // For custom groups: clear existing instance_groups and create fresh
+    // For custom groups: skip warmup_instance_groups (FK references warmup_groups_pool)
+    // Groups are managed entirely via join_group job payloads with invite_link
+    // Clear any existing instance_groups for this device to avoid stale data
     await db.from("warmup_instance_groups").delete()
       .eq("device_id", device_id).eq("user_id", userId);
-    
-    for (const g of allGroups) {
-      // Use the warmup_groups id — but warmup_instance_groups.group_id references warmup_groups_pool
-      // So for custom groups, we store a dummy reference and put the real link in join_group job payload
-      await db.from("warmup_instance_groups").insert({
-        user_id: userId, device_id,
-        group_id: g.id, // This is the warmup_groups id (custom)
-        cycle_id: cycle.id, join_status: "pending",
-      }).then(() => {}).catch(() => {
-        // Ignore FK constraint — we'll handle custom groups via job payload
-      });
-    }
   } else {
     // System groups — original logic
     // Check for existing group records for this device
