@@ -1352,8 +1352,8 @@ Deno.serve(async (req) => {
                 console.log(`[fetch-uazapi] Empty instances from ${endpoint}, trying next...`);
               }
             }
-          } catch (err: any) { 
-            console.log(`[fetch-uazapi] Error on ${endpoint}:`, err.message);
+          } catch (err) { 
+            console.log(`[fetch-uazapi] Error on ${endpoint}:`, (err as any).message);
           }
         }
         if (found) break;
