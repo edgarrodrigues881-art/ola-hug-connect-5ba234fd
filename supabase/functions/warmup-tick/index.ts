@@ -914,6 +914,86 @@ async function handleTick(db: any) {
     }
   }
 
+  // ── AUTO-RESUME: Reconnected devices auto-restart paused warmup cycles ──
+  {
+    const { data: pausedCyclesCheck } = await db.from("warmup_cycles")
+      .select("id, user_id, device_id, day_index, days_total, chip_state, phase, previous_phase, plan_id, last_error")
+      .eq("is_running", false)
+      .eq("phase", "paused")
+      .not("previous_phase", "is", null)
+      .limit(50);
+
+    if (pausedCyclesCheck?.length) {
+      const pausedDeviceIds = [...new Set(pausedCyclesCheck.map((c: any) => c.device_id))];
+      const { data: devicesCheck } = await db.from("devices")
+        .select("id, status")
+        .in("id", pausedDeviceIds);
+
+      const connectedDevices = new Set(
+        (devicesCheck || [])
+          .filter((d: any) => CONNECTED_STATUSES.includes(d.status))
+          .map((d: any) => d.id)
+      );
+
+      for (const cycle of pausedCyclesCheck) {
+        if (!connectedDevices.has(cycle.device_id)) continue;
+
+        // Device is back online — check plan validity
+        const { data: sub } = await db.from("subscriptions")
+          .select("expires_at")
+          .eq("user_id", cycle.user_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!sub || new Date(sub.expires_at) < new Date()) continue;
+
+        const { data: prof } = await db.from("profiles")
+          .select("status")
+          .eq("id", cycle.user_id)
+          .maybeSingle();
+
+        if (prof?.status === "suspended" || prof?.status === "cancelled") continue;
+
+        // All checks passed — resume cycle
+        const resumePhase = cycle.previous_phase || "groups_only";
+        const chipState = cycle.chip_state || "new";
+        const expectedPhase = getPhaseForDay(cycle.day_index, chipState);
+        const safePhase = expectedPhase || resumePhase;
+
+        await db.from("warmup_cycles").update({
+          is_running: true,
+          phase: safePhase,
+          previous_phase: null,
+          last_error: null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", cycle.id);
+
+        // Schedule today's jobs
+        await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, cycle.day_index, safePhase, chipState, true);
+
+        // Ensure daily reset chain continues
+        await ensureNextDailyResetJob(db, { user_id: cycle.user_id, device_id: cycle.device_id }, cycle.id);
+
+        // Ensure pending group joins are rescheduled
+        await ensureJoinGroupJobs(db, cycle.id, cycle.user_id, cycle.device_id);
+
+        // Audit log
+        await db.from("warmup_audit_logs").insert({
+          user_id: cycle.user_id,
+          device_id: cycle.device_id,
+          cycle_id: cycle.id,
+          level: "info",
+          event_type: "auto_resumed",
+          message: `Aquecimento retomado automaticamente: dispositivo reconectado. Fase: ${safePhase}, dia ${cycle.day_index}/${cycle.days_total}`,
+          meta: { previous_phase: cycle.previous_phase, resumed_phase: safePhase, last_error: cycle.last_error },
+        });
+
+        console.log(`[warmup-tick] AUTO-RESUME: cycle ${cycle.id} → ${safePhase} (day ${cycle.day_index})`);
+      }
+    }
+  }
+
   // Fetch pending jobs
   const { data: pendingJobs, error: fetchErr } = await db.from("warmup_jobs")
     .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
