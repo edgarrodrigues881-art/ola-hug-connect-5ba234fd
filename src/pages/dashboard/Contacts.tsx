@@ -523,50 +523,84 @@ const Contacts = () => {
             </div>
             <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full md:w-40 justify-between h-9 text-xs">
-                  {tagFilter === "all" ? "Todas as tags" : tagFilter}
+                <Button variant="outline" className="w-full md:w-44 justify-between h-9 text-xs gap-2">
+                  {tagFilter === "all" ? (
+                    "Todas as tags"
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <span className={cn("w-2 h-2 rounded-full", getTagStyle(tagFilter).dot)} />
+                      {tagFilter}
+                    </span>
+                  )}
                   <ChevronDown className="w-3.5 h-3.5 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-2">
-                <div className="space-y-1">
+              <PopoverContent align="end" className="w-64 p-0" sideOffset={8}>
+                <div className="p-2 border-b border-border/50">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1">Filtrar por tag</p>
+                </div>
+                <div className="p-1.5 space-y-0.5 max-h-52 overflow-y-auto">
                   <button
                     onClick={() => { setTagFilter("all"); setTagPopoverOpen(false); }}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-muted transition-colors ${tagFilter === "all" ? "bg-muted font-medium" : ""}`}
+                    className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2", tagFilter === "all" && "bg-muted font-medium")}
                   >
-                    ✓ Todas as tags
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                    Todas as tags
                   </button>
-                  {customTags.map(tag => (
-                    <div key={tag} className="flex items-center gap-1 group">
-                      <button
-                        onClick={() => { setTagFilter(tag); setTagPopoverOpen(false); }}
-                        className={`flex-1 text-left px-2 py-1.5 text-xs rounded hover:bg-muted transition-colors ${tagFilter === tag ? "bg-muted font-medium" : ""}`}
-                      >
-                        {tag}
-                      </button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="border-t border-border pt-2 mt-2">
-                    <div className="flex gap-1">
-                      <Input
+                  {customTags.map(tag => {
+                    const style = getTagStyle(tag);
+                    return (
+                      <div key={tag} className="flex items-center group">
+                        <button
+                          onClick={() => { setTagFilter(tag); setTagPopoverOpen(false); }}
+                          className={cn("flex-1 text-left px-2.5 py-2 text-xs rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2", tagFilter === tag && "bg-muted font-medium")}
+                        >
+                          <span className={cn("w-2 h-2 rounded-full shrink-0", style.dot)} />
+                          {tag}
+                        </button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="h-6 w-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted" onClick={e => e.stopPropagation()}>
+                              <span className={cn("w-3 h-3 rounded-full border-2 border-background", style.dot)} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2" side="left" align="center">
+                            <div className="grid grid-cols-6 gap-1.5">
+                              {TAG_COLORS.map((c, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => changeTagColor(tag, idx)}
+                                  className={cn("w-5 h-5 rounded-full transition-transform hover:scale-125", c.dot, tagColors[tag] === idx && "ring-2 ring-foreground ring-offset-1 ring-offset-background")}
+                                />
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <button
+                          className="h-6 w-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-destructive"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="p-2 border-t border-border/50">
+                  <div className="flex gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-1 rounded-lg border border-border/50 bg-background px-2">
+                      <span className={cn("w-2 h-2 rounded-full shrink-0", TAG_COLORS[newTagColorIdx].dot)} />
+                      <input
                         placeholder="Nova tag..."
                         value={createTagInput}
                         onChange={e => setCreateTagInput(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && handleCreateTag()}
-                        className="h-7 text-xs"
+                        className="h-7 text-xs bg-transparent outline-none flex-1 text-foreground placeholder:text-muted-foreground"
                       />
-                      <Button size="sm" onClick={handleCreateTag} className="h-7 px-2">
-                        <Plus className="w-3 h-3" />
-                      </Button>
                     </div>
+                    <Button size="sm" onClick={handleCreateTag} className="h-7 px-2.5 rounded-lg">
+                      <Plus className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </PopoverContent>
