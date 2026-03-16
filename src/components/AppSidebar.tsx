@@ -395,6 +395,19 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="px-2.5 space-y-[2px]">
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a
+                    href="https://chat.whatsapp.com/KpkJQCdw7i10ICftI1tpBf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 h-9 px-2 rounded-md text-[13px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+                  >
+                    <UsersRound className="w-4 h-4 shrink-0" />
+                    {!collapsed && <span>Comunidade</span>}
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
