@@ -1121,7 +1121,7 @@ const Campaigns = () => {
                 <React.Fragment key={s.num}>
                   {/* Step circle + label */}
                   <button
-                    onClick={() => setStep(s.num)}
+                    onClick={() => { if (s.num === 2 && contacts.length === 0) { setContacts([{ id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" }]); setShowContactTable(true); } setStep(s.num); }}
                     className="flex flex-col items-center gap-0.5 sm:gap-2 group transition-all duration-150 cursor-pointer"
                   >
                     <div
