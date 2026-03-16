@@ -84,7 +84,7 @@ function GoldParticles() {
 
 const Community = () => {
   return (
-    <div className="min-h-[calc(100vh-64px)] w-full flex items-center justify-center px-4 py-12 relative overflow-hidden mx-auto">
+    <div className="min-h-[calc(100vh-64px)] w-full flex items-center justify-center px-4 py-20 relative overflow-x-hidden mx-auto">
       {/* Background effects */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[5%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.07)_0%,transparent_60%)]" />
