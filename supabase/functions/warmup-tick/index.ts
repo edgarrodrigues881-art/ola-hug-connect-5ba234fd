@@ -76,26 +76,26 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Progressão segura: 2→3→4→5→6→7 pares (volume total < 350 msgs/dia)
-  if (daysSinceCommunity <= 1) return 2;   // dias 0-1: 2 pares
-  if (daysSinceCommunity <= 5) return 3;   // dias 2-5: 3 pares
-  if (daysSinceCommunity <= 10) return 4;  // dias 6-10: 4 pares
-  if (daysSinceCommunity <= 15) return 5;  // dias 11-15: 5 pares
-  if (daysSinceCommunity <= 20) return 6;  // dias 16-20: 6 pares
-  return 7;                                // dias 21+: 7 pares (teto)
+  // Progressão conservadora: 1→2→2→3→3→4 pares (anti-flood)
+  if (daysSinceCommunity <= 2) return 1;   // dias 0-2: 1 par
+  if (daysSinceCommunity <= 5) return 2;   // dias 3-5: 2 pares
+  if (daysSinceCommunity <= 10) return 2;  // dias 6-10: 2 pares
+  if (daysSinceCommunity <= 15) return 3;  // dias 11-15: 3 pares
+  if (daysSinceCommunity <= 20) return 3;  // dias 16-20: 3 pares
+  return 4;                                // dias 21+: 4 pares (teto)
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Bursts por par escalam suavemente: 4→5→5→6→6→7
-  if (daysSinceCommunity <= 1) return 4;
-  if (daysSinceCommunity <= 5) return 5;
-  if (daysSinceCommunity <= 10) return 5;
-  if (daysSinceCommunity <= 15) return 6;
-  if (daysSinceCommunity <= 20) return 6;
-  return 7;
+  // Bursts por par conservadores: 2→3→3→4→4→5
+  if (daysSinceCommunity <= 2) return 2;
+  if (daysSinceCommunity <= 5) return 3;
+  if (daysSinceCommunity <= 10) return 3;
+  if (daysSinceCommunity <= 15) return 4;
+  if (daysSinceCommunity <= 20) return 4;
+  return 5;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -275,7 +275,7 @@ async function scheduleDayJobs(
     }
   }
 
-  // Community bursts — each job = 1 burst of 3-7 msgs (real conversation)
+  // Community bursts — each job = 1 burst of 2-4 msgs (real conversation)
   // 8-12 bursts per peer, spaced ~40-90 min apart to fill the 12h window
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
     for (let p = 0; p < volumes.communityPeers; p++) {
@@ -1735,7 +1735,7 @@ async function handleTick(db: any) {
       }
 
       // ── COMMUNITY INTERACTION (burst conversation with media) ──
-      // Cada job = 1 burst de 3-7 mensagens seguidas (simula conversa real)
+      // Cada job = 1 burst de 2-4 mensagens seguidas (simula conversa real)
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
@@ -1756,24 +1756,29 @@ async function handleTick(db: any) {
         const pairs = allPairs.filter(p => { if (seenPairIds.has(p.id)) return false; seenPairIds.add(p.id); return true; });
 
         let peerDeviceId: string | null = null;
+        let initiatorSide: string | null = null;
 
         if (pairs?.length) {
           const selectedPair = pairs[peerIndex % pairs.length];
           peerDeviceId = selectedPair.instance_id_a === job.device_id
             ? selectedPair.instance_id_b
             : selectedPair.instance_id_a;
-        } else {
-          // Fallback: find any running community device
-          const { data: otherCycles } = await db.from("warmup_cycles")
-            .select("device_id, user_id")
-            .eq("is_running", true).neq("device_id", job.device_id)
-            .in("phase", ["autosave_enabled", "community_enabled"])
-            .limit(10);
+          // Determine if this device is the initiator for this burst
+          const meta = selectedPair.meta as any;
+          initiatorSide = meta?.initiator || "a";
+          const iAmA = selectedPair.instance_id_a === job.device_id;
+          const iAmInitiator = (initiatorSide === "a" && iAmA) || (initiatorSide === "b" && !iAmA);
 
-          if (otherCycles?.length) {
-            const shuffled = otherCycles.sort(() => Math.random() - 0.5);
-            peerDeviceId = shuffled[peerIndex % shuffled.length].device_id;
+          // Only the initiator sends — prevents both sides flooding each other
+          if (!iAmInitiator) {
+            bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_skip_non_initiator", message: `Par ${peerIndex}: não sou o iniciador — pulando burst` });
+            break;
           }
+        } else {
+          // NO FALLBACK — without active pairs, skip community interaction entirely
+          // This prevents random flooding across uncoordinated devices
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_pairs", message: `Nenhum par ativo para par ${peerIndex} — pulando (sem fallback)` });
+          break;
         }
 
         if (!peerDeviceId) {
@@ -1790,8 +1795,8 @@ async function handleTick(db: any) {
 
         const targetPhone = pd.number.replace(/\+/g, "");
 
-        // ── BURST: Send 3-7 messages in rapid succession (like a real conversation) ──
-        const burstSize = randInt(3, 7);
+        // ── BURST: Send 2-4 messages in rapid succession (like a real conversation) ──
+        const burstSize = randInt(2, 4);
         let sentCount = 0;
         const sentSummary: string[] = [];
 
@@ -2108,21 +2113,16 @@ async function handleTick(db: any) {
         });
 
         // Rotate community pairs on daily reset if in community phase
+        // IMPORTANT: Only manage pairs where this device is instance_id_a (the "owner")
+        // This prevents race conditions where both sides close each other's pairs
         if (newPhase === "community_enabled") {
           const targetPeers = getCommunityPeers(newDay, chipState);
 
-          // Get existing active pairs by device_id (not cycle_id) — device B may have
-          // pairs created by device A's cycle, so cycle_id lookup would miss them
-          const { data: pairsA } = await db.from("community_pairs")
+          // Only get pairs where this device is instance_id_a (owner manages lifecycle)
+          const { data: ownedPairs } = await db.from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
             .eq("instance_id_a", job.device_id).eq("status", "active");
-          const { data: pairsB } = await db.from("community_pairs")
-            .select("id, instance_id_a, instance_id_b")
-            .eq("instance_id_b", job.device_id).eq("status", "active");
-          const dedupSet = new Set<string>();
-          const existingPairs = [...(pairsA || []), ...(pairsB || [])].filter(p => {
-            if (dedupSet.has(p.id)) return false; dedupSet.add(p.id); return true;
-          });
+          const existingPairs = ownedPairs || [];
 
           // Keep ~40% of old pairs (familiar contacts), close rest
           const keepCount = Math.min(
@@ -2330,17 +2330,11 @@ async function handleDailyReset(db: any) {
     if (newPhase === "community_enabled") {
       const targetPeers = getCommunityPeers(newDay, chipState);
 
-      // Query pairs by device_id (same fix as job-based daily_reset)
-      const { data: manualPairsA } = await db.from("community_pairs")
+      // Only manage pairs where this device is instance_id_a (owner manages lifecycle)
+      const { data: ownedPairs } = await db.from("community_pairs")
         .select("id, instance_id_a, instance_id_b")
         .eq("instance_id_a", cycle.device_id).eq("status", "active");
-      const { data: manualPairsB } = await db.from("community_pairs")
-        .select("id, instance_id_a, instance_id_b")
-        .eq("instance_id_b", cycle.device_id).eq("status", "active");
-      const manualDedupSet = new Set<string>();
-      const existingPairs = [...(manualPairsA || []), ...(manualPairsB || [])].filter(p => {
-        if (manualDedupSet.has(p.id)) return false; manualDedupSet.add(p.id); return true;
-      });
+      const existingPairs = ownedPairs || [];
 
       const keepCount = Math.min(Math.floor(targetPeers * 0.4), existingPairs?.length || 0);
       const keptDevices = new Set<string>();
