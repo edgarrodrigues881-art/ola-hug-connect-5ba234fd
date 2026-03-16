@@ -704,35 +704,72 @@ const Contacts = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Contact Dialog */}
+      {/* Edit Contact Dialog — Premium */}
       <Dialog open={editContactOpen} onOpenChange={(open) => { setEditContactOpen(open); if (!open) { setEditContact(null); setShowEditVars(false); } }}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
-          <DialogHeader><DialogTitle>Editar contato</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-[420px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl max-h-[85vh]" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
+          {/* Header */}
+          <div className="relative px-6 pt-6 pb-4">
+            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Pencil className="w-4 h-4 text-primary" />
+                </div>
+                Editar contato
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+
           {editContact && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nome</Label>
-                <Input value={editContact.name} onChange={(e) => setEditContact(p => p ? { ...p, name: e.target.value } : p)} placeholder="Nome do contato" />
+            <div className="px-6 pb-2 space-y-5 overflow-y-auto max-h-[55vh]">
+              {/* Name & Phone */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Informações</label>
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium">Nome</Label>
+                    <Input value={editContact.name} onChange={(e) => setEditContact(p => p ? { ...p, name: e.target.value } : p)} placeholder="Nome do contato" className="h-10 rounded-xl bg-muted/10 border-border/15 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium">Telefone</Label>
+                    <Input value={editContact.phone} onChange={(e) => setEditContact(p => p ? { ...p, phone: e.target.value } : p)} placeholder="+5511999999999" className="h-10 rounded-xl bg-muted/10 border-border/15 text-sm font-mono" />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Telefone</Label>
-                <Input value={editContact.phone} onChange={(e) => setEditContact(p => p ? { ...p, phone: e.target.value } : p)} placeholder="+5511999999999" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tags</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button type="button" className="w-full flex flex-wrap items-center gap-1.5 min-h-[36px] p-2 rounded-md border border-border/50 bg-background text-xs hover:border-primary/30 transition-colors cursor-pointer">
-                      {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => {
+
+              {/* Tags */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Tags</label>
+                <div className="min-h-[44px] rounded-xl border border-border/10 bg-muted/5 p-3">
+                  {(editContact.tags || []).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(editContact.tags || []).map((tag: string) => {
                         const color = getTagColor(tag);
                         return (
-                          <span key={tag} className="group inline-flex items-center gap-1 pl-2 pr-1.5 py-0.5 rounded-md text-[10px] font-semibold text-white shadow-sm" style={{ backgroundColor: color }} onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
+                          <span
+                            key={tag}
+                            className="group inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg text-[11px] font-semibold text-white shadow-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
+                            style={{ backgroundColor: color }}
+                            onClick={() => setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p)}
+                          >
                             {tag}
-                            <X className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
+                            <button className="opacity-60 group-hover:opacity-100 hover:bg-white/20 rounded-md p-0.5 transition-all">
+                              <X className="w-3 h-3" />
+                            </button>
                           </span>
                         );
-                      }) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
-                    </button>
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground/40 font-medium text-center py-1">Nenhuma tag selecionada</p>
+                  )}
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full h-9 rounded-xl text-xs border-border/15 gap-2 hover:border-primary/30">
+                      <Tag className="w-3.5 h-3.5" />
+                      Selecionar tags
+                    </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-1.5" align="start">
                     <div className="space-y-0.5 max-h-48 overflow-y-auto">
@@ -762,16 +799,35 @@ const Contacts = () => {
                 </Popover>
               </div>
 
-              <VarFields
-                values={editContact}
-                onChange={(key, val) => setEditContact(p => p ? { ...p, [key]: val } : p)}
-              />
+              {/* Variables */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Variáveis personalizadas</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {VAR_KEYS.map((k, i) => (
+                    <div key={k} className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground/50 uppercase">Var {i + 1}</Label>
+                      <Input
+                        value={(editContact as any)[k] || ""}
+                        onChange={(e) => setEditContact(p => p ? { ...p, [k]: e.target.value } : p)}
+                        placeholder={`Variável ${i + 1}`}
+                        className="h-8 text-xs rounded-lg bg-muted/10 border-border/15"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditContactOpen(false); setEditContact(null); setShowEditVars(false); }}>Cancelar</Button>
-            <Button onClick={handleEditContact} disabled={updateContact.isPending}>Salvar</Button>
-          </DialogFooter>
+
+          {/* Footer */}
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" onClick={() => { setEditContactOpen(false); setEditContact(null); setShowEditVars(false); }} className="flex-1 h-10 rounded-xl text-xs font-semibold border-border/15">
+              Cancelar
+            </Button>
+            <Button onClick={handleEditContact} disabled={updateContact.isPending} className="flex-1 h-10 rounded-xl text-xs font-semibold shadow-md">
+              {updateContact.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
