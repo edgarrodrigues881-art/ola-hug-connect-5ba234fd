@@ -2079,9 +2079,9 @@ async function handleTick(db: any) {
             if (!nextCycle) return "no_cycle";
           }
 
-          const communityMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
+          const communityMediaType = pickMediaTypeCommunity(cycle.daily_interaction_budget_used || 0);
           let msg = generateNaturalMessage("community");
-          let communityActualMedia: "text" | "image" | "sticker" = communityMediaType;
+          let communityActualMedia: string = communityMediaType;
 
           try {
             if (communityMediaType === "image") {
@@ -2091,10 +2091,17 @@ async function handleTick(db: any) {
               await new Promise(r => setTimeout(r, randInt(1000, 3000)));
               await uazapiSendText(baseUrl, token, peerPhone, caption);
               msg = `[IMG+TXT] ${caption}`;
-            } else if (communityMediaType === "sticker") {
-              const imgUrl = pickRandom(imagePool);
-              await uazapiSendSticker(baseUrl, token, peerPhone, imgUrl);
-              msg = `[STICKER] 🎭`;
+            } else if (communityMediaType === "audio") {
+              const audioUrl = pickRandom(audioPool);
+              await uazapiSendAudio(baseUrl, token, peerPhone, audioUrl);
+              msg = `[AUDIO] 🎤`;
+            } else if (communityMediaType === "location") {
+              const loc = pickFakeLocation();
+              const locCaption = pickRandom(LOCATION_CAPTIONS);
+              await uazapiSendLocation(baseUrl, token, peerPhone, loc.lat, loc.lng, loc.name);
+              await new Promise(r => setTimeout(r, randInt(1000, 2000)));
+              await uazapiSendText(baseUrl, token, peerPhone, locCaption);
+              msg = `[LOC+TXT] ${loc.name}: ${locCaption}`;
             } else {
               await uazapiSendText(baseUrl, token, peerPhone, msg);
             }
