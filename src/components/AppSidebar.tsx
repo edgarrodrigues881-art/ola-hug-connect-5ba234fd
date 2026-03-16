@@ -12,7 +12,7 @@ import {
   LogOut,
   Settings,
   ChevronUp,
-  ChevronDown,
+  
   ChevronRight,
   CreditCard,
   HelpCircle,
