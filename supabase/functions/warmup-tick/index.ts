@@ -2330,17 +2330,11 @@ async function handleDailyReset(db: any) {
     if (newPhase === "community_enabled") {
       const targetPeers = getCommunityPeers(newDay, chipState);
 
-      // Query pairs by device_id (same fix as job-based daily_reset)
-      const { data: manualPairsA } = await db.from("community_pairs")
+      // Only manage pairs where this device is instance_id_a (owner manages lifecycle)
+      const { data: ownedPairs } = await db.from("community_pairs")
         .select("id, instance_id_a, instance_id_b")
         .eq("instance_id_a", cycle.device_id).eq("status", "active");
-      const { data: manualPairsB } = await db.from("community_pairs")
-        .select("id, instance_id_a, instance_id_b")
-        .eq("instance_id_b", cycle.device_id).eq("status", "active");
-      const manualDedupSet = new Set<string>();
-      const existingPairs = [...(manualPairsA || []), ...(manualPairsB || [])].filter(p => {
-        if (manualDedupSet.has(p.id)) return false; manualDedupSet.add(p.id); return true;
-      });
+      const existingPairs = ownedPairs || [];
 
       const keepCount = Math.min(Math.floor(targetPeers * 0.4), existingPairs?.length || 0);
       const keptDevices = new Set<string>();
