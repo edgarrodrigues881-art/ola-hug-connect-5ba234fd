@@ -597,7 +597,7 @@ const Contacts = () => {
                 <div className="p-2 border-t border-border/50">
                   <div className="flex gap-1.5">
                     <div className="flex items-center gap-1.5 flex-1 rounded-lg border border-border/50 bg-background px-2">
-                      <span className={cn("w-2 h-2 rounded-full shrink-0", TAG_COLORS[newTagColorIdx].dot)} />
+                      <span className="w-2.5 h-2.5 rounded-md shrink-0" style={{ backgroundColor: TAG_HEX_COLORS[newTagColorIdx] }} />
                       <input
                         placeholder="Nova tag..."
                         value={createTagInput}
