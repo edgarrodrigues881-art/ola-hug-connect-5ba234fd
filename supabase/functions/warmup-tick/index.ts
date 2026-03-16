@@ -247,20 +247,27 @@ async function scheduleDayJobs(
     }
   }
 
-  // Community interactions (bursts)
+  // Community interactions — conversation-style, spread across entire window
+  // 3 pares, cada par troca 50-90 msgs/dia (cada lado envia ~25-45)
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
-    const pw = windowMs / volumes.communityPeers;
     for (let p = 0; p < volumes.communityPeers; p++) {
-      const convStart = effectiveStart + pw * p + randInt(0, Math.floor(pw * 0.1));
+      const convStartOffset = randInt(5, 30) * 60 * 1000 + p * randInt(3, 8) * 60 * 1000;
+      let cursor = effectiveStart + convStartOffset;
+
       for (let m = 0; m < volumes.communityMsgsPerPeer; m++) {
-        const runAt = new Date(convStart + m * randInt(30, 120) * 1000);
-        if (runAt.getTime() > effectiveEnd) break;
+        if (cursor > effectiveEnd - 60000) break;
+
+        const mediaRoll = Math.random();
+        const mediaType = mediaRoll < 0.15 ? "image" : mediaRoll < 0.20 ? "sticker" : "text";
+
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "community_interaction",
-          payload: { peer_index: p, msg_index: m, is_image: Math.random() < 0.25 },
-          run_at: runAt.toISOString(), status: "pending",
+          payload: { peer_index: p, msg_index: m, media_type: mediaType },
+          run_at: new Date(cursor).toISOString(), status: "pending",
         });
+
+        cursor += randInt(5, 15) * 60 * 1000;
       }
     }
   }
