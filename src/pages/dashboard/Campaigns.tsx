@@ -538,6 +538,7 @@ const Campaigns = () => {
       device_id: selectedDevices[0],
       device_ids: selectedDevices,
       messages_per_instance: sendMode === "rotation" ? messagesPerInstance : (sendMode === "parallel" ? -1 : 0),
+      pause_on_disconnect: pauseOnDisconnect,
     }, {
       onSuccess: (newCampaign) => {
         if (scheduleEnabled && scheduleDate) {
