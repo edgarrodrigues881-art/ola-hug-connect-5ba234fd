@@ -1778,7 +1778,7 @@ async function handleTick(db: any) {
                 let resolvedJid = ig.group_jid;
                 if (!resolvedJid) {
                   const match = liveGroupsCache.find((g: any) =>
-                    norm(g.subject || g.name || g.Name || g.title || "") === poolName
+                    norm(g.subject || g.name || g.Name || g.title || "") === grpName
                   );
                   if (match) resolvedJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
                 }
