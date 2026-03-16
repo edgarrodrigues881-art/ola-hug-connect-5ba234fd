@@ -508,7 +508,7 @@ const PLAN_NOVO: DayPlanEntry[] = [
     day: i + 22, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "6p × 6b",
     totalEstimado: "183-397",
   })),
-  ...Array.from({ length: 4 }, (_, i) => ({
+  ...Array.from({ length: 5 }, (_, i) => ({
     day: i + 26, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "7p × 7b",
     totalEstimado: "222-488", nota: i + 26 === 30 ? "🎉 Chip aquecido!" : undefined,
   })),
