@@ -1310,7 +1310,154 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── BULK DELETE IDLE TOKENS (not in_use, no device) ───
+    // ─── FETCH UAZAPI INSTANCES (real-time from provider) ───
+    if (action === "fetch-uazapi-instances") {
+      const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+      if (!BASE_URL || !ADMIN_TOKEN) {
+        throw new Error("Configuração do provedor incompleta.");
+      }
+
+      // Try different auth header patterns and endpoints
+      let instances: any[] = [];
+      const endpoints = ["/instance/list", "/instance/fetchInstances", "/instances"];
+      const authVariants = [
+        { admintoken: ADMIN_TOKEN },
+        { token: ADMIN_TOKEN },
+        { Authorization: `Bearer ${ADMIN_TOKEN}` },
+      ];
+
+      for (const endpoint of endpoints) {
+        let found = false;
+        for (const authHeaders of authVariants) {
+          try {
+            const res = await fetch(`${BASE_URL}${endpoint}`, {
+              method: "GET",
+              headers: { ...authHeaders, Accept: "application/json" },
+            });
+            if (res.status === 401) continue;
+            if (res.ok) {
+              const data = await res.json();
+              // Handle different response shapes
+              instances = Array.isArray(data) ? data : (data.instances || data.data || data.result || []);
+              if (instances.length > 0) { found = true; break; }
+            }
+          } catch { /* try next */ }
+        }
+        if (found) break;
+      }
+
+      // Enrich with DB info: match by token or instance name
+      const { data: dbTokens } = await adminClient
+        .from("user_api_tokens")
+        .select("id, user_id, token, label, status, device_id")
+        .limit(2000);
+
+      const { data: profiles } = await adminClient
+        .from("profiles")
+        .select("id, full_name")
+        .limit(2000);
+      const profileMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { profileMap[p.id] = p.full_name || "Sem nome"; });
+
+      const tokenMap: Record<string, any> = {};
+      const labelMap: Record<string, any> = {};
+      (dbTokens || []).forEach((t: any) => {
+        tokenMap[t.token] = t;
+        if (t.label) labelMap[t.label] = t;
+      });
+
+      const enriched = instances.map((inst: any) => {
+        const name = inst.name || inst.instance_name || inst.instanceName || "";
+        const token = inst.token || inst.apiToken || inst.api_token || "";
+        const status = inst.status || inst.connectionStatus || inst.state || "unknown";
+        const phone = inst.phone || inst.number || inst.ownerJid || "";
+        const profileName = inst.profileName || inst.pushname || "";
+
+        // Try matching DB record
+        const dbMatch = tokenMap[token] || labelMap[name] || null;
+
+        return {
+          name,
+          token: token ? `${token.substring(0, 12)}...` : "—",
+          token_full: token,
+          status,
+          phone,
+          profile_name: profileName,
+          connected: ["open", "connected", "Connected", "Ready", "authenticated"].includes(status),
+          db_token_id: dbMatch?.id || null,
+          db_user_id: dbMatch?.user_id || null,
+          db_status: dbMatch?.status || null,
+          client_name: dbMatch ? (profileMap[dbMatch.user_id] || "Desconhecido") : "Sem vínculo",
+        };
+      });
+
+      // Sort: disconnected first
+      enriched.sort((a: any, b: any) => (a.connected === b.connected ? 0 : a.connected ? 1 : -1));
+
+      return new Response(JSON.stringify({ 
+        instances: enriched, 
+        total: enriched.length,
+        connected: enriched.filter((i: any) => i.connected).length,
+        disconnected: enriched.filter((i: any) => !i.connected).length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── BULK DELETE UAZAPI INSTANCES ───
+    if (action === "bulk-delete-uazapi-instances" && req.method === "POST") {
+      const { instance_names } = await req.json();
+      if (!instance_names || instance_names.length === 0) {
+        return new Response(JSON.stringify({ success: true, deleted: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+
+      let deleted = 0;
+      const batchSize = 10;
+      for (let i = 0; i < instance_names.length; i += batchSize) {
+        const batch = instance_names.slice(i, i + batchSize);
+        const results = await Promise.allSettled(batch.map(async (name: string) => {
+          // Disconnect first
+          await fetch(`${BASE_URL}/instance/disconnect`, {
+            method: "POST",
+            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          }).catch(() => {});
+          // Delete
+          const res = await fetch(`${BASE_URL}/instance/delete`, {
+            method: "DELETE",
+            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+          return res.ok;
+        }));
+        deleted += results.filter(r => r.status === "fulfilled" && r.value).length;
+      }
+
+      // Also clean matching DB tokens
+      const { data: matchingTokens } = await adminClient
+        .from("user_api_tokens")
+        .select("id, label")
+        .in("label", instance_names);
+      if (matchingTokens && matchingTokens.length > 0) {
+        const ids = matchingTokens.map((t: any) => t.id);
+        for (let i = 0; i < ids.length; i += 200) {
+          await adminClient.from("user_api_tokens").delete().in("id", ids.slice(i, i + 200));
+        }
+      }
+
+      await logAction(adminClient, user.id, null, "bulk-delete-uazapi-instances", `${deleted} instância(s) deletada(s) da UAZAPI | ${matchingTokens?.length || 0} tokens removidos do DB`);
+      return new Response(JSON.stringify({ success: true, deleted, db_cleaned: matchingTokens?.length || 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     if (action === "bulk-delete-idle-tokens" && req.method === "POST") {
       // Get all idle tokens (available or blocked, no device)
       const { data: idleTokens, error: idleErr } = await adminClient
