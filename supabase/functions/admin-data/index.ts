@@ -1326,22 +1326,81 @@ Deno.serve(async (req) => {
         { token: ADMIN_TOKEN },
         { Authorization: `Bearer ${ADMIN_TOKEN}` },
       ];
+      const candidateKeys = ["instances", "data", "result", "content", "rows", "list"];
+
+      const looksLikeInstance = (item: any) => {
+        if (!item || typeof item !== "object") return false;
+        return Boolean(
+          item.name || item.instanceName || item.instance_name || item.instance ||
+          item.token || item.apiToken || item.api_token || item.auth?.jwt || item.auth?.token ||
+          item.status || item.connectionStatus || item.state || item.owner || item.phone || item.ownerJid
+        );
+      };
+
+      const extractInstanceList = (payload: any, depth = 0): any[] => {
+        if (depth > 5 || payload == null) return [];
+
+        if (Array.isArray(payload)) {
+          if (payload.some(looksLikeInstance)) return payload;
+          for (const item of payload) {
+            const nested = extractInstanceList(item, depth + 1);
+            if (nested.length > 0) return nested;
+          }
+          return [];
+        }
+
+        if (typeof payload !== "object") return [];
+        if (looksLikeInstance(payload)) return [payload];
+
+        for (const key of candidateKeys) {
+          if (key in payload) {
+            const nested = extractInstanceList(payload[key], depth + 1);
+            if (nested.length > 0) return nested;
+          }
+        }
+
+        for (const value of Object.values(payload)) {
+          const nested = extractInstanceList(value, depth + 1);
+          if (nested.length > 0) return nested;
+        }
+
+        return [];
+      };
 
       for (const endpoint of endpoints) {
         let found = false;
         for (const authHeaders of authVariants) {
           try {
-            const res = await fetch(BASE_URL + endpoint, {
+            const res = await fetch(`${BASE_URL}${endpoint}?t=${Date.now()}`, {
               method: "GET",
-              headers: { ...authHeaders, Accept: "application/json" },
+              headers: {
+                ...authHeaders,
+                Accept: "application/json",
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+              },
             });
-            if (res.status === 401) continue;
-            if (res.ok) {
-              const json = await res.json();
-              instances = Array.isArray(json) ? json : (json.instances || json.data || json.result || []);
-              if (instances.length > 0) { found = true; break; }
+
+            const text = await res.text();
+            let json: any = null;
+            try {
+              json = text ? JSON.parse(text) : null;
+            } catch {
+              json = { raw: text.slice(0, 500) };
             }
-          } catch (_) { /* next */ }
+
+            const extracted = extractInstanceList(json);
+            console.log(`[admin-data] fetch-uazapi-instances endpoint=${endpoint} status=${res.status} extracted=${extracted.length}`);
+
+            if (res.status === 401 || res.status === 403) continue;
+            if (res.ok && extracted.length > 0) {
+              instances = extracted;
+              found = true;
+              break;
+            }
+          } catch (err) {
+            console.warn(`[admin-data] fetch-uazapi-instances endpoint=${endpoint} failed:`, err instanceof Error ? err.message : String(err));
+          }
         }
         if (found) break;
       }
@@ -1383,17 +1442,17 @@ Deno.serve(async (req) => {
       const matchedDbTokenIds = new Set<string>();
 
       const providerInstances = instances.map((inst: any) => {
-        const name = inst.name || inst.instance_name || inst.instanceName || "";
-        const token = inst.token || inst.apiToken || inst.api_token || "";
-        const rawStatus = inst.status || inst.connectionStatus || inst.state || "unknown";
+        const name = inst.name || inst.instance_name || inst.instanceName || inst.instance || "";
+        const token = inst.token || inst.apiToken || inst.api_token || inst.auth?.jwt || inst.auth?.token || "";
+        const rawStatus = inst.status || inst.connectionStatus || inst.state || inst.connection?.status || "unknown";
         const dbMatch = tokenMap[token] || labelMap[name] || null;
         const device = dbMatch?.device_id ? deviceMap[dbMatch.device_id] : null;
 
         if (dbMatch?.id) matchedDbTokenIds.add(dbMatch.id);
 
         const status = rawStatus || dbMatch?.status || device?.status || "unknown";
-        const phone = inst.phone || inst.number || inst.ownerJid || device?.number || "";
-        const profileName = inst.profileName || inst.pushname || device?.profile_name || "";
+        const phone = inst.phone || inst.number || inst.owner || inst.ownerJid || device?.number || "";
+        const profileName = inst.profileName || inst.pushname || inst.profile_picture || inst.profilePictureUrl || device?.profile_name || "";
 
         return {
           name,
