@@ -54,6 +54,7 @@ const NAV_ITEMS = [
   { id: "warmup-cycles", label: "Ciclos", shortLabel: "Ciclos", icon: Flame, group: "operacao", badge: false },
   { id: "warmup-jobs", label: "Jobs", shortLabel: "Jobs", icon: ListTodo, group: "operacao", badge: false },
   { id: "infra", label: "Infraestrutura", shortLabel: "Infra", icon: Server, group: "sistema", badge: false },
+  { id: "tokens-global", label: "Tokens Globais", shortLabel: "Tokens", icon: Key, group: "sistema", badge: false },
   { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
   { id: "warmup-roadmap", label: "Roteiro de Aquecimento", shortLabel: "Roteiro", icon: BookOpen, group: "operacao", badge: false },
   { id: "msg-generator", label: "Gerador de Mensagens", shortLabel: "Gerador", icon: Sparkles, group: "operacao", badge: false },
