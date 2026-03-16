@@ -38,15 +38,13 @@ const Community = () => {
       <div className="relative z-10 max-w-2xl w-full flex flex-col items-center gap-10">
         {/* Logo with gold ring */}
         <div className="relative flex items-center justify-center">
-          {/* Outer gold glow */}
-          <div className="absolute w-32 h-32 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.2)_0%,transparent_70%)] blur-xl" />
-          {/* Gold ring */}
-          <div className="relative w-24 h-24 rounded-full p-[3px] bg-gradient-to-br from-[#d4af37] via-[#f5d76e] to-[#b8860b] shadow-[0_0_30px_rgba(212,175,55,0.25)]">
-            <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+          <div className="absolute w-56 h-56 rounded-2xl bg-[radial-gradient(circle,rgba(212,175,55,0.2)_0%,transparent_70%)] blur-xl" />
+          <div className="relative w-48 h-48 rounded-2xl p-[3px] bg-gradient-to-br from-[#d4af37] via-[#f5d76e] to-[#b8860b] shadow-[0_0_30px_rgba(212,175,55,0.25)]">
+            <div className="w-full h-full rounded-2xl bg-background flex items-center justify-center overflow-hidden">
               <img
                 src={dgLogo}
                 alt="DG Contingência PRO"
-                className="w-16 h-16 object-contain"
+                className="w-full h-full object-cover rounded-xl"
               />
             </div>
           </div>
