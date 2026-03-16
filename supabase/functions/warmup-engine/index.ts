@@ -748,11 +748,13 @@ async function handleStart(db: any, userId: string | null, body: any) {
   await db.from("warmup_audit_logs").insert({
     user_id: userId, device_id, cycle_id: cycle.id,
     level: "info", event_type: "cycle_started",
-    message: `Ciclo ${chipLabel} iniciado: ${cycleDays} dias.${groupSchedule ? ` Agenda: ${groupSchedule}` : ""}`,
+    message: `Ciclo ${chipLabel} iniciado: Dia ${resolvedStartDay} até Dia ${cycleDays} (${initialPhase}).${groupSchedule ? ` Agenda: ${groupSchedule}` : ""}`,
     meta: {
       chip_state: resolvedChipState,
       groups: allGroups.map(g => g.name),
       total_days: cycleDays,
+      start_day: resolvedStartDay,
+      initial_phase: initialPhase,
     },
   });
 
@@ -762,6 +764,8 @@ async function handleStart(db: any, userId: string | null, body: any) {
     chip_state: resolvedChipState,
     jobs_scheduled: jobs.length,
     total_days: cycleDays,
+    start_day: resolvedStartDay,
+    initial_phase: initialPhase,
   });
 }
 
