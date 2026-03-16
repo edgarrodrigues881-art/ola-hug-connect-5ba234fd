@@ -1043,9 +1043,21 @@ const Campaigns = () => {
             {/* ── Bubble ── */}
             <div className={cn(bubbleMaxW, "flex flex-col rounded-[12px] overflow-hidden shadow-md", isSent ? "bg-[#005C4B]" : "bg-[#202C33]")}>
               {/* Media */}
-              {mediaUrl && (
+              {mediaUrl && (/\.(ogg|mp3|wav|m4a|aac|opus|mpeg)(\?|$)/i.test(mediaUrl) ? (
+                <div className="px-3 py-2.5 flex items-center gap-3 bg-[#1B2B34] rounded-lg mx-2 mt-2">
+                  <div className="w-10 h-10 rounded-full bg-[#00A884]/20 flex items-center justify-center shrink-0">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#00A884]" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="h-1.5 bg-[#374045] rounded-full overflow-hidden">
+                      <div className="h-full w-1/3 bg-[#00A884] rounded-full" />
+                    </div>
+                    <p className="text-[10px] text-[#8696A0] mt-1">0:00 / --:--</p>
+                  </div>
+                </div>
+              ) : (
                 <img src={mediaUrl} alt="media" className="w-full max-h-52 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              )}
+              ))}
               {/* Text */}
               <div className="px-[14px] py-[10px]">
                 <p className="text-[14px] text-[#E9EDEF] whitespace-pre-wrap leading-[1.65] break-words">
