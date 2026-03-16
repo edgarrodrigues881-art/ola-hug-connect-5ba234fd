@@ -772,8 +772,8 @@ const Devices = () => {
   const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
 
-    // Prevent immediate sync overwrite while provider may still lag
-    muteAutoSync(45_000);
+    // Prevent only a brief overwrite while provider settles
+    muteAutoSync(8_000);
 
     const newProxyId = editProxyValue === "none" ? null : editProxyValue;
     const dbUpdates: Record<string, any> = {
