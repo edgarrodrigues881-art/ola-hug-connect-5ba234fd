@@ -963,7 +963,8 @@ Deno.serve(async (req) => {
           const { data: devStatuses } = await serviceClient.from("devices").select("id, status").in("id", deviceIds);
           const allDisconnected = devStatuses?.every(d => !connectedStatuses.includes(d.status));
           if (allDisconnected) {
-            await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
+            const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+            if (!didPause) { needsContinue = true; }
           }
         }
 
