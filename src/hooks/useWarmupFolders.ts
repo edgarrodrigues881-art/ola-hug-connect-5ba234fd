@@ -81,6 +81,28 @@ export function useWarmupFolders() {
         .update(updates as any)
         .eq("id", id);
       if (error) throw error;
+
+      // When tags are updated, clean up device-level tags that no longer exist in the folder
+      if (tags !== undefined) {
+        const validLabels = new Set(tags.map(t => t.label));
+        const { data: deviceAssocs } = await supabase
+          .from("warmup_folder_devices" as any)
+          .select("id, tags")
+          .eq("folder_id", id);
+        
+        if (deviceAssocs) {
+          for (const assoc of deviceAssocs as any[]) {
+            const currentTags: FolderTag[] = Array.isArray(assoc.tags) ? assoc.tags : [];
+            const filtered = currentTags.filter(t => validLabels.has(t.label));
+            if (filtered.length !== currentTags.length) {
+              await supabase
+                .from("warmup_folder_devices" as any)
+                .update({ tags: filtered } as any)
+                .eq("id", assoc.id);
+            }
+          }
+        }
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["warmup_folders"] }),
   });
