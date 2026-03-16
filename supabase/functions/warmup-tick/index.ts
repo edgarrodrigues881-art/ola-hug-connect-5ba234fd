@@ -1795,8 +1795,8 @@ async function handleTick(db: any) {
 
         const targetPhone = pd.number.replace(/\+/g, "");
 
-        // ── BURST: Send 3-7 messages in rapid succession (like a real conversation) ──
-        const burstSize = randInt(3, 7);
+        // ── BURST: Send 2-4 messages in rapid succession (like a real conversation) ──
+        const burstSize = randInt(2, 4);
         let sentCount = 0;
         const sentSummary: string[] = [];
 
