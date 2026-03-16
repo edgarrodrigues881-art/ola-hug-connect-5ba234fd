@@ -139,12 +139,15 @@ async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: st
     Pragma: "no-cache",
   };
 
+  let gotSuccessfulResponse = false;
+
   // 1) Own profile endpoints (no phone required)
   for (const path of ["/profile", "/profile/image", "/profile/picture", "/instance/profile"]) {
     try {
       const res = await fetchT(`${baseUrl}${path}?t=${Date.now()}`, { method: "GET", headers }, 3000);
       if (!res.ok) { await res.text(); continue; }
       const data = await res.json();
+      gotSuccessfulResponse = true;
       const snap = parseProfileSnapshot(data);
       if (snap.pic !== undefined) return snap.pic;
     } catch {
@@ -171,6 +174,7 @@ async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: st
           }, 3500);
           if (!res.ok) { await res.text(); continue; }
           const data = await res.json();
+          gotSuccessfulResponse = true;
           const snap = parseProfileSnapshot(data);
           if (snap.pic !== undefined) return snap.pic;
         } catch {
@@ -179,6 +183,10 @@ async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: st
       }
     }
   }
+
+  // If we got successful responses from the provider but NO photo was found,
+  // that means the user truly has no profile picture → return null (explicit removal)
+  if (gotSuccessfulResponse) return null;
 
   return undefined;
 }
