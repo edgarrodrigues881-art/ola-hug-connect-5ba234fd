@@ -717,7 +717,6 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   if (!imageUrl) throw new Error("Image URL ausente");
   const safeCaption = (caption || "📸").trim() || "📸";
 
-  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "image", caption }
   const res = await fetch(`${baseUrl}/send/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json", token, Accept: "application/json" },
@@ -733,7 +732,6 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string) {
   if (!imageUrl) throw new Error("Sticker URL ausente");
 
-  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "sticker" }
   const res = await fetch(`${baseUrl}/send/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json", token, Accept: "application/json" },
@@ -744,6 +742,61 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
     try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
   }
   throw new Error(`Sticker send failed: ${res.status} — ${raw.substring(0, 240)}`);
+}
+
+async function uazapiSendAudio(baseUrl: string, token: string, number: string, audioUrl: string) {
+  if (!audioUrl) throw new Error("Audio URL ausente");
+
+  // Try PTT (push-to-talk / voice note) first, then regular audio
+  const attempts = [
+    { path: "/send/media", body: { number, file: audioUrl, type: "audio", ptt: true } },
+    { path: "/send/media", body: { number, file: audioUrl, type: "audio" } },
+  ];
+
+  let lastErr = "";
+  for (const at of attempts) {
+    try {
+      const res = await fetch(`${baseUrl}${at.path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(at.body),
+      });
+      const raw = await res.text();
+      if (res.ok) {
+        try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
+      }
+      lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
+    } catch (e) {
+      lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+  throw new Error(`Audio send failed: ${lastErr}`);
+}
+
+async function uazapiSendLocation(baseUrl: string, token: string, number: string, lat: number, lng: number, name: string) {
+  const attempts = [
+    { path: "/send/location", body: { number, lat, lng, name, address: name } },
+    { path: "/message/sendLocation", body: { chatId: number, lat, lng, name, address: name } },
+  ];
+
+  let lastErr = "";
+  for (const at of attempts) {
+    try {
+      const res = await fetch(`${baseUrl}${at.path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(at.body),
+      });
+      const raw = await res.text();
+      if (res.ok) {
+        try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
+      }
+      lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
+    } catch (e) {
+      lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+  throw new Error(`Location send failed: ${lastErr}`);
 }
 
 // ══════════════════════════════════════════════════════════
