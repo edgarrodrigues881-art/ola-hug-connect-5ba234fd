@@ -565,7 +565,7 @@ const PLAN_RUIM: DayPlanEntry[] = [
     day: i + 19, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 4b",
     totalEstimado: "99-201", nota: i + 19 === 21 ? "3 semanas 🛡️" : undefined,
   })),
-  ...Array.from({ length: 6 }, (_, i) => ({
+  ...Array.from({ length: 7 }, (_, i) => ({
     day: i + 24, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "3p × 4b",
     totalEstimado: "111-249", nota: i + 24 === 25 ? "Consolidação" : (i + 24 === 30 ? "🛡️ Chip estabilizado!" : undefined),
   })),
