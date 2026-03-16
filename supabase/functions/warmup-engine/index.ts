@@ -400,7 +400,7 @@ async function ensureJoinGroupJobs(
   // Find groups that haven't been joined yet (by device_id, not cycle)
   const { data: pendingGroups } = await db
     .from("warmup_instance_groups")
-    .select("group_id, warmup_groups_pool(id, name)")
+    .select("group_id, group_name, invite_link")
     .eq("device_id", deviceId)
     .eq("join_status", "pending");
 
@@ -413,13 +413,15 @@ async function ensureJoinGroupJobs(
   let cumulativeMs = randInt(5, 15) * 60 * 1000;
   for (let i = 0; i < shuffled.length; i++) {
     const g = shuffled[i];
-    const groupName = (g as any).warmup_groups_pool?.name || "Grupo";
+    const groupName = g.group_name || "Grupo";
     const runAt = new Date(nowMs + cumulativeMs);
 
+    const jobPayload: any = { group_id: g.group_id, group_name: groupName };
+    if (g.invite_link) jobPayload.invite_link = g.invite_link;
     joinJobs.push({
       user_id: userId, device_id: deviceId, cycle_id: cycleId,
       job_type: "join_group",
-      payload: { group_id: g.group_id, group_name: groupName },
+      payload: jobPayload,
       run_at: runAt.toISOString(), status: "pending",
     });
     cumulativeMs += randInt(5, 30) * 60 * 1000;
