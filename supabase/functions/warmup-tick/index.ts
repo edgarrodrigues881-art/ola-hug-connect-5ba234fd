@@ -2024,10 +2024,18 @@ async function handleTick(db: any) {
         if (newPhase === "community_enabled") {
           const targetPeers = getCommunityPeers(newDay, chipState);
 
-          // Get existing active pairs
-          const { data: existingPairs } = await db.from("community_pairs")
+          // Get existing active pairs by device_id (not cycle_id) — device B may have
+          // pairs created by device A's cycle, so cycle_id lookup would miss them
+          const { data: pairsA } = await db.from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
-            .eq("cycle_id", cycle.id).eq("status", "active");
+            .eq("instance_id_a", job.device_id).eq("status", "active");
+          const { data: pairsB } = await db.from("community_pairs")
+            .select("id, instance_id_a, instance_id_b")
+            .eq("instance_id_b", job.device_id).eq("status", "active");
+          const dedupSet = new Set<string>();
+          const existingPairs = [...(pairsA || []), ...(pairsB || [])].filter(p => {
+            if (dedupSet.has(p.id)) return false; dedupSet.add(p.id); return true;
+          });
 
           // Keep ~40% of old pairs (familiar contacts), close rest
           const keepCount = Math.min(
