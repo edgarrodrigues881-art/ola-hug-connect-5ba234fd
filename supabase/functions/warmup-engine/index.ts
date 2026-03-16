@@ -248,6 +248,8 @@ async function scheduleDayJobs(
 
   const { effectiveStart, effectiveEnd, isEmergency } = window;
   const windowMs = effectiveEnd - effectiveStart;
+  const FULL_WINDOW_MS = 12 * 60 * 60 * 1000; // 07:00-19:00 = 12h
+  const MIN_SPACING_MS = 3 * 60 * 1000; // Mínimo 3 min entre mensagens
 
   if (windowMs < 30 * 60 * 1000) {
     console.log(`[scheduleDayJobs] Window too small (${Math.round(windowMs / 60000)}min)`);
@@ -258,18 +260,30 @@ async function scheduleDayJobs(
     console.log(`[scheduleDayJobs] Using 2h emergency window`);
   }
 
+  // ── SCALE VOLUMES PROPORTIONALLY TO REMAINING WINDOW ──
+  const windowRatio = Math.min(windowMs / FULL_WINDOW_MS, 1);
   const volumes = getVolumes(chipState, dayIndex, phase);
+
+  // Scale group messages proportionally — never flood
+  const scaledGroupMsgs = Math.max(1, Math.floor(volumes.groupMsgs * windowRatio));
+  
+  // Ensure minimum spacing is respected: max msgs = window / MIN_SPACING
+  const maxBySpacing = Math.floor(windowMs / MIN_SPACING_MS);
+  const safeGroupMsgs = Math.min(scaledGroupMsgs, maxBySpacing);
+
+  console.log(`[scheduleDayJobs] Window: ${Math.round(windowMs / 60000)}min (${Math.round(windowRatio * 100)}%), groups: ${volumes.groupMsgs} → ${safeGroupMsgs}`);
+
   const jobs: any[] = [];
 
   // ── GROUP INTERACTIONS ──
-  if (volumes.groupMsgs > 0) {
+  if (safeGroupMsgs > 0) {
     const firstJobOffset = randInt(60, 300) * 1000; // 1-5 min após abertura
     const remainingWindow = windowMs - firstJobOffset;
-    const spacing = remainingWindow / Math.max(volumes.groupMsgs, 1);
-    for (let i = 0; i < volumes.groupMsgs; i++) {
-      const offset = firstJobOffset + spacing * i + randInt(-60, 60) * 1000;
+    const spacing = Math.max(remainingWindow / Math.max(safeGroupMsgs, 1), MIN_SPACING_MS);
+    for (let i = 0; i < safeGroupMsgs; i++) {
+      const offset = firstJobOffset + spacing * i + randInt(-30, 30) * 1000;
       const runAt = new Date(effectiveStart + Math.max(offset, 60000));
-      if (runAt.getTime() > effectiveEnd) break;
+      if (runAt.getTime() > effectiveEnd - 60000) break; // 1 min margin
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "group_interaction", payload: {},
@@ -278,33 +292,32 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── AUTOSAVE INTERACTIONS (spread throughout the day) ──
-  // Pattern: contact1 msg1 → 4-7min → contact1 msg2 → 4-7min → contact1 msg3 → next contact
-  // 5 contacts × 3 msgs = 15 msgs, ~4-7 min gaps = ~60-105 min total
-  if (volumes.autosaveContacts > 0 && volumes.autosaveRounds > 0) {
-    // Pick a random start point within the window (first 60% to leave room)
-    const asWindowMs = effectiveEnd - effectiveStart;
+  // ── AUTOSAVE INTERACTIONS (scaled to window) ──
+  // Scale contacts proportionally to remaining window
+  const scaledAutosaveContacts = Math.max(1, Math.floor(volumes.autosaveContacts * windowRatio));
+  const scaledAutosaveRounds = volumes.autosaveRounds; // keep rounds per contact fixed
+  
+  if (scaledAutosaveContacts > 0 && scaledAutosaveRounds > 0) {
     const asStartOffset = randInt(
-      Math.floor(asWindowMs * 0.1),
-      Math.floor(asWindowMs * 0.4)
+      Math.floor(windowMs * 0.1),
+      Math.floor(windowMs * 0.3)
     );
     let cursor = effectiveStart + asStartOffset;
 
-    for (let c = 0; c < volumes.autosaveContacts; c++) {
-      for (let r = 0; r < volumes.autosaveRounds; r++) {
-        if (cursor > effectiveEnd) break;
+    for (let c = 0; c < scaledAutosaveContacts; c++) {
+      for (let r = 0; r < scaledAutosaveRounds; r++) {
+        if (cursor > effectiveEnd - 60000) break;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "autosave_interaction",
           payload: { recipient_index: c, msg_index: r },
           run_at: new Date(cursor).toISOString(), status: "pending",
         });
-        // 4-7 min pause between each message
         cursor += randInt(4, 7) * 60 * 1000;
       }
-      // Extra pause between contacts: 5-10 min
       cursor += randInt(5, 10) * 60 * 1000;
     }
+    console.log(`[scheduleDayJobs] Autosave: ${volumes.autosaveContacts} → ${scaledAutosaveContacts} contacts`);
   }
 
   // ── COMMUNITY BURSTS (each job = 3-7 msgs, spaced across window) ──
