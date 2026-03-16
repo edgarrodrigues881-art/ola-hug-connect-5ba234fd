@@ -48,10 +48,12 @@ const CommunityPoolTab = () => {
       const q = search.toLowerCase();
       if (!d.name?.toLowerCase().includes(q) && !d.number?.includes(q) && !d.owner_name?.toLowerCase().includes(q) && !d.owner_email?.toLowerCase().includes(q)) return false;
     }
-    if (filterStatus !== "all" && d.status?.toLowerCase() !== filterStatus) return false;
+    if (filterStatus === "connected" && !["connected", "ready"].includes(d.status?.toLowerCase())) return false;
+    if (filterStatus === "disconnected" && d.status?.toLowerCase() !== "disconnected") return false;
     if (filterEnrolled === "yes" && !d.is_enrolled) return false;
     if (filterEnrolled === "no" && d.is_enrolled) return false;
     if (filterPhase !== "all" && d.cycle_phase !== filterPhase) return false;
+    if (showOnlyWithCycle && !d.cycle_active) return false;
     return true;
   });
 
