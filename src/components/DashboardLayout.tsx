@@ -135,6 +135,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <CheckCheck className="w-3 h-3" />
                       Marcar todas como lidas
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-center gap-1.5 text-xs cursor-pointer text-destructive hover:text-destructive"
+                      onClick={(e) => { e.preventDefault(); clearAll(); }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Limpar todas as notificações
+                    </DropdownMenuItem>
                   </>
                 )}
                 <DropdownMenuSeparator />
