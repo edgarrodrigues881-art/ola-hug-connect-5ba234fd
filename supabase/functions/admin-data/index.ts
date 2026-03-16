@@ -1525,8 +1525,7 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY PAIRS: GENERATE (placeholder) ───
     if (action === "community-generate-pairs" && req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      const allowSameOwner = body?.allow_same_owner === true;
+      // Same-owner restriction removed — all eligible instances can pair freely
       // Get enrolled instances (exclude report_wa devices)
       const { data: memberships } = await adminClient.from("warmup_community_membership")
         .select("device_id, user_id").eq("is_enabled", true).eq("is_eligible", true);
