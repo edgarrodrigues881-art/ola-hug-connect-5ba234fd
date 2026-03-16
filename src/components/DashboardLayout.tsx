@@ -31,10 +31,10 @@ const typeIcons = {
 };
 
 const typeColors = {
-  success: "text-emerald-400",
-  warning: "text-yellow-400",
+  success: "text-[hsl(var(--success))]",
+  warning: "text-[hsl(var(--warning))]",
   error: "text-destructive",
-  info: "text-teal-400",
+  info: "text-[hsl(var(--info))]",
 };
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
@@ -43,7 +43,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { resolvedTheme, setTheme } = useTheme();
 
   // Global auto-sync of device statuses every 5s across all dashboard pages
-  useAutoSyncDevices(5000);
+  useAutoSyncDevices(15_000);
 
   return (
     <SidebarProvider>

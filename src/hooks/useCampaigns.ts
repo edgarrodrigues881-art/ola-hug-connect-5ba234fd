@@ -52,7 +52,7 @@ export function useCampaigns() {
       .channel("campaigns-list-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "campaigns" },
+        { event: "*", schema: "public", table: "campaigns", filter: `user_id=eq.${user.id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ["campaigns"] });
         }

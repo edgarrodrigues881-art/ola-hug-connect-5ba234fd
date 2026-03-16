@@ -112,8 +112,8 @@ export function useWarmupCycles() {
       return data as unknown as WarmupCycle[];
     },
     enabled: !!user,
-    refetchInterval: 3_000,
-    staleTime: 2_000,
+    refetchInterval: 10_000,
+    staleTime: 5_000,
   });
 }
 
@@ -138,8 +138,8 @@ export function useDeviceCycle(deviceId: string) {
       return null;
     },
     enabled: !!user && !!deviceId,
-    refetchInterval: 3_000,
-    staleTime: 2_000,
+    refetchInterval: 10_000,
+    staleTime: 5_000,
   });
 }
 
@@ -336,12 +336,6 @@ export function useToggleAutosave() {
   });
 }
 
-// ── Placeholder: Create Pairs for Day ──
-export async function createPairsForDay(cycleId: string): Promise<{ wouldCreate: number }> {
-  // Placeholder: logs that pairing would happen but does not execute conversations
-  console.log(`[community] createPairsForDay called for cycle ${cycleId} — no-op placeholder`);
-  return { wouldCreate: 0 };
-}
 
 // ── Audit Logs ──
 export function useWarmupAuditLogs(cycleId?: string, limit = 200) {
@@ -360,7 +354,7 @@ export function useWarmupAuditLogs(cycleId?: string, limit = 200) {
       return data as unknown as WarmupAuditLog[];
     },
     enabled: !!user,
-    refetchInterval: 3_000,
-    staleTime: 2_000,
+    refetchInterval: 10_000,
+    staleTime: 5_000,
   });
 }
