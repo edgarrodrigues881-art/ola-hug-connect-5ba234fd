@@ -52,7 +52,8 @@ const CommunityPoolTab = () => {
     if (filterStatus === "disconnected" && d.status?.toLowerCase() !== "disconnected") return false;
     if (filterEnrolled === "yes" && !d.is_enrolled) return false;
     if (filterEnrolled === "no" && d.is_enrolled) return false;
-    if (filterPhase !== "all" && d.cycle_phase !== filterPhase) return false;
+    if (filterPhase === "community" && !["community_enabled", "community_light"].includes(d.cycle_phase)) return false;
+    if (filterPhase !== "all" && filterPhase !== "community" && d.cycle_phase !== filterPhase) return false;
     if (showOnlyWithCycle && !d.cycle_active) return false;
     return true;
   });
