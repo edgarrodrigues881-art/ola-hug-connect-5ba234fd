@@ -2928,7 +2928,7 @@ async function handleDailyReset(db: any) {
 
     // [BUG B FIX] Reschedule failed join_group jobs instead of just cancelling them
     const { data: failedJoinGroups } = await db.from("warmup_instance_groups")
-      .select("group_id, warmup_groups_pool(id, name)")
+      .select("group_id, group_name, invite_link")
       .eq("device_id", cycle.device_id).eq("join_status", "pending");
 
     if (failedJoinGroups?.length > 0) {
