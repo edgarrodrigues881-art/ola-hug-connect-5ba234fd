@@ -1,4 +1,4 @@
-// sync-devices v5.0 — circuit breaker + 404 strike system for 1000+ instances
+// sync-devices v6.0 — persistent profile pics in storage + circuit breaker + 404 strikes
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -91,7 +91,37 @@ function parseProfileSnapshot(payload: any): { pic: string | null | undefined; n
   };
 }
 
-// Try dedicated endpoints to fetch own profile pic URL (often fresher than /instance/status)
+/**
+ * Downloads a WhatsApp profile picture and uploads it to Supabase Storage.
+ * Returns the public URL, or null if download/upload fails.
+ */
+async function persistProfilePic(
+  svc: any,
+  deviceId: string,
+  whatsappUrl: string,
+): Promise<string | null> {
+  try {
+    const res = await fetchT(whatsappUrl, { method: "GET" }, 6000);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (blob.size < 100) return null; // too small, likely error page
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    const ext = contentType.includes("png") ? "png" : "jpg";
+    const path = `profile-pictures/${deviceId}.${ext}`;
+    const { error } = await svc.storage.from("avatars").upload(path, blob, {
+      contentType,
+      upsert: true,
+      cacheControl: "3600",
+    });
+    if (error) return null;
+    const { data: urlData } = svc.storage.from("avatars").getPublicUrl(path);
+    // Append timestamp to bust cache on updates
+    return urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: string, numberRaw?: string): Promise<string | null | undefined> {
   const owner = (ownerRaw || "").toString().trim();
   const number = (numberRaw || "").toString().trim();
@@ -414,17 +444,30 @@ Deno.serve(async (req) => {
 
         let newPic: string | null;
         if (!isConnected) {
-          // Disconnected: keep whatever we have
           newPic = currentPic;
         } else if (justEdited && currentPic && typeof providerPic === "string" && currentPic !== providerPic) {
-          // Just saved from panel and provider returned a different NON-EMPTY pic: keep local briefly
           newPic = currentPic;
         } else if (providerPic === undefined) {
-          // Unknown provider state: preserve current photo (critical to avoid accidental mass wipe)
           newPic = currentPic;
+        } else if (providerPic === null) {
+          // Provider explicitly says no photo — remove from storage too
+          newPic = null;
         } else {
-          // Explicit provider state: URL (new/updated) or null (removed)
-          newPic = providerPic;
+          // New/updated WhatsApp URL — check if it's a pps.whatsapp.net URL that needs persisting
+          const isWhatsAppUrl = providerPic.includes("pps.whatsapp.net") || providerPic.includes("mmg.whatsapp.net");
+          const alreadyPersisted = currentPic?.includes("/storage/") || currentPic?.includes("supabase");
+          const picChanged = !currentPic || !alreadyPersisted || currentPic.split("?")[0] !== (currentPic?.split("?")[0]);
+          
+          if (isWhatsAppUrl && picChanged) {
+            // Download and persist to storage
+            const storedUrl = await persistProfilePic(svc, device.id, providerPic);
+            newPic = storedUrl || providerPic; // fallback to original URL if upload fails
+          } else if (alreadyPersisted && isWhatsAppUrl) {
+            // Already have a persisted version, keep it
+            newPic = currentPic;
+          } else {
+            newPic = providerPic;
+          }
         }
 
         const newName = isConnected
