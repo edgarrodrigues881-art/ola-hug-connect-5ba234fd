@@ -132,8 +132,8 @@ const Community = () => {
               </rect>
               <defs>
                 <linearGradient id="snake-gradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
-                  <stop offset="40%" stopColor="rgba(255,255,255,0.3)" />
+                  <stop offset="0%" stopColor="rgba(255,255,255,1)" />
+                  <stop offset="50%" stopColor="rgba(255,255,255,0.5)" />
                   <stop offset="100%" stopColor="rgba(255,255,255,0)" />
                 </linearGradient>
               </defs>
