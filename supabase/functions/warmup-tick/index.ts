@@ -1639,19 +1639,18 @@ async function handleTick(db: any) {
         break;
       }
 
-      // ── COMMUNITY INTERACTION (conversation-style with media) ──
+      // ── COMMUNITY INTERACTION (burst conversation with media) ──
+      // Cada job = 1 burst de 3-7 mensagens seguidas (simula conversa real)
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
         const peerIndex = job.payload?.peer_index ?? 0;
-        const mediaType = job.payload?.media_type || "text";
 
         // Find active pairs for this cycle
         const { data: pairs } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b")
           .eq("cycle_id", cycle.id).eq("status", "active");
 
-        // If no pairs yet, try to find from other cycles or fallback
         let peerDeviceId: string | null = null;
 
         if (pairs?.length) {
@@ -1660,7 +1659,6 @@ async function handleTick(db: any) {
             ? selectedPair.instance_id_b
             : selectedPair.instance_id_a;
         } else {
-          // Fallback: find other community-enabled devices from different users
           const { data: otherCycles } = await db.from("warmup_cycles")
             .select("device_id, user_id")
             .eq("is_running", true).neq("device_id", job.device_id).neq("user_id", job.user_id)
@@ -1681,48 +1679,69 @@ async function handleTick(db: any) {
         const { data: pd } = await db.from("devices").select("number, status").eq("id", peerDeviceId).single();
 
         if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
-          // Peer offline — skip this message (don't block the conversation)
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline — pulando` });
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline — pulando burst` });
           break;
         }
 
         const targetPhone = pd.number.replace(/\+/g, "");
-        let sentDescription = "";
 
-        try {
-          if (mediaType === "image") {
-            const imgUrl = pickRandom(imagePool);
-            const caption = pickRandom(IMAGE_CAPTIONS);
-            await uazapiSendImage(baseUrl, token, targetPhone, imgUrl, "");
-            await new Promise(r => setTimeout(r, randInt(1000, 3000)));
-            await uazapiSendText(baseUrl, token, targetPhone, caption);
-            sentDescription = `[IMG+TXT] ${caption}`;
-          } else if (mediaType === "sticker") {
-            const imgUrl = pickRandom(imagePool);
-            await uazapiSendSticker(baseUrl, token, targetPhone, imgUrl);
-            sentDescription = `[STICKER] 🎭`;
-          } else {
-            const msg = generateNaturalMessage("community");
-            await uazapiSendText(baseUrl, token, targetPhone, msg);
-            sentDescription = msg.substring(0, 50);
+        // ── BURST: Send 3-7 messages in rapid succession (like a real conversation) ──
+        const burstSize = randInt(3, 7);
+        let sentCount = 0;
+        const sentSummary: string[] = [];
+
+        for (let b = 0; b < burstSize; b++) {
+          // Random delay between messages in burst: 5-30 seconds (typing simulation)
+          if (b > 0) {
+            await new Promise(r => setTimeout(r, randInt(5, 30) * 1000));
           }
-        } catch (e) {
-          // Fallback to text if media fails
-          const fallbackMsg = generateNaturalMessage("community");
-          await uazapiSendText(baseUrl, token, targetPhone, fallbackMsg);
-          sentDescription = `[fallback] ${fallbackMsg.substring(0, 40)}`;
+
+          // ~15% image, ~5% sticker, ~80% text within burst
+          const roll = Math.random();
+          try {
+            if (roll < 0.15) {
+              const imgUrl = pickRandom(imagePool);
+              const caption = pickRandom(IMAGE_CAPTIONS);
+              await uazapiSendImage(baseUrl, token, targetPhone, imgUrl, "");
+              await new Promise(r => setTimeout(r, randInt(1000, 3000)));
+              await uazapiSendText(baseUrl, token, targetPhone, caption);
+              sentSummary.push("📷");
+              sentCount += 2; // image + caption
+            } else if (roll < 0.20) {
+              const imgUrl = pickRandom(imagePool);
+              await uazapiSendSticker(baseUrl, token, targetPhone, imgUrl);
+              sentSummary.push("🎭");
+              sentCount++;
+            } else {
+              const msg = generateNaturalMessage("community");
+              await uazapiSendText(baseUrl, token, targetPhone, msg);
+              sentSummary.push("💬");
+              sentCount++;
+            }
+          } catch (e) {
+            // On failure within burst, send text fallback and continue
+            try {
+              const fallback = generateNaturalMessage("community");
+              await uazapiSendText(baseUrl, token, targetPhone, fallback);
+              sentSummary.push("💬↩");
+              sentCount++;
+            } catch { break; } // If even fallback fails, stop burst
+          }
         }
 
-        await db.from("warmup_cycles").update({
-          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-        }).eq("id", cycle.id);
-        cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+        // Update budget with total messages sent in this burst
+        if (sentCount > 0) {
+          await db.from("warmup_cycles").update({
+            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + sentCount,
+          }).eq("id", cycle.id);
+          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + sentCount;
+        }
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-          level: "info", event_type: "community_msg_sent",
-          message: `Comunitário par ${peerIndex + 1}/3: ${sentDescription}`,
-          meta: { peer_device: peerDeviceId, media_type: mediaType, target: targetPhone.substring(0, 6) + "..." },
+          level: "info", event_type: "community_burst_sent",
+          message: `Comunitário par ${peerIndex + 1}/3: burst ${sentSummary.join("")} (${sentCount} msgs)`,
+          meta: { peer_device: peerDeviceId, burst_size: sentCount, target: targetPhone.substring(0, 6) + "..." },
         });
         break;
       }
