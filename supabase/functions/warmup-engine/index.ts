@@ -342,30 +342,10 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── PHASE TRANSITION JOBS — Autosave reativado, community desativado ──
-  if (phase === "groups_only") {
-    const transitionDay = getGroupsEndDay(chipState) + 1;
-    if (dayIndex >= transitionDay - 1) {
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "enable_autosave", payload: {},
-        run_at: new Date(effectiveEnd - 60000).toISOString(),
-        status: "pending",
-      });
-    }
-  }
-  // Enable community on the day after autosave
-  if (phase === "autosave_enabled") {
-    const communityDay = getGroupsEndDay(chipState) + 2;
-    if (dayIndex >= communityDay - 1) {
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "enable_community", payload: {},
-        run_at: new Date(effectiveEnd - 60000).toISOString(),
-        status: "pending",
-      });
-    }
-  }
+  // [BUG 1+2 FIX] Phase transitions are now handled ENTIRELY by daily_reset in warmup-tick.
+  // Removed enable_autosave/enable_community end-of-day jobs to avoid:
+  // - Wasted first day (jobs fire at end of window, no time for interactions)
+  // - Duplicate pair creation between enable_community and daily_reset
 
   // Insert jobs in batches
   if (jobs.length > 0) {
