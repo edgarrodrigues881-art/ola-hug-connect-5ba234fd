@@ -7,7 +7,7 @@ import {
   ChevronDown, Star, Rocket, Clock, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-new.png";
 
 // Prefetch
 const prefetchRoutes = () => {

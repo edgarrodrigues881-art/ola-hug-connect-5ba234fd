@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, Lock, User, ShieldCheck, MessageCircle, Phone, Eye, EyeOff, Building2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-new.png";
 
 
 const translateAuthError = (msg: string): string => {
