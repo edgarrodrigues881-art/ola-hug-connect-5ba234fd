@@ -2909,7 +2909,8 @@ async function handleDailyReset(db: any) {
 
             // Check if partner already has too many active pairs
             const inlinePairCount = await getActivePairCount(db, e.device_id);
-            if (inlinePairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+            const inlineChipState = await getDeviceChipState(db, e.device_id);
+            if (inlinePairCount >= getMaxPairsForChip(inlineChipState)) continue;
 
             await db.from("community_pairs").insert({
               cycle_id: cycle.id, instance_id_a: cycle.device_id, instance_id_b: e.device_id,
