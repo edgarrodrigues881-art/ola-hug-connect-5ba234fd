@@ -509,48 +509,68 @@ const AutoSave = () => {
 
       {/* ── Add Modal ── */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Adicionar Contato</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Número (E.164)</Label>
-              <Input value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="62994192500" className="mt-1 font-mono" />
-              <p className="text-[10px] text-muted-foreground mt-1">Exemplo: 62994192500 ou +5562994192500</p>
+        <DialogContent className="sm:max-w-[380px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-primary" />
+                </div>
+                Adicionar Contato
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Número (E.164)</Label>
+              <Input value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="62994192500" className="font-mono text-xs h-10 rounded-xl bg-muted/10 border-border/15" />
+              <p className="text-[10px] text-muted-foreground/40">Ex: 62994192500 ou +5562994192500</p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleAdd} disabled={!addPhone.trim() || createContact.isPending}>
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+            <Button size="sm" onClick={handleAdd} disabled={!addPhone.trim() || createContact.isPending} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">
               {createContact.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Adicionar"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* ── Edit Modal ── */}
       <Dialog open={!!editContact} onOpenChange={v => !v && setEditContact(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Editar Contato</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Número</Label>
-              <Input value={editContact?.phone_e164 || ""} disabled className="mt-1 font-mono opacity-50" />
+        <DialogContent className="sm:max-w-[380px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Edit2 className="w-4 h-4 text-primary" />
+                </div>
+                Editar Contato
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Número</Label>
+              <Input value={editContact?.phone_e164 || ""} disabled className="font-mono text-xs h-10 rounded-xl bg-muted/10 border-border/15 opacity-50" />
             </div>
-            <div>
-              <Label className="text-xs">Nome</Label>
-              <Input value={editName} onChange={e => setEditName(e.target.value)} className="mt-1" />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Nome</Label>
+              <Input value={editName} onChange={e => setEditName(e.target.value)} className="text-xs h-10 rounded-xl bg-muted/10 border-border/15" />
             </div>
-            <div>
-              <Label className="text-xs">Tags</Label>
-              <Input value={editTags} onChange={e => setEditTags(e.target.value)} className="mt-1" />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Tags</Label>
+              <Input value={editTags} onChange={e => setEditTags(e.target.value)} className="text-xs h-10 rounded-xl bg-muted/10 border-border/15" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setEditContact(null)}>Cancelar</Button>
-            <Button size="sm" onClick={handleEdit} disabled={updateContact.isPending}>
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" size="sm" onClick={() => setEditContact(null)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+            <Button size="sm" onClick={handleEdit} disabled={updateContact.isPending} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">
               {updateContact.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvar"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
