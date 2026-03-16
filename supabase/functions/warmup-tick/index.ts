@@ -955,6 +955,19 @@ function pickMediaTypeCommunity(budgetUsed: number): "text" | "image" | "audio" 
 const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
 const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
 
+// Max active pairs a device can participate in (as A or B)
+const MAX_ACTIVE_PAIRS_PER_DEVICE = 2;
+
+async function getActivePairCount(db: any, deviceId: string): Promise<number> {
+  const { count: countA } = await db.from("community_pairs")
+    .select("id", { count: "exact", head: true })
+    .eq("instance_id_a", deviceId).eq("status", "active");
+  const { count: countB } = await db.from("community_pairs")
+    .select("id", { count: "exact", head: true })
+    .eq("instance_id_b", deviceId).eq("status", "active");
+  return (countA || 0) + (countB || 0);
+}
+
 type CommunityPairMeta = {
   initiator: "a" | "b";
   expected_sender_device_id: string | null;
