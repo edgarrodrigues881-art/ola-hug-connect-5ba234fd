@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown, Download,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown, Download, ShieldAlert,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -96,7 +97,7 @@ const CampaignDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("campaigns")
-        .select("id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, total_contacts, sent_count, delivered_count, failed_count, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, messages_per_instance, scheduled_at, started_at, completed_at, created_at, updated_at")
+        .select("id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, total_contacts, sent_count, delivered_count, failed_count, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, messages_per_instance, scheduled_at, started_at, completed_at, created_at, updated_at, pause_on_disconnect")
         .eq("id", id!)
         .single();
       if (error) throw error;
@@ -179,6 +180,7 @@ const CampaignDetail = () => {
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
   const [delayDirty, setDelayDirty] = useState(false);
+  const [pauseOnDisconnect, setPauseOnDisconnect] = useState(true);
 
   useEffect(() => {
     if (!campaign) return;
@@ -188,6 +190,7 @@ const CampaignDetail = () => {
     setPauseEveryMax(campaign.pause_every_max ?? 20);
     setPauseDurationMin(campaign.pause_duration_min ?? 30);
     setPauseDurationMax(campaign.pause_duration_max ?? 120);
+    setPauseOnDisconnect(campaign.pause_on_disconnect !== false);
   }, [campaign]);
 
   const saveDelayConfig = useCallback(async () => {
@@ -598,6 +601,32 @@ const CampaignDetail = () => {
                 {isActive && (
                   <p className="text-[10px] text-muted-foreground/40 italic">Pause a campanha para editar.</p>
                 )}
+
+                {/* Pause on disconnect toggle */}
+                <div className="rounded-lg border border-border/20 bg-background/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                      <div>
+                        <p className="text-[11px] font-medium text-foreground">Pausar se desconectar</p>
+                        <p className="text-[9px] text-muted-foreground/50">Pausa a campanha se uma instância for desconectada</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={pauseOnDisconnect}
+                      onCheckedChange={async (val) => {
+                        setPauseOnDisconnect(val);
+                        if (id) {
+                          await supabase.from("campaigns").update({ pause_on_disconnect: val }).eq("id", id);
+                          toast({ title: val ? "✅ Campanha pausará ao desconectar" : "⚠️ Campanha continuará mesmo se desconectar" });
+                        }
+                      }}
+                    />
+                  </div>
+                  {!pauseOnDisconnect && (
+                    <p className="text-[9px] text-amber-400/70 mt-1.5 ml-6">⚠ O envio continuará mesmo se contas forem banidas ou desconectadas</p>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
