@@ -846,7 +846,7 @@ const WarmupInstances = () => {
           onResume={handleResume}
           onCancel={onCancelClick}
           onConnect={openConnect}
-          onNavigate={navigate}
+          onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
           formatPhone={formatPhone}
           deviceTags={activeFolder?.device_tags?.get(device.id)}
           availableTags={activeFolder?.tags}
