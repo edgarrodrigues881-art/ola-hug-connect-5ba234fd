@@ -2066,6 +2066,9 @@ async function handleTick(db: any) {
             for (const p of toKeep) {
               const peerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
               keptDevices.add(peerId);
+              // Populate keptUsers for cross-account dedup when creating new pairs
+              const keptElig = eligible?.find((e: any) => e.device_id === peerId);
+              if (keptElig) keptUsers.add(keptElig.user_id);
             }
           }
 
@@ -2102,6 +2105,8 @@ async function handleTick(db: any) {
               for (const e of sorted) {
                 if (created >= newNeeded) break;
                 if (usedDevices.has(e.device_id)) continue;
+                // Prefer cross-account: skip same-user if alternatives exist
+                if (usedUsers.has(e.user_id) && sorted.some((s: any) => !usedDevices.has(s.device_id) && !usedUsers.has(s.user_id))) continue;
 
                 const { data: pd } = await db.from("devices")
                   .select("status, number").eq("id", e.device_id).single();
