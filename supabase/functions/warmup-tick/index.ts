@@ -1754,12 +1754,14 @@ async function handleTick(db: any) {
           }
         }
 
-        // Update budget with total messages sent in this burst
+        // Update budget: count burst as 1 interaction unit (not per-message)
+        // This prevents premature cancellation — scheduleDayJobs counts each community_interaction
+        // job as 1 unit, so budget_used must match that granularity.
         if (sentCount > 0) {
           await db.from("warmup_cycles").update({
-            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + sentCount,
+            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
           }).eq("id", cycle.id);
-          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + sentCount;
+          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
         }
 
         bufferAudit({
