@@ -1048,8 +1048,8 @@ const Devices = () => {
       return;
     }
 
-    // Avoid fast reversion from auto-sync right after saving profile edits
-    muteAutoSync(45_000);
+    // Avoid fast reversion briefly, then let sync reconcile almost immediately
+    muteAutoSync(8_000);
 
     setWpSaving(true);
     try {
