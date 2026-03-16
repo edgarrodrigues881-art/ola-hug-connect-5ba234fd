@@ -594,12 +594,13 @@ const Contacts = () => {
                     );
                   })}
                 </div>
-                <div className="p-2 border-t border-border/50">
+                <div className="p-2.5 border-t border-border/50 space-y-2.5">
+                  <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Nova tag</label>
                   <div className="flex gap-1.5">
                     <div className="flex items-center gap-1.5 flex-1 rounded-lg border border-border/50 bg-background px-2">
                       <span className="w-2.5 h-2.5 rounded-md shrink-0" style={{ backgroundColor: TAG_HEX_COLORS[newTagColorIdx] }} />
                       <input
-                        placeholder="Nova tag..."
+                        placeholder="Nome da tag..."
                         value={createTagInput}
                         onChange={e => setCreateTagInput(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && handleCreateTag()}
@@ -609,6 +610,24 @@ const Contacts = () => {
                     <Button size="sm" onClick={handleCreateTag} className="h-7 px-2.5 rounded-lg">
                       <Plus className="w-3 h-3" />
                     </Button>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Cor</label>
+                    <div className="grid grid-cols-8 gap-1.5">
+                      {TAG_HEX_COLORS.map((c, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setNewTagColorIdx(idx)}
+                          className={cn(
+                            "w-5 h-5 rounded-full transition-all duration-200",
+                            newTagColorIdx === idx
+                              ? "ring-2 ring-offset-2 ring-offset-card ring-foreground/70 scale-110"
+                              : "opacity-50 hover:opacity-80"
+                          )}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </PopoverContent>
