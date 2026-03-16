@@ -836,9 +836,9 @@ function normalizeCommunityPairMeta(pair: any): CommunityPairMeta {
     : {};
 
   const initiator: "a" | "b" = raw.initiator === "b" ? "b" : "a";
-  const maxTurns = Number.isInteger(raw.max_turns) && raw.max_turns >= 2 && raw.max_turns <= 6
+  const maxTurns = Number.isInteger(raw.max_turns) && raw.max_turns >= 2 && raw.max_turns <= 120
     ? raw.max_turns
-    : 4;
+    : randInt(40, 80);
   const rawTurnsCompleted = Number.isInteger(raw.turns_completed) && raw.turns_completed >= 0
     ? raw.turns_completed
     : 0;
@@ -2100,7 +2100,7 @@ async function handleTick(db: any) {
         cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
 
         if (hasNextTurn && nextCycle) {
-          const replyDelaySeconds = randInt(45, 150);
+          const replyDelaySeconds = randInt(8, 35);
           await enqueueCommunityTurn(db, {
             user_id: nextCycle.user_id,
             device_id: peerDeviceId,
