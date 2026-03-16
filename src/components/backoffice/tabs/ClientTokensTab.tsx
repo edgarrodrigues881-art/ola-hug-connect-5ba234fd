@@ -73,7 +73,11 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "delete-token", body: { token_id: tokenId, target_user_id: client.id } },
       {
-        onSuccess: () => { toast({ title: "Token removido" }); invalidateClient(client.id); },
+        onSuccess: (data: any) => {
+          const providerMsg = data?.provider_deleted ? " + instância removida da UAZAPI" : "";
+          toast({ title: `Token removido${providerMsg}` });
+          invalidateClient(client.id);
+        },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
@@ -83,7 +87,11 @@ const ClientTokensTab = ({ client, detail }: Props) => {
     mutate(
       { action: "delete-all-tokens", body: { target_user_id: client.id } },
       {
-        onSuccess: (data: any) => { toast({ title: `${data?.removed ?? 0} token(s) removido(s)` }); invalidateClient(client.id); },
+        onSuccess: (data: any) => {
+          const providerMsg = data?.provider_deleted ? ` (${data.provider_deleted} removidos da UAZAPI)` : "";
+          toast({ title: `${data?.removed ?? 0} token(s) removido(s)${providerMsg}` });
+          invalidateClient(client.id);
+        },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
