@@ -1785,47 +1785,26 @@ async function handleTick(db: any) {
 
         const targetPhone = pd.number.replace(/\+/g, "");
 
-        // ── BURST: Send 2-4 messages in rapid succession (like a real conversation) ──
-        const burstSize = randInt(2, 4);
+        // ── BURST: Send exactly 2 TEXT messages (safe conversation) ──
+        // NO images, NO stickers — these inflate message count and trigger spam detection
+        const burstSize = 2;
         let sentCount = 0;
         const sentSummary: string[] = [];
 
         for (let b = 0; b < burstSize; b++) {
-          // Random delay between messages in burst: 5-30 seconds (typing simulation)
+          // Typing delay between messages: 8-45 seconds
           if (b > 0) {
-            await new Promise(r => setTimeout(r, randInt(5, 30) * 1000));
+            await new Promise(r => setTimeout(r, randInt(8, 45) * 1000));
           }
 
-          // ~15% image, ~5% sticker, ~80% text within burst
-          const roll = Math.random();
           try {
-            if (roll < 0.15) {
-              const imgUrl = pickRandom(imagePool);
-              const caption = pickRandom(IMAGE_CAPTIONS);
-              await uazapiSendImage(baseUrl, token, targetPhone, imgUrl, "");
-              await new Promise(r => setTimeout(r, randInt(1000, 3000)));
-              await uazapiSendText(baseUrl, token, targetPhone, caption);
-              sentSummary.push("📷");
-              sentCount += 2; // image + caption
-            } else if (roll < 0.20) {
-              const imgUrl = pickRandom(imagePool);
-              await uazapiSendSticker(baseUrl, token, targetPhone, imgUrl);
-              sentSummary.push("🎭");
-              sentCount++;
-            } else {
-              const msg = generateNaturalMessage("community");
-              await uazapiSendText(baseUrl, token, targetPhone, msg);
-              sentSummary.push("💬");
-              sentCount++;
-            }
+            const msg = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, msg);
+            sentSummary.push("💬");
+            sentCount++;
           } catch (e) {
-            // On failure within burst, send text fallback and continue
-            try {
-              const fallback = generateNaturalMessage("community");
-              await uazapiSendText(baseUrl, token, targetPhone, fallback);
-              sentSummary.push("💬↩");
-              sentCount++;
-            } catch { break; } // If even fallback fails, stop burst
+            // On failure, stop burst entirely — do NOT retry
+            break;
           }
         }
 
