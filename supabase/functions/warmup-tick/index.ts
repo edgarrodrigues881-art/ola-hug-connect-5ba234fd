@@ -717,7 +717,6 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
   if (!imageUrl) throw new Error("Image URL ausente");
   const safeCaption = (caption || "📸").trim() || "📸";
 
-  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "image", caption }
   const res = await fetch(`${baseUrl}/send/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json", token, Accept: "application/json" },
@@ -733,7 +732,6 @@ async function uazapiSendImage(baseUrl: string, token: string, number: string, i
 async function uazapiSendSticker(baseUrl: string, token: string, number: string, imageUrl: string) {
   if (!imageUrl) throw new Error("Sticker URL ausente");
 
-  // UAZAPI confirmed working endpoint: POST /send/media with { number, file: URL, type: "sticker" }
   const res = await fetch(`${baseUrl}/send/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json", token, Accept: "application/json" },
@@ -746,8 +744,63 @@ async function uazapiSendSticker(baseUrl: string, token: string, number: string,
   throw new Error(`Sticker send failed: ${res.status} — ${raw.substring(0, 240)}`);
 }
 
+async function uazapiSendAudio(baseUrl: string, token: string, number: string, audioUrl: string) {
+  if (!audioUrl) throw new Error("Audio URL ausente");
+
+  // Try PTT (push-to-talk / voice note) first, then regular audio
+  const attempts = [
+    { path: "/send/media", body: { number, file: audioUrl, type: "audio", ptt: true } },
+    { path: "/send/media", body: { number, file: audioUrl, type: "audio" } },
+  ];
+
+  let lastErr = "";
+  for (const at of attempts) {
+    try {
+      const res = await fetch(`${baseUrl}${at.path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(at.body),
+      });
+      const raw = await res.text();
+      if (res.ok) {
+        try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
+      }
+      lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
+    } catch (e) {
+      lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+  throw new Error(`Audio send failed: ${lastErr}`);
+}
+
+async function uazapiSendLocation(baseUrl: string, token: string, number: string, lat: number, lng: number, name: string) {
+  const attempts = [
+    { path: "/send/location", body: { number, lat, lng, name, address: name } },
+    { path: "/message/sendLocation", body: { chatId: number, lat, lng, name, address: name } },
+  ];
+
+  let lastErr = "";
+  for (const at of attempts) {
+    try {
+      const res = await fetch(`${baseUrl}${at.path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token, Accept: "application/json" },
+        body: JSON.stringify(at.body),
+      });
+      const raw = await res.text();
+      if (res.ok) {
+        try { return JSON.parse(raw); } catch { return { ok: true, raw }; }
+      }
+      lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
+    } catch (e) {
+      lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+  throw new Error(`Location send failed: ${lastErr}`);
+}
+
 // ══════════════════════════════════════════════════════════
-// IMAGE POOL
+// MEDIA POOLS (Image, Audio, Location)
 // ══════════════════════════════════════════════════════════
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -764,7 +817,59 @@ const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
 ];
 
+// Fallback audio URLs — short ambient/nature sounds (public domain)
+const FALLBACK_AUDIOS = [
+  "https://cdn.freesound.org/previews/531/531947_4397472-lq.mp3",
+  "https://cdn.freesound.org/previews/456/456058_5765826-lq.mp3",
+  "https://cdn.freesound.org/previews/462/462808_8386274-lq.mp3",
+  "https://cdn.freesound.org/previews/367/367125_6652158-lq.mp3",
+  "https://cdn.freesound.org/previews/527/527642_2525202-lq.mp3",
+];
+
+// Pool de localizações fake — cidades brasileiras com variação
+const FAKE_LOCATIONS: Array<{ lat: number; lng: number; name: string }> = [
+  { lat: -23.5505, lng: -46.6333, name: "São Paulo, SP" },
+  { lat: -22.9068, lng: -43.1729, name: "Rio de Janeiro, RJ" },
+  { lat: -19.9167, lng: -43.9345, name: "Belo Horizonte, MG" },
+  { lat: -25.4284, lng: -49.2733, name: "Curitiba, PR" },
+  { lat: -30.0346, lng: -51.2177, name: "Porto Alegre, RS" },
+  { lat: -15.7942, lng: -47.8822, name: "Brasília, DF" },
+  { lat: -12.9714, lng: -38.5124, name: "Salvador, BA" },
+  { lat: -8.0476, lng: -34.877, name: "Recife, PE" },
+  { lat: -3.7172, lng: -38.5433, name: "Fortaleza, CE" },
+  { lat: -22.9064, lng: -43.1822, name: "Copacabana, RJ" },
+  { lat: -23.5631, lng: -46.6544, name: "Av. Paulista, SP" },
+  { lat: -23.5874, lng: -46.6576, name: "Ibirapuera, SP" },
+  { lat: -22.9519, lng: -43.2105, name: "Maracanã, RJ" },
+  { lat: -20.3155, lng: -40.3128, name: "Vitória, ES" },
+  { lat: -27.5954, lng: -48.548, name: "Florianópolis, SC" },
+  { lat: -16.6869, lng: -49.2648, name: "Goiânia, GO" },
+  { lat: -2.5008, lng: -44.2825, name: "São Luís, MA" },
+  { lat: -1.4558, lng: -48.5024, name: "Belém, PA" },
+  { lat: -3.1190, lng: -60.0217, name: "Manaus, AM" },
+  { lat: -23.9619, lng: -46.3345, name: "Santos, SP" },
+  { lat: -22.7557, lng: -43.4528, name: "Nova Iguaçu, RJ" },
+  { lat: -23.4621, lng: -46.5331, name: "Guarulhos, SP" },
+  { lat: -22.8859, lng: -47.0596, name: "Campinas, SP" },
+  { lat: -23.1794, lng: -45.8868, name: "São José dos Campos, SP" },
+  { lat: -21.1767, lng: -47.8208, name: "Ribeirão Preto, SP" },
+  { lat: -23.5097, lng: -47.4609, name: "Sorocaba, SP" },
+  { lat: -22.3154, lng: -49.0710, name: "Bauru, SP" },
+  { lat: -23.3045, lng: -51.1696, name: "Londrina, PR" },
+  { lat: -25.2521, lng: -52.0215, name: "Guarapuava, PR" },
+  { lat: -29.1685, lng: -51.1794, name: "Caxias do Sul, RS" },
+];
+
+const LOCATION_CAPTIONS = [
+  "tô aqui ó 📍", "olha onde eu tô", "passeando por aqui 🚶",
+  "vim dar uma volta", "conhecendo o lugar", "queria que vc tivesse aqui",
+  "lugar massa demais", "olha esse lugar 👀", "to aqui pertinho",
+  "parei aqui rapidão", "saí pra resolver uns negócios", "tô nessa região",
+  "vim visitar uns amigos aqui", "passeio do dia 😎", "andando por aqui",
+];
+
 let _imagePoolCache: string[] | null = null;
+let _audioPoolCache: string[] | null = null;
 
 async function getImagePool(db: any): Promise<string[]> {
   if (_imagePoolCache) return _imagePoolCache;
@@ -776,13 +881,42 @@ async function getImagePool(db: any): Promise<string[]> {
         .filter((f: any) => f.name && !f.name.startsWith(".") && !f.name.startsWith("Captura") && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name))
         .map((f: any) => `${base}/${encodeURIComponent(f.name)}`);
       if (imgs.length > 0) {
-        _imagePoolCache = imgs; // Use only storage images, no fallback mix
+        _imagePoolCache = imgs;
         return _imagePoolCache;
       }
     }
   } catch (_e) { /* fallback */ }
   _imagePoolCache = FALLBACK_IMAGES;
   return _imagePoolCache;
+}
+
+async function getAudioPool(db: any): Promise<string[]> {
+  if (_audioPoolCache) return _audioPoolCache;
+  try {
+    const { data: files, error } = await db.storage.from("media").list("warmup-audio", { limit: 100 });
+    if (!error && files?.length > 0) {
+      const base = `${SUPABASE_URL}/storage/v1/object/public/media/warmup-audio`;
+      const audios = files
+        .filter((f: any) => f.name && !f.name.startsWith(".") && /\.(ogg|mp3|m4a|opus|wav)$/i.test(f.name))
+        .map((f: any) => `${base}/${encodeURIComponent(f.name)}`);
+      if (audios.length > 0) {
+        _audioPoolCache = audios;
+        return _audioPoolCache;
+      }
+    }
+  } catch (_e) { /* fallback */ }
+  _audioPoolCache = FALLBACK_AUDIOS;
+  return _audioPoolCache;
+}
+
+function pickFakeLocation(): { lat: number; lng: number; name: string } {
+  const base = pickRandom(FAKE_LOCATIONS);
+  // Add small random offset (±0.005 degrees ≈ 500m) to make each unique
+  return {
+    lat: base.lat + (Math.random() - 0.5) * 0.01,
+    lng: base.lng + (Math.random() - 0.5) * 0.01,
+    name: base.name,
+  };
 }
 
 const IMAGE_CAPTIONS = [
@@ -796,13 +930,23 @@ const IMAGE_CAPTIONS = [
   "Quando a vida é boa 😎", "Registro pra eternidade", "Obrigado Deus 🙌",
 ];
 
-function pickMediaType(budgetUsed: number): "text" | "image" | "sticker" {
-  // Primeiras 3 mensagens do dia são SEMPRE texto para parecer natural
+// Mix para GRUPOS: 70% texto, 15% imagem, 15% figurinha (reduzido)
+function pickMediaTypeGroup(budgetUsed: number): "text" | "image" | "sticker" {
   if (budgetUsed < 3) return "text";
   const r = Math.random();
-  if (r < 0.50) return "text";     // 50% texto
-  if (r < 0.75) return "image";    // 25% imagem
-  return "sticker";                 // 25% figurinha
+  if (r < 0.70) return "text";
+  if (r < 0.85) return "image";
+  return "sticker";
+}
+
+// Mix para COMUNIDADE x1: 85% texto, 8% imagem, 5% áudio, 2% localização
+function pickMediaTypeCommunity(budgetUsed: number): "text" | "image" | "audio" | "location" {
+  if (budgetUsed < 3) return "text";
+  const r = Math.random();
+  if (r < 0.85) return "text";
+  if (r < 0.93) return "image";
+  if (r < 0.98) return "audio";
+  return "location";
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1161,7 +1305,7 @@ async function handleTick(db: any) {
     return results;
   }
 
-  const [cyclesArr, subsArr, profilesArr, devicesArr, userMsgsArr, autosaveArr, instanceGroupsArr, groupsPoolArr, imagePool] = await Promise.all([
+  const [cyclesArr, subsArr, profilesArr, devicesArr, userMsgsArr, autosaveArr, instanceGroupsArr, groupsPoolArr, imagePool, audioPool] = await Promise.all([
     batchLoad<any>("warmup_cycles", "id, user_id, device_id, phase, is_running, day_index, days_total, chip_state, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, first_24h_ends_at, last_daily_reset_at, next_run_at, plan_id", "id", uniqueCycleIds),
     batchLoad<any>("subscriptions", "user_id, expires_at, created_at", "user_id", uniqueUserIds, q => q.order("created_at", { ascending: false })),
     batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
@@ -1171,6 +1315,7 @@ async function handleTick(db: any) {
     batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status", "device_id", uniqueDeviceIds),
     db.from("warmup_groups_pool").select("id, external_group_ref, name").eq("is_active", true).then((r: any) => r.data || []),
     getImagePool(db),
+    getAudioPool(db),
   ]);
 
   // Build lookup maps
@@ -1658,20 +1803,16 @@ async function handleTick(db: any) {
           return generateNaturalMessage("group");
         };
 
-        const requestedMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
+        const requestedMediaType = pickMediaTypeGroup(cycle.daily_interaction_budget_used || 0);
         let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
         let message = getMsg();
         let sendFallbackReason: string | null = null;
-
-        // NOTE: Reply (quotedMsgId) disabled — UAZAPI does not support fetching chat messages
 
         try {
           if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
-            // Enviar foto sem caption + mensagem de texto separada para garantir visibilidade
             await uazapiSendImage(baseUrl, token, groupJid, imgUrl, "");
-            // Pequeno delay entre foto e texto (1-3s)
             await new Promise(r => setTimeout(r, randInt(1000, 3000)));
             await uazapiSendText(baseUrl, token, groupJid, caption);
             message = `[IMG+TXT] ${caption}`;
@@ -1938,9 +2079,9 @@ async function handleTick(db: any) {
             if (!nextCycle) return "no_cycle";
           }
 
-          const communityMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
+          const communityMediaType = pickMediaTypeCommunity(cycle.daily_interaction_budget_used || 0);
           let msg = generateNaturalMessage("community");
-          let communityActualMedia: "text" | "image" | "sticker" = communityMediaType;
+          let communityActualMedia: string = communityMediaType;
 
           try {
             if (communityMediaType === "image") {
@@ -1950,10 +2091,17 @@ async function handleTick(db: any) {
               await new Promise(r => setTimeout(r, randInt(1000, 3000)));
               await uazapiSendText(baseUrl, token, peerPhone, caption);
               msg = `[IMG+TXT] ${caption}`;
-            } else if (communityMediaType === "sticker") {
-              const imgUrl = pickRandom(imagePool);
-              await uazapiSendSticker(baseUrl, token, peerPhone, imgUrl);
-              msg = `[STICKER] 🎭`;
+            } else if (communityMediaType === "audio") {
+              const audioUrl = pickRandom(audioPool);
+              await uazapiSendAudio(baseUrl, token, peerPhone, audioUrl);
+              msg = `[AUDIO] 🎤`;
+            } else if (communityMediaType === "location") {
+              const loc = pickFakeLocation();
+              const locCaption = pickRandom(LOCATION_CAPTIONS);
+              await uazapiSendLocation(baseUrl, token, peerPhone, loc.lat, loc.lng, loc.name);
+              await new Promise(r => setTimeout(r, randInt(1000, 2000)));
+              await uazapiSendText(baseUrl, token, peerPhone, locCaption);
+              msg = `[LOC+TXT] ${loc.name}: ${locCaption}`;
             } else {
               await uazapiSendText(baseUrl, token, peerPhone, msg);
             }
