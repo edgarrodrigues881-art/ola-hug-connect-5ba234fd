@@ -2066,6 +2066,9 @@ async function handleTick(db: any) {
             for (const p of toKeep) {
               const peerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
               keptDevices.add(peerId);
+              // Populate keptUsers for cross-account dedup when creating new pairs
+              const keptElig = eligible?.find((e: any) => e.device_id === peerId);
+              if (keptElig) keptUsers.add(keptElig.user_id);
             }
           }
 
