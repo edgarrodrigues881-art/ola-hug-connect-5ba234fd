@@ -2643,14 +2643,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Ação inválida" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error: any) {
-    console.error("[admin-data] ERROR:", error?.message, error?.stack);
-    const status = error?.message?.includes("autorizado") ? 401 : error?.message?.includes("negado") ? 403 : 500;
-    return new Response(JSON.stringify({ error: error?.message || "Unknown error" }), {
-      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Ação inválida" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : "";
+    console.error("[admin-data] ERROR:", msg, stack);
+    const status = msg.includes("autorizado") ? 401 : msg.includes("negado") ? 403 : 500;
+    return new Response(
+      JSON.stringify({ error: msg }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
