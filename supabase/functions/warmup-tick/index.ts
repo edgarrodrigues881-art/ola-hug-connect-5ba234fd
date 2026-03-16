@@ -621,12 +621,21 @@ function buildMsg(ctx: MsgCtx): string {
 // ══════════════════════════════════════════════════════════
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
-  const attempts: Array<{ path: string; body: Record<string, unknown> }> = [
-    { path: "/send/text", body: { number, text } },
-    { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
-    { path: "/message/sendText", body: { chatId: number, text } },
-    { path: "/message/sendText", body: { to: number, text } },
-  ];
+  // For group JIDs (@g.us), prioritize endpoints that accept group format
+  const isGroup = number.includes("@g.us");
+  
+  const attempts: Array<{ path: string; body: Record<string, unknown> }> = isGroup
+    ? [
+        { path: "/send/text", body: { number, text } },
+        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
+        { path: "/send/text", body: { chatId: number, text } },
+      ]
+    : [
+        { path: "/send/text", body: { number, text } },
+        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
+        { path: "/message/sendText", body: { chatId: number, text } },
+        { path: "/message/sendText", body: { to: number, text } },
+      ];
 
   let lastErr = "";
   for (const at of attempts) {
@@ -640,31 +649,23 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
       if (res.ok) {
         try {
           const parsed = raw ? JSON.parse(raw) : {};
-          // Detect error responses that come with 200 status
           if (parsed?.error) {
             lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-            // If it's a definitive "not on WhatsApp" error, throw immediately
             if (typeof parsed.error === "string" && (parsed.error.includes("not on WhatsApp") || parsed.error.includes("not registered"))) {
               throw new Error(`API 500: ${raw.substring(0, 240)}`);
             }
             continue;
           }
-          if (parsed?.code === 404) {
-            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-            continue;
-          }
-          // Check for status: "error" pattern
-          if (parsed?.status === "error") {
-            lastErr = `${at.path}: ${raw.substring(0, 240)}`;
-            continue;
-          }
+          if (parsed?.code === 404) { lastErr = `${at.path}: ${raw.substring(0, 240)}`; continue; }
+          if (parsed?.status === "error") { lastErr = `${at.path}: ${raw.substring(0, 240)}`; continue; }
           return parsed;
         } catch (parseErr) {
-          // If it was our thrown error, re-throw
           if (parseErr instanceof Error && parseErr.message.startsWith("API 500:")) throw parseErr;
           return { ok: true, raw };
         }
       }
+      // Skip 405 for groups — try next endpoint instead of failing
+      if (res.status === 405) { lastErr = `405 @ ${at.path}`; continue; }
       lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
     } catch (e) {
       lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
