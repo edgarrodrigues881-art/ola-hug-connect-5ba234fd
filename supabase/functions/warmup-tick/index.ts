@@ -333,7 +333,7 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
   if (existing?.length > 0) return 0;
 
   const { data: pending } = await db.from("warmup_instance_groups")
-    .select("group_id, warmup_groups_pool(id, name)")
+    .select("group_id, group_name, invite_link")
     .eq("device_id", deviceId).eq("join_status", "pending");
   if (!pending?.length) return 0;
 
@@ -343,10 +343,12 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
   let cumMs = randInt(5, 15) * 60000;
 
   for (const g of shuffled) {
+    const jobPayload: any = { group_id: g.group_id, group_name: g.group_name || "Grupo" };
+    if (g.invite_link) jobPayload.invite_link = g.invite_link;
     joinJobs.push({
       user_id: userId, device_id: deviceId, cycle_id: cycleId,
       job_type: "join_group",
-      payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
+      payload: jobPayload,
       run_at: new Date(nowMs + cumMs).toISOString(), status: "pending",
     });
     cumMs += randInt(5, 30) * 60000;
