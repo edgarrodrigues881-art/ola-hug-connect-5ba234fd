@@ -141,6 +141,7 @@ const CommunityPoolTab = () => {
                 <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Phase" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas phases</SelectItem>
+                  <SelectItem value="community">🔥 Comunitário (enabled + light)</SelectItem>
                   <SelectItem value="pre_24h">pre_24h</SelectItem>
                   <SelectItem value="groups_only">groups_only</SelectItem>
                   <SelectItem value="autosave_enabled">autosave_enabled</SelectItem>
