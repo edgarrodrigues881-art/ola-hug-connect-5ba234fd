@@ -39,8 +39,16 @@ const Community = () => {
         {/* Logo with gold ring */}
         <div className="relative flex items-center justify-center">
           <div className="absolute w-56 h-56 rounded-2xl bg-[radial-gradient(circle,rgba(212,175,55,0.2)_0%,transparent_70%)] blur-xl" />
-          <div className="relative w-48 h-48 rounded-2xl p-[3px] bg-gradient-to-br from-[#d4af37] via-[#f5d76e] to-[#b8860b] shadow-[0_0_30px_rgba(212,175,55,0.25)]">
-            <div className="w-full h-full rounded-2xl bg-background flex items-center justify-center overflow-hidden">
+          <div className="relative w-48 h-48 rounded-2xl p-[3px] shadow-[0_0_30px_rgba(212,175,55,0.25)] overflow-hidden">
+            {/* Animated gradient border */}
+            <div
+              className="absolute inset-0 rounded-2xl"
+              style={{
+                background: "conic-gradient(from 0deg, #b8860b, #d4af37, #f5d76e, #fff8dc, #f5d76e, #d4af37, #b8860b)",
+                animation: "spin-slow 4s linear infinite",
+              }}
+            />
+            <div className="relative w-full h-full rounded-[13px] bg-background flex items-center justify-center overflow-hidden z-10">
               <img
                 src={dgLogo}
                 alt="DG Contingência PRO"
