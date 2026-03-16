@@ -1586,8 +1586,8 @@ Deno.serve(async (req) => {
         if (paired.has(shuffled[i].device_id)) continue;
         for (let j = i + 1; j < shuffled.length; j++) {
           if (paired.has(shuffled[j].device_id)) continue;
-          // Don't pair same user's instances
-          if (shuffled[i].user_id === shuffled[j].user_id) continue;
+          // Don't pair same user's instances (unless test mode)
+          if (!allowSameOwner && shuffled[i].user_id === shuffled[j].user_id) continue;
           // Check rotation
           const pairKey = [shuffled[i].device_id, shuffled[j].device_id].sort().join("|");
           if (recentPairSet.has(pairKey)) continue;
