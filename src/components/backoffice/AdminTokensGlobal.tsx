@@ -137,7 +137,6 @@ const AdminTokensGlobal = () => {
   const blocked = tokens.filter(t => t.status === "blocked").length;
   const invalid = tokens.filter(t => t.healthy === false).length;
   const idle = tokens.filter(t => t.status !== "in_use" && !t.device_id).length;
-  const [cleaningIdle, setCleaningIdle] = useState(false);
 
   const handleCleanIdle = () => {
     setCleaningIdle(true);
