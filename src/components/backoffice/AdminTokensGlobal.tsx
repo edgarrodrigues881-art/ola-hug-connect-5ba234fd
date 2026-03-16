@@ -130,6 +130,24 @@ const AdminTokensGlobal = () => {
     );
   };
 
+  const handleCleanIdleTokens = () => {
+    setCleaningIdle(true);
+    mutate(
+      { action: "bulk-delete-idle-tokens", body: {} },
+      {
+        onSuccess: (d: any) => {
+          toast({ title: `${d?.deleted ?? 0} token(s) ocioso(s) removidos do banco` });
+          setCleaningIdle(false);
+          refetch();
+        },
+        onError: (e) => {
+          toast({ title: "Erro", description: e.message, variant: "destructive" });
+          setCleaningIdle(false);
+        },
+      }
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
