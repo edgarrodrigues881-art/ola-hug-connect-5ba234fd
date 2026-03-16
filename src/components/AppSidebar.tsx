@@ -243,8 +243,6 @@ export function AppSidebar() {
             <span className="text-primary">DG</span> Contingência <span className="text-primary">PRO</span>
           </span>
         )}
-          </span>
-        )}
       </div>
 
       <SidebarContent className="py-2">
