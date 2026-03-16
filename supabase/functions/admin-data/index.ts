@@ -1177,12 +1177,60 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── Helper: delete instance from UAZAPI by token ───
+    async function deleteInstanceFromProvider(tokenValue: string, label?: string | null) {
+      const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+      if (!BASE_URL || !ADMIN_TOKEN) return { deleted: false, reason: "no_config" };
+
+      // Try to delete by instance name (label) first, then by token
+      const identifiers = [label, tokenValue].filter(Boolean);
+      for (const instanceName of identifiers) {
+        try {
+          // Try disconnect first
+          await fetch(`${BASE_URL}/instance/disconnect`, {
+            method: "POST",
+            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name: instanceName }),
+          }).catch(() => {});
+
+          // Then delete
+          const res = await fetch(`${BASE_URL}/instance/delete`, {
+            method: "DELETE",
+            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ name: instanceName }),
+          });
+          if (res.ok) {
+            console.log(`[admin-data] UAZAPI instance deleted: ${instanceName}`);
+            return { deleted: true, name: instanceName };
+          }
+        } catch (e) {
+          console.warn(`[admin-data] Failed to delete UAZAPI instance ${instanceName}:`, e);
+        }
+      }
+      return { deleted: false, reason: "api_failed" };
+    }
+
     // ─── DELETE TOKEN ───
     if (action === "delete-token" && req.method === "POST") {
       const { token_id, target_user_id } = await req.json();
+
+      // Fetch token details before deleting
+      const { data: tokenRow } = await adminClient
+        .from("user_api_tokens")
+        .select("token, label")
+        .eq("id", token_id)
+        .maybeSingle();
+
+      // Delete from UAZAPI (non-blocking)
+      let providerResult = { deleted: false, reason: "no_token" } as any;
+      if (tokenRow?.token) {
+        providerResult = await deleteInstanceFromProvider(tokenRow.token, tokenRow.label);
+      }
+
       await adminClient.from("user_api_tokens").delete().eq("id", token_id);
-      await logAction(adminClient, user.id, target_user_id, "delete-token", `Token removido: ${token_id}`);
-      return new Response(JSON.stringify({ success: true }), {
+      await logAction(adminClient, user.id, target_user_id, "delete-token", `Token removido: ${token_id} | UAZAPI: ${providerResult.deleted ? "deletado" : providerResult.reason}`);
+      return new Response(JSON.stringify({ success: true, provider_deleted: providerResult.deleted }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -1191,16 +1239,35 @@ Deno.serve(async (req) => {
     if (action === "delete-all-tokens" && req.method === "POST") {
       const { target_user_id } = await req.json();
       console.log("[delete-all-tokens] target:", target_user_id);
-      
+
+      // Fetch all tokens before deleting
+      const { data: allTokens } = await adminClient
+        .from("user_api_tokens")
+        .select("id, token, label")
+        .eq("user_id", target_user_id);
+
+      // Delete all from UAZAPI in parallel (max 10 concurrent)
+      let providerDeleted = 0;
+      if (allTokens && allTokens.length > 0) {
+        const batchSize = 10;
+        for (let i = 0; i < allTokens.length; i += batchSize) {
+          const batch = allTokens.slice(i, i + batchSize);
+          const results = await Promise.allSettled(
+            batch.map(t => deleteInstanceFromProvider(t.token, t.label))
+          );
+          providerDeleted += results.filter(r => r.status === "fulfilled" && (r.value as any).deleted).length;
+        }
+      }
+
       const { error, count } = await adminClient
         .from("user_api_tokens")
         .delete({ count: "exact" })
         .eq("user_id", target_user_id);
       
-      console.log("[delete-all-tokens] deleted count:", count, "error:", error);
+      console.log("[delete-all-tokens] deleted count:", count, "UAZAPI deleted:", providerDeleted, "error:", error);
       if (error) throw error;
-      await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `${count} token(s) removido(s)`);
-      return new Response(JSON.stringify({ success: true, removed: count }), {
+      await logAction(adminClient, user.id, target_user_id, "delete-all-tokens", `${count} token(s) removido(s) | UAZAPI: ${providerDeleted} deletados`);
+      return new Response(JSON.stringify({ success: true, removed: count, provider_deleted: providerDeleted }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
