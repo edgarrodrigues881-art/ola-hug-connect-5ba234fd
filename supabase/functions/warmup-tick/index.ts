@@ -2503,7 +2503,8 @@ async function handleTick(db: any) {
 
             // Check if partner already has too many active pairs
             const partnerPairCount = await getActivePairCount(db, e.device_id);
-            if (partnerPairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+            const partnerChipState = await getDeviceChipState(db, e.device_id);
+            if (partnerPairCount >= getMaxPairsForChip(partnerChipState)) continue;
 
             await db.from("community_pairs").insert({
               cycle_id: cycle.id,
