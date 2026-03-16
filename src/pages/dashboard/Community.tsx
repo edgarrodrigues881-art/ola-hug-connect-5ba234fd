@@ -119,7 +119,7 @@ const Community = () => {
                 <animate
                   attributeName="stroke-dashoffset"
                   values="940;0"
-                  dur="2.5s"
+                  dur="5s"
                   repeatCount="indefinite"
                 />
               </rect>
