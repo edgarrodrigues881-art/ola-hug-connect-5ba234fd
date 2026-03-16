@@ -116,6 +116,7 @@ const App = () => (
                           <Route path="reports/connection" element={<ReportConnection />} />
                           <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
                           <Route path="custom-module" element={<CustomModule />} />
+                          <Route path="community" element={<Community />} />
                           <Route path="notifications" element={<Notifications />} />
                           <Route path="settings" element={<SettingsPage />} />
                           <Route path="my-plan" element={<MyPlan />} />
