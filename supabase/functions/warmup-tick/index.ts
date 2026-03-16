@@ -275,7 +275,7 @@ async function scheduleDayJobs(
     }
   }
 
-  // Community bursts — each job = 1 burst of 3-7 msgs (real conversation)
+  // Community bursts — each job = 1 burst of 2-4 msgs (real conversation)
   // 8-12 bursts per peer, spaced ~40-90 min apart to fill the 12h window
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
     for (let p = 0; p < volumes.communityPeers; p++) {
