@@ -1300,7 +1300,7 @@ const Campaigns = () => {
               </div>
 
               {/* Preview column */}
-              <div className="lg:col-span-2 lg:sticky lg:top-4 self-start">
+              <div className="lg:col-span-2 lg:sticky lg:top-4 flex flex-col">
                 <WhatsAppPreview />
               </div>
             </div>
