@@ -282,9 +282,9 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild tooltip="Aquecimento" className="flex-1">
                     <NavLink
                       to="/dashboard/warmup-v2"
-                      className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
+                       className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
                         transition-[background-color,color,opacity] duration-[120ms] ease-out
-                        ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-full' : 'gap-[11px] px-3.5 py-[10px]'}
+                        ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 py-[10px]'}
                         ${isActive("/dashboard/warmup-v2")
                           ? 'bg-primary/10 text-foreground font-semibold'
                           : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
