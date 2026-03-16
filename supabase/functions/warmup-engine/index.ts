@@ -292,33 +292,32 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── AUTOSAVE INTERACTIONS (spread throughout the day) ──
-  // Pattern: contact1 msg1 → 4-7min → contact1 msg2 → 4-7min → contact1 msg3 → next contact
-  // 5 contacts × 3 msgs = 15 msgs, ~4-7 min gaps = ~60-105 min total
-  if (volumes.autosaveContacts > 0 && volumes.autosaveRounds > 0) {
-    // Pick a random start point within the window (first 60% to leave room)
-    const asWindowMs = effectiveEnd - effectiveStart;
+  // ── AUTOSAVE INTERACTIONS (scaled to window) ──
+  // Scale contacts proportionally to remaining window
+  const scaledAutosaveContacts = Math.max(1, Math.floor(volumes.autosaveContacts * windowRatio));
+  const scaledAutosaveRounds = volumes.autosaveRounds; // keep rounds per contact fixed
+  
+  if (scaledAutosaveContacts > 0 && scaledAutosaveRounds > 0) {
     const asStartOffset = randInt(
-      Math.floor(asWindowMs * 0.1),
-      Math.floor(asWindowMs * 0.4)
+      Math.floor(windowMs * 0.1),
+      Math.floor(windowMs * 0.3)
     );
     let cursor = effectiveStart + asStartOffset;
 
-    for (let c = 0; c < volumes.autosaveContacts; c++) {
-      for (let r = 0; r < volumes.autosaveRounds; r++) {
-        if (cursor > effectiveEnd) break;
+    for (let c = 0; c < scaledAutosaveContacts; c++) {
+      for (let r = 0; r < scaledAutosaveRounds; r++) {
+        if (cursor > effectiveEnd - 60000) break;
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "autosave_interaction",
           payload: { recipient_index: c, msg_index: r },
           run_at: new Date(cursor).toISOString(), status: "pending",
         });
-        // 4-7 min pause between each message
         cursor += randInt(4, 7) * 60 * 1000;
       }
-      // Extra pause between contacts: 5-10 min
       cursor += randInt(5, 10) * 60 * 1000;
     }
+    console.log(`[scheduleDayJobs] Autosave: ${volumes.autosaveContacts} → ${scaledAutosaveContacts} contacts`);
   }
 
   // ── COMMUNITY BURSTS (each job = 3-7 msgs, spaced across window) ──
