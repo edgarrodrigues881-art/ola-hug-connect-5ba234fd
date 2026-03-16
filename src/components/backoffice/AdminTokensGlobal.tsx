@@ -38,6 +38,7 @@ const AdminTokensGlobal = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [cleaningIdle, setCleaningIdle] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-global-tokens"],
@@ -135,6 +136,26 @@ const AdminTokensGlobal = () => {
   const inUse = tokens.filter(t => t.status === "in_use").length;
   const blocked = tokens.filter(t => t.status === "blocked").length;
   const invalid = tokens.filter(t => t.healthy === false).length;
+  const idle = tokens.filter(t => t.status !== "in_use" && !t.device_id).length;
+
+  const handleCleanIdle = () => {
+    setCleaningIdle(true);
+    mutate(
+      { action: "bulk-delete-idle-tokens", body: {} },
+      {
+        onSuccess: (d: any) => {
+          toast({ title: `${d?.removed ?? 0} token(s) ociosos removidos (${d?.provider_deleted ?? 0} da UAZAPI)` });
+          setCleaningIdle(false);
+          setSelectedIds(new Set());
+          refetch();
+        },
+        onError: (e) => {
+          toast({ title: "Erro", description: e.message, variant: "destructive" });
+          setCleaningIdle(false);
+        },
+      }
+    );
+  };
 
   const getHealthIcon = (healthy: boolean | null) => {
     if (healthy === true) return <ShieldCheck size={12} className="text-primary" />;
@@ -193,6 +214,37 @@ const AdminTokensGlobal = () => {
           <div><p className="text-[10px] text-muted-foreground uppercase font-medium">Inválidos</p><p className="text-xl font-bold tabular-nums">{invalid}</p></div>
         </div>
       </div>
+
+      {/* Cleanup idle tokens */}
+      {idle > 0 && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isPending || cleaningIdle}
+              className="w-full gap-2 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl h-9"
+            >
+              {cleaningIdle ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              Limpar {idle} token(s) ociosos (disponíveis/bloqueados sem instância) + UAZAPI
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Limpar todos os tokens ociosos?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground">
+                {idle} token(s) que <strong>não estão em uso</strong> e <strong>não têm instância vinculada</strong> serão removidos do banco de dados e deletados da UAZAPI. Tokens em uso não serão afetados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCleanIdle} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Limpar ociosos
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-3">

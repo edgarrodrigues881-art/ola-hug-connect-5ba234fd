@@ -1310,8 +1310,54 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── BULK DELETE IDLE TOKENS (not in_use, no device) ───
+    if (action === "bulk-delete-idle-tokens" && req.method === "POST") {
+      // Get all idle tokens (available or blocked, no device)
+      const { data: idleTokens, error: idleErr } = await adminClient
+        .from("user_api_tokens")
+        .select("id, token, label, user_id")
+        .in("status", ["available", "blocked"])
+        .is("device_id", null)
+        .limit(2000);
+      if (idleErr) throw idleErr;
 
-      const { target_user_id, whatsapp_monitor_token } = await req.json();
+      if (!idleTokens || idleTokens.length === 0) {
+        return new Response(JSON.stringify({ success: true, removed: 0, provider_deleted: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete from UAZAPI in batches
+      let providerDeleted = 0;
+      const batchSize = 10;
+      for (let i = 0; i < idleTokens.length; i += batchSize) {
+        const batch = idleTokens.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map(t => deleteInstanceFromProvider(t.token, t.label))
+        );
+        providerDeleted += results.filter(r => r.status === "fulfilled" && (r.value as any).deleted).length;
+      }
+
+      // Delete from DB
+      const idleIds = idleTokens.map(t => t.id);
+      // Delete in chunks of 200
+      let totalRemoved = 0;
+      for (let i = 0; i < idleIds.length; i += 200) {
+        const chunk = idleIds.slice(i, i + 200);
+        const { count } = await adminClient
+          .from("user_api_tokens")
+          .delete({ count: "exact" })
+          .in("id", chunk);
+        totalRemoved += count || 0;
+      }
+
+      await logAction(adminClient, user.id, null, "bulk-delete-idle-tokens", `${totalRemoved} token(s) ociosos removidos | UAZAPI: ${providerDeleted} deletados`);
+      return new Response(JSON.stringify({ success: true, removed: totalRemoved, provider_deleted: providerDeleted }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
       console.log("[admin-data] update-monitor-token for:", target_user_id, "token:", whatsapp_monitor_token ? "***" : "(empty)");
       const { error: updErr } = await adminClient.from("profiles").update({
         whatsapp_monitor_token: whatsapp_monitor_token || null,
