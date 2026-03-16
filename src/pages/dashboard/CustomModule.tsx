@@ -508,7 +508,7 @@ const PLAN_NOVO: DayPlanEntry[] = [
     day: i + 22, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "6p × 6b",
     totalEstimado: "183-397",
   })),
-  ...Array.from({ length: 4 }, (_, i) => ({
+  ...Array.from({ length: 5 }, (_, i) => ({
     day: i + 26, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "7p × 7b",
     totalEstimado: "222-488", nota: i + 26 === 30 ? "🎉 Chip aquecido!" : undefined,
   })),
@@ -535,13 +535,9 @@ const PLAN_BANIDO: DayPlanEntry[] = [
     day: i + 14, phase: "Comunidade", grupos: "50-120", autosave: "25", comunitario: "4p × 4b",
     totalEstimado: "123-277", nota: i + 14 === 21 ? "3 semanas 🛡️" : undefined,
   })),
-  ...Array.from({ length: 6 }, (_, i) => ({
+  ...Array.from({ length: 11 }, (_, i) => ({
     day: i + 20, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "5p × 5b",
     totalEstimado: "150-320", nota: i + 20 === 25 ? "Consolidação" : (i + 20 === 30 ? "🛡️ Recuperação completa!" : undefined),
-  })),
-  ...Array.from({ length: 5 }, (_, i) => ({
-    day: i + 26, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "5p × 5b",
-    totalEstimado: "150-320", nota: i + 26 === 30 ? "🛡️ Recuperação completa!" : undefined,
   })),
 ];
 
@@ -569,7 +565,7 @@ const PLAN_RUIM: DayPlanEntry[] = [
     day: i + 19, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 4b",
     totalEstimado: "99-201", nota: i + 19 === 21 ? "3 semanas 🛡️" : undefined,
   })),
-  ...Array.from({ length: 6 }, (_, i) => ({
+  ...Array.from({ length: 7 }, (_, i) => ({
     day: i + 24, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "3p × 4b",
     totalEstimado: "111-249", nota: i + 24 === 25 ? "Consolidação" : (i + 24 === 30 ? "🛡️ Chip estabilizado!" : undefined),
   })),
