@@ -1178,7 +1178,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── Helper: delete instance from UAZAPI by token ───
-    async function deleteInstanceFromProvider(tokenValue: string, label?: string | null) {
+    const deleteInstanceFromProvider = async (tokenValue: string, label?: string | null) => {
       const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
       const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
       if (!BASE_URL || !ADMIN_TOKEN) return { deleted: false, reason: "no_config" };
