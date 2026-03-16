@@ -115,7 +115,7 @@ const App = () => (
                           <Route path="campaign/:id" element={<CampaignDetail />} />
                           <Route path="templates" element={<Templates />} />
                           <Route path="contacts" element={<Contacts />} />
-                          <Route path="warmup" element={<Warmup />} />
+                          {/* Warmup V1 removed — redirect to V2 */}
                           <Route path="proxy" element={<Proxy />} />
                           <Route path="groups" element={<Groups />} />
                           <Route path="reports" element={<Reports />} />
