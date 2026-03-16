@@ -649,7 +649,7 @@ Deno.serve(async (req) => {
       }
       const startTime = Date.now();
 
-      const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("id, user_id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, messages_per_instance, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, sent_count, failed_count, started_at, total_contacts").eq("id", campaignId).single();
+      const { data: campaign, error: campErr } = await serviceClient.from("campaigns").select("id, user_id, name, status, message_type, message_content, media_url, buttons, device_id, device_ids, messages_per_instance, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, sent_count, failed_count, started_at, total_contacts, pause_on_disconnect").eq("id", campaignId).single();
       if (campErr || !campaign) {
         return new Response(JSON.stringify({ error: "Campanha não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
