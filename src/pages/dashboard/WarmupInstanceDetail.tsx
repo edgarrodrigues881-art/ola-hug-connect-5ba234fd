@@ -93,7 +93,7 @@ const WarmupInstanceDetail = () => {
         .from("devices")
         .select("id, name, number, status, login_type, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
         .eq("id", deviceId!)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
