@@ -46,29 +46,30 @@ function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, 
   if (!c) return null;
   return (
     <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }}>
-      <div className={cn(!c.is_active && "opacity-50", "h-[62px] rounded-lg border bg-card text-card-foreground shadow-sm")}>
-        <div className="p-3 flex items-center gap-3 h-full">
+      <div className={cn(
+        "h-[62px] rounded-xl border border-border/15 bg-card/60 backdrop-blur-sm transition-all duration-150 hover:border-border/30 hover:bg-card/80 group/row",
+        !c.is_active && "opacity-40"
+      )}>
+        <div className="px-4 flex items-center gap-3.5 h-full">
           <div className={cn(
-            "w-2 h-2 rounded-full shrink-0",
-            c.is_active ? "bg-emerald-400" : "bg-muted-foreground/30"
+            "w-2 h-2 rounded-full shrink-0 ring-2",
+            c.is_active ? "bg-emerald-400 ring-emerald-400/20" : "bg-muted-foreground/30 ring-muted-foreground/10"
           )} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-foreground truncate">
-                {c.contact_name || "Sem nome"}
-              </p>
-            </div>
-            <p className="text-[11px] font-mono text-muted-foreground">{c.phone_e164}</p>
+            <p className="text-[13px] font-semibold text-foreground truncate">
+              {c.contact_name || "Sem nome"}
+            </p>
+            <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onEdit(c)}>
-              <Edit2 className="w-3 h-3" />
+          <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover/row:opacity-100 transition-opacity">
+            <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/40 transition-colors" onClick={() => onEdit(c)}>
+              <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
-            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onToggle(c)}>
-              {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
+            <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/40 transition-colors" onClick={() => onToggle(c)}>
+              {c.is_active ? <PowerOff className="w-3.5 h-3.5 text-amber-400" /> : <Power className="w-3.5 h-3.5 text-emerald-400" />}
             </button>
-            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-destructive" onClick={() => onDelete(c.id)}>
-              <Trash2 className="w-3 h-3" />
+            <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-destructive/10 transition-colors" onClick={() => onDelete(c.id)}>
+              <Trash2 className="w-3.5 h-3.5 text-destructive/70" />
             </button>
           </div>
         </div>
