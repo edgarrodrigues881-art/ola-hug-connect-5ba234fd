@@ -99,7 +99,6 @@ export function useDashboardStats() {
       const dayStatsMap: Record<string, { sent: number; failed: number; total: number }> = {};
 
       dailyStats.forEach((s) => {
-        if (!validDeviceIds.has(s.device_id)) return;
         totalSent += s.messages_sent || 0;
         totalFailed += s.messages_failed || 0;
 
