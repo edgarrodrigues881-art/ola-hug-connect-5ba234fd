@@ -484,11 +484,12 @@ const GroupCapture = () => {
                   const online = ["Connected", "Ready", "authenticated"].includes(d.status);
                   const sel = selectedDevices.includes(d.id);
                   return (
-                    <label key={d.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
-                      <Checkbox checked={sel} onCheckedChange={() => toggleDevice(d.id)} />
+                    <label key={d.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${online ? "cursor-pointer" : "cursor-not-allowed opacity-40"} ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
+                      <Checkbox checked={sel} disabled={!online} onCheckedChange={() => online && toggleDevice(d.id)} />
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ring-2 ${online ? "bg-emerald-400 ring-emerald-400/20" : "bg-red-400 ring-red-400/20"}`} />
                       <span className="text-xs font-medium truncate flex-1">{d.name}</span>
-                      {d.number && <span className="text-[10px] text-muted-foreground/30 font-mono ml-auto">{d.number}</span>}
+                      {!online && <span className="text-[9px] text-destructive/60 font-medium ml-auto shrink-0">Offline</span>}
+                      {online && d.number && <span className="text-[10px] text-muted-foreground/30 font-mono ml-auto">{d.number}</span>}
                     </label>
                   );
                 })}
