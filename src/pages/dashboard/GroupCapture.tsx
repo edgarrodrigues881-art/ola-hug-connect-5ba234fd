@@ -255,15 +255,20 @@ const GroupCapture = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-2xl mx-auto">
+    <div className="space-y-5 max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-foreground">Grupos de Aquecimento</h1>
-          <p className="text-xs text-muted-foreground">Grupos para aquecimento automático</p>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <UsersRound className="w-5 h-5 text-primary" />
+            </div>
+            Grupos de Aquecimento
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Grupos para aquecimento automático</p>
         </div>
-        <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5 h-8 text-xs">
-          <LogIn className="w-3.5 h-3.5" /> Entrar nos Grupos
+        <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5 text-xs h-10 px-5 rounded-xl shadow-md">
+          <LogIn className="w-4 h-4" /> Entrar nos Grupos
         </Button>
       </div>
 
@@ -272,29 +277,35 @@ const GroupCapture = () => {
 
       {/* Groups List */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
       ) : groups.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
-            <UsersRound className="w-8 h-8 mb-2 opacity-30" />
-            <span className="text-sm">Nenhum grupo cadastrado</span>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="secondary" className="text-[10px]">{groups.length} grupo{groups.length !== 1 ? "s" : ""}</Badge>
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="py-16 text-center">
+            <UsersRound className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground/50 font-medium">Nenhum grupo cadastrado</p>
           </div>
-          {groups.map((g: any) => (
-            <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/20 bg-card/40 hover:bg-card/70 transition-colors">
-              <img src={dgGroupAvatar} alt="Grupo" className="w-8 h-8 rounded-full object-cover shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
-                <p className="text-[10px] text-muted-foreground/50 truncate font-mono">{g.link}</p>
+        </div>
+      ) : (
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+            <h3 className="text-sm font-bold text-foreground">{groups.length} grupo{groups.length !== 1 ? "s" : ""}</h3>
+          </div>
+          <div className="divide-y divide-border/10">
+            {groups.map((g: any) => (
+              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/5 transition-colors group/row">
+                <img src={dgGroupAvatar} alt="Grupo" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-border/10" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground truncate">{g.name}</p>
+                  <p className="text-[10px] text-muted-foreground/35 truncate font-mono mt-0.5">{g.link}</p>
+                </div>
+                <div className="opacity-50 group-hover/row:opacity-100 transition-opacity">
+                  <CopyButton text={g.link} />
+                </div>
               </div>
-              <CopyButton text={g.link} />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
