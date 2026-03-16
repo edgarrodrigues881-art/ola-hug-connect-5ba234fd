@@ -48,7 +48,7 @@ export const DeviceStatusList = React.memo(function DeviceStatusList({ devices, 
               >
                 <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
                   {d.profile_picture ? (
-                    <img src={d.profile_picture} alt="" className="w-full h-full object-cover" />
+                    <img src={d.profile_picture} alt="" className="w-full h-full object-cover" onError={(e) => { const el = e.target as HTMLImageElement; el.onerror = null; el.style.display = "none"; }} />
                   ) : (
                     <Smartphone className="w-4 h-4 text-muted-foreground" />
                   )}
