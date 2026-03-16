@@ -25,6 +25,8 @@ class ErrorBoundary extends Component<Props, State> {
     const signature = `${error.name}: ${error.message}`;
 
     console.error("[ErrorBoundary]", signature);
+    console.error("[ErrorBoundary] Stack:", error.stack);
+    console.error("[ErrorBoundary] Component:", info.componentStack);
 
     // ── Dynamic import / chunk load failure → auto-reload once ──
     const isChunkError = /failed to fetch dynamically imported module|loading chunk|load module script/i.test(signature);
