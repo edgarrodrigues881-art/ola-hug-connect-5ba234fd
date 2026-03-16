@@ -2113,21 +2113,16 @@ async function handleTick(db: any) {
         });
 
         // Rotate community pairs on daily reset if in community phase
+        // IMPORTANT: Only manage pairs where this device is instance_id_a (the "owner")
+        // This prevents race conditions where both sides close each other's pairs
         if (newPhase === "community_enabled") {
           const targetPeers = getCommunityPeers(newDay, chipState);
 
-          // Get existing active pairs by device_id (not cycle_id) — device B may have
-          // pairs created by device A's cycle, so cycle_id lookup would miss them
-          const { data: pairsA } = await db.from("community_pairs")
+          // Only get pairs where this device is instance_id_a (owner manages lifecycle)
+          const { data: ownedPairs } = await db.from("community_pairs")
             .select("id, instance_id_a, instance_id_b")
             .eq("instance_id_a", job.device_id).eq("status", "active");
-          const { data: pairsB } = await db.from("community_pairs")
-            .select("id, instance_id_a, instance_id_b")
-            .eq("instance_id_b", job.device_id).eq("status", "active");
-          const dedupSet = new Set<string>();
-          const existingPairs = [...(pairsA || []), ...(pairsB || [])].filter(p => {
-            if (dedupSet.has(p.id)) return false; dedupSet.add(p.id); return true;
-          });
+          const existingPairs = ownedPairs || [];
 
           // Keep ~40% of old pairs (familiar contacts), close rest
           const keepCount = Math.min(
