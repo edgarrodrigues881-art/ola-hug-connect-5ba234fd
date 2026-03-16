@@ -426,7 +426,11 @@ async function heartbeatLock(serviceClient: any, campaignId: string) {
   await serviceClient.rpc("heartbeat_device_lock", { _campaign_id: campaignId });
 }
 
-async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], _failedCount: number, campaignName?: string, userId?: string) {
+async function handleDisconnectPause(serviceClient: any, campaignId: string, deviceIds: string[], _failedCount: number, campaignName?: string, userId?: string, pauseOnDisconnect: boolean = true) {
+  if (!pauseOnDisconnect) {
+    console.log(`⚠️ Disconnect detected for campaign ${campaignId}, but pause_on_disconnect=false — continuing`);
+    return false; // signal: don't break the loop
+  }
   console.log(`⚠️ Disconnect detected for campaign ${campaignId}, pausing to preserve contacts`);
   await serviceClient.from("campaign_contacts").update({ status: "pending" }).eq("campaign_id", campaignId).eq("status", "processing");
   const realStats = await getRealCampaignStats(serviceClient, campaignId);
@@ -442,6 +446,7 @@ async function handleDisconnectPause(serviceClient: any, campaignId: string, dev
   if (userId) {
     sendCampaignAlertToWa(serviceClient, userId, campaignName || "", "paused", realStats);
   }
+  return true; // signal: campaign was paused, break the loop
 }
 
 // Sync campaign counters from source of truth (campaign_contacts table)
