@@ -76,26 +76,26 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Progressão segura: 2→3→4→5→6→7 pares (volume total < 350 msgs/dia)
-  if (daysSinceCommunity <= 1) return 2;   // dias 0-1: 2 pares
-  if (daysSinceCommunity <= 5) return 3;   // dias 2-5: 3 pares
-  if (daysSinceCommunity <= 10) return 4;  // dias 6-10: 4 pares
-  if (daysSinceCommunity <= 15) return 5;  // dias 11-15: 5 pares
-  if (daysSinceCommunity <= 20) return 6;  // dias 16-20: 6 pares
-  return 7;                                // dias 21+: 7 pares (teto)
+  // Progressão conservadora: 1→2→2→3→3→4 pares (anti-flood)
+  if (daysSinceCommunity <= 2) return 1;   // dias 0-2: 1 par
+  if (daysSinceCommunity <= 5) return 2;   // dias 3-5: 2 pares
+  if (daysSinceCommunity <= 10) return 2;  // dias 6-10: 2 pares
+  if (daysSinceCommunity <= 15) return 3;  // dias 11-15: 3 pares
+  if (daysSinceCommunity <= 20) return 3;  // dias 16-20: 3 pares
+  return 4;                                // dias 21+: 4 pares (teto)
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Bursts por par escalam suavemente: 4→5→5→6→6→7
-  if (daysSinceCommunity <= 1) return 4;
-  if (daysSinceCommunity <= 5) return 5;
-  if (daysSinceCommunity <= 10) return 5;
-  if (daysSinceCommunity <= 15) return 6;
-  if (daysSinceCommunity <= 20) return 6;
-  return 7;
+  // Bursts por par conservadores: 2→3→3→4→4→5
+  if (daysSinceCommunity <= 2) return 2;
+  if (daysSinceCommunity <= 5) return 3;
+  if (daysSinceCommunity <= 10) return 3;
+  if (daysSinceCommunity <= 15) return 4;
+  if (daysSinceCommunity <= 20) return 4;
+  return 5;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
