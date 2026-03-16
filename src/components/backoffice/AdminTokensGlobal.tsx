@@ -40,6 +40,7 @@ const AdminTokensGlobal = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [cleaningIdle, setCleaningIdle] = useState(false);
 
   // Fetch directly from UAZAPI
   const { data, isLoading, refetch, isFetching } = useQuery({
