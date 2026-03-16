@@ -54,6 +54,7 @@ const WarmupInstances = lazyRetry(() => import("./pages/dashboard/WarmupInstance
 const WarmupInstanceDetail = lazyRetry(() => import("./pages/dashboard/WarmupInstanceDetail"));
 const AutoSave = lazyRetry(() => import("./pages/dashboard/AutoSave"));
 const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
+const Community = lazyRetry(() => import("./pages/dashboard/Community"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
@@ -115,6 +116,7 @@ const App = () => (
                           <Route path="reports/connection" element={<ReportConnection />} />
                           <Route path="reports/whatsapp" element={<ReportWhatsApp />} />
                           <Route path="custom-module" element={<CustomModule />} />
+                          <Route path="community" element={<Community />} />
                           <Route path="notifications" element={<Notifications />} />
                           <Route path="settings" element={<SettingsPage />} />
                           <Route path="my-plan" element={<MyPlan />} />
