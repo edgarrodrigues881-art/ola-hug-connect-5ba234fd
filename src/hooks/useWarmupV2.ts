@@ -138,8 +138,8 @@ export function useDeviceCycle(deviceId: string) {
       return null;
     },
     enabled: !!user && !!deviceId,
-    refetchInterval: 3_000,
-    staleTime: 2_000,
+    refetchInterval: 10_000,
+    staleTime: 5_000,
   });
 }
 
