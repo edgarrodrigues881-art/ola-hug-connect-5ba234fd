@@ -14,10 +14,11 @@ const CommunityPoolTab = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("connected");
   const [filterEnrolled, setFilterEnrolled] = useState("all");
   const [filterPhase, setFilterPhase] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [showOnlyWithCycle, setShowOnlyWithCycle] = useState(true);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["community-pool"],
@@ -47,17 +48,19 @@ const CommunityPoolTab = () => {
       const q = search.toLowerCase();
       if (!d.name?.toLowerCase().includes(q) && !d.number?.includes(q) && !d.owner_name?.toLowerCase().includes(q) && !d.owner_email?.toLowerCase().includes(q)) return false;
     }
-    if (filterStatus !== "all" && d.status?.toLowerCase() !== filterStatus) return false;
+    if (filterStatus === "connected" && !["connected", "ready"].includes(d.status?.toLowerCase())) return false;
+    if (filterStatus === "disconnected" && d.status?.toLowerCase() !== "disconnected") return false;
     if (filterEnrolled === "yes" && !d.is_enrolled) return false;
     if (filterEnrolled === "no" && d.is_enrolled) return false;
     if (filterPhase !== "all" && d.cycle_phase !== filterPhase) return false;
+    if (showOnlyWithCycle && !d.cycle_active) return false;
     return true;
   });
 
   const allData = data || [];
   const enrolled = allData.filter((d: any) => d.is_enrolled).length;
   const connected = allData.filter((d: any) => ["connected", "ready"].includes(d.status?.toLowerCase())).length;
-  const hasActiveFilter = filterStatus !== "all" || filterEnrolled !== "all" || filterPhase !== "all";
+  const hasActiveFilter = filterStatus !== "connected" || filterEnrolled !== "all" || filterPhase !== "all" || !showOnlyWithCycle;
 
   const statusColor = (s: string) => {
     const lower = s?.toLowerCase();
@@ -115,34 +118,40 @@ const CommunityPoolTab = () => {
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos status</SelectItem>
-                <SelectItem value="connected">Connected</SelectItem>
-                <SelectItem value="ready">Ready</SelectItem>
-                <SelectItem value="disconnected">Disconnected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterEnrolled} onValueChange={setFilterEnrolled}>
-              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Ativo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="yes">Ativo</SelectItem>
-                <SelectItem value="no">Inativo</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterPhase} onValueChange={setFilterPhase}>
-              <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Phase" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas phases</SelectItem>
-                <SelectItem value="pre_24h">pre_24h</SelectItem>
-                <SelectItem value="groups_only">groups_only</SelectItem>
-                <SelectItem value="autosave_enabled">autosave_enabled</SelectItem>
-                <SelectItem value="community_enabled">community_enabled</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos status</SelectItem>
+                  <SelectItem value="connected">Conectados</SelectItem>
+                  <SelectItem value="disconnected">Desconectados</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterEnrolled} onValueChange={setFilterEnrolled}>
+                <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Ativo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="yes">Ativo</SelectItem>
+                  <SelectItem value="no">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterPhase} onValueChange={setFilterPhase}>
+                <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Phase" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas phases</SelectItem>
+                  <SelectItem value="pre_24h">pre_24h</SelectItem>
+                  <SelectItem value="groups_only">groups_only</SelectItem>
+                  <SelectItem value="autosave_enabled">autosave_enabled</SelectItem>
+                  <SelectItem value="community_enabled">community_enabled</SelectItem>
+                  <SelectItem value="community_light">community_light</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Switch checked={showOnlyWithCycle} onCheckedChange={setShowOnlyWithCycle} className="scale-75" />
+              <span className="text-[11px] text-muted-foreground">Mostrar apenas com ciclo ativo</span>
+            </div>
           </div>
         )}
       </div>
