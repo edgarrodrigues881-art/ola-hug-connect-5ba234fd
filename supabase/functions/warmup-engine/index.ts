@@ -248,6 +248,8 @@ async function scheduleDayJobs(
 
   const { effectiveStart, effectiveEnd, isEmergency } = window;
   const windowMs = effectiveEnd - effectiveStart;
+  const FULL_WINDOW_MS = 12 * 60 * 60 * 1000; // 07:00-19:00 = 12h
+  const MIN_SPACING_MS = 3 * 60 * 1000; // Mínimo 3 min entre mensagens
 
   if (windowMs < 30 * 60 * 1000) {
     console.log(`[scheduleDayJobs] Window too small (${Math.round(windowMs / 60000)}min)`);
@@ -258,18 +260,30 @@ async function scheduleDayJobs(
     console.log(`[scheduleDayJobs] Using 2h emergency window`);
   }
 
+  // ── SCALE VOLUMES PROPORTIONALLY TO REMAINING WINDOW ──
+  const windowRatio = Math.min(windowMs / FULL_WINDOW_MS, 1);
   const volumes = getVolumes(chipState, dayIndex, phase);
+
+  // Scale group messages proportionally — never flood
+  const scaledGroupMsgs = Math.max(1, Math.floor(volumes.groupMsgs * windowRatio));
+  
+  // Ensure minimum spacing is respected: max msgs = window / MIN_SPACING
+  const maxBySpacing = Math.floor(windowMs / MIN_SPACING_MS);
+  const safeGroupMsgs = Math.min(scaledGroupMsgs, maxBySpacing);
+
+  console.log(`[scheduleDayJobs] Window: ${Math.round(windowMs / 60000)}min (${Math.round(windowRatio * 100)}%), groups: ${volumes.groupMsgs} → ${safeGroupMsgs}`);
+
   const jobs: any[] = [];
 
   // ── GROUP INTERACTIONS ──
-  if (volumes.groupMsgs > 0) {
+  if (safeGroupMsgs > 0) {
     const firstJobOffset = randInt(60, 300) * 1000; // 1-5 min após abertura
     const remainingWindow = windowMs - firstJobOffset;
-    const spacing = remainingWindow / Math.max(volumes.groupMsgs, 1);
-    for (let i = 0; i < volumes.groupMsgs; i++) {
-      const offset = firstJobOffset + spacing * i + randInt(-60, 60) * 1000;
+    const spacing = Math.max(remainingWindow / Math.max(safeGroupMsgs, 1), MIN_SPACING_MS);
+    for (let i = 0; i < safeGroupMsgs; i++) {
+      const offset = firstJobOffset + spacing * i + randInt(-30, 30) * 1000;
       const runAt = new Date(effectiveStart + Math.max(offset, 60000));
-      if (runAt.getTime() > effectiveEnd) break;
+      if (runAt.getTime() > effectiveEnd - 60000) break; // 1 min margin
       jobs.push({
         user_id: userId, device_id: deviceId, cycle_id: cycleId,
         job_type: "group_interaction", payload: {},
