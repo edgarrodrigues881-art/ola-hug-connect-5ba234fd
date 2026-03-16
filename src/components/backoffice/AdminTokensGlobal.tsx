@@ -135,6 +135,27 @@ const AdminTokensGlobal = () => {
   const inUse = tokens.filter(t => t.status === "in_use").length;
   const blocked = tokens.filter(t => t.status === "blocked").length;
   const invalid = tokens.filter(t => t.healthy === false).length;
+  const idle = tokens.filter(t => t.status !== "in_use" && !t.device_id).length;
+  const [cleaningIdle, setCleaningIdle] = useState(false);
+
+  const handleCleanIdle = () => {
+    setCleaningIdle(true);
+    mutate(
+      { action: "bulk-delete-idle-tokens", body: {} },
+      {
+        onSuccess: (d: any) => {
+          toast({ title: `${d?.removed ?? 0} token(s) ociosos removidos (${d?.provider_deleted ?? 0} da UAZAPI)` });
+          setCleaningIdle(false);
+          setSelectedIds(new Set());
+          refetch();
+        },
+        onError: (e) => {
+          toast({ title: "Erro", description: e.message, variant: "destructive" });
+          setCleaningIdle(false);
+        },
+      }
+    );
+  };
 
   const getHealthIcon = (healthy: boolean | null) => {
     if (healthy === true) return <ShieldCheck size={12} className="text-primary" />;
