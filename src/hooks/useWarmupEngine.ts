@@ -11,6 +11,7 @@ export function useWarmupEngine() {
       chip_state?: string;
       days_total?: number;
       plan_id?: string;
+      start_day?: number;
     }) => {
       const { data, error } = await supabase.functions.invoke("warmup-engine", {
         body: params,
