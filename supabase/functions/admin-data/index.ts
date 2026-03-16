@@ -1525,6 +1525,8 @@ Deno.serve(async (req) => {
 
     // ─── COMMUNITY PAIRS: GENERATE (placeholder) ───
     if (action === "community-generate-pairs" && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const allowSameOwner = body?.allow_same_owner === true;
       // Get enrolled instances (exclude report_wa devices)
       const { data: memberships } = await adminClient.from("warmup_community_membership")
         .select("device_id, user_id").eq("is_enabled", true).eq("is_eligible", true);
@@ -1584,8 +1586,8 @@ Deno.serve(async (req) => {
         if (paired.has(shuffled[i].device_id)) continue;
         for (let j = i + 1; j < shuffled.length; j++) {
           if (paired.has(shuffled[j].device_id)) continue;
-          // Don't pair same user's instances
-          if (shuffled[i].user_id === shuffled[j].user_id) continue;
+          // Don't pair same user's instances (unless test mode)
+          if (!allowSameOwner && shuffled[i].user_id === shuffled[j].user_id) continue;
           // Check rotation
           const pairKey = [shuffled[i].device_id, shuffled[j].device_id].sort().join("|");
           if (recentPairSet.has(pairKey)) continue;
