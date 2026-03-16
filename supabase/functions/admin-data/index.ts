@@ -688,8 +688,8 @@ Deno.serve(async (req) => {
           }).eq("id", token.id);
 
           reassigned++;
-        } catch (e: any) {
-          errors.push(`${device.name}: ${e.message}`);
+        } catch (e) {
+          errors.push(`${device.name}: ${(e as any).message}`);
         }
       }
 
