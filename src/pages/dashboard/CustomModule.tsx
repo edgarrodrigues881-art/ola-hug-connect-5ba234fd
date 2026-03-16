@@ -7,6 +7,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Smartphone,
   Wifi,
@@ -24,6 +26,10 @@ import {
   Zap,
   HeartPulse,
   CircleDot,
+  Calendar,
+  MessageSquare,
+  Users,
+  Send,
 } from "lucide-react";
 
 const CustomModule = () => {
