@@ -1981,16 +1981,48 @@ async function handleTick(db: any) {
         } else {
           const pairBusy = Boolean(pairMeta.conversation_id && pairMeta.expected_sender_device_id);
           if (pairBusy) {
-            bufferAudit({
-              user_id: job.user_id,
-              device_id: job.device_id,
-              cycle_id: job.cycle_id,
-              level: "info",
-              event_type: "community_waiting_reply",
-              message: "Conversa x1 já está em andamento — aguardando resposta do outro lado",
-              meta: { pair_id: selectedPair.id, conversation_id: pairMeta.conversation_id },
-            });
-            break;
+            // ── Timeout de 10 min: se o par não respondeu, reseta a conversa ──
+            const lastTurnMs = pairMeta.last_turn_at ? new Date(pairMeta.last_turn_at).getTime() : 0;
+            const STALE_CONVERSATION_MS = 10 * 60 * 1000; // 10 minutos
+            const isStale = lastTurnMs && !Number.isNaN(lastTurnMs) && (Date.now() - lastTurnMs) > STALE_CONVERSATION_MS;
+
+            if (isStale) {
+              // Reseta o estado do par para permitir nova conversa
+              const resetMeta = {
+                ...rawPairMeta,
+                initiator: null,
+                expected_sender_device_id: null,
+                last_sender_device_id: pairMeta.last_sender_device_id,
+                turns_completed: 0,
+                max_turns: 0,
+                conversation_id: null,
+                last_turn_at: pairMeta.last_turn_at,
+                last_completed_at: new Date().toISOString(),
+              };
+              await db.from("community_pairs").update({ meta: resetMeta }).eq("id", selectedPair.id);
+
+              bufferAudit({
+                user_id: job.user_id,
+                device_id: job.device_id,
+                cycle_id: job.cycle_id,
+                level: "warn",
+                event_type: "community_stale_reset",
+                message: `Par não respondeu em 10 min — conversa resetada para permitir novo início`,
+                meta: { pair_id: selectedPair.id, stale_conversation_id: pairMeta.conversation_id, expected_peer: pairMeta.expected_sender_device_id },
+              });
+              // Não faz break — permite que este dispositivo inicie uma nova conversa agora
+            } else {
+              bufferAudit({
+                user_id: job.user_id,
+                device_id: job.device_id,
+                cycle_id: job.cycle_id,
+                level: "info",
+                event_type: "community_waiting_reply",
+                message: "Conversa x1 já está em andamento — aguardando resposta do outro lado",
+                meta: { pair_id: selectedPair.id, conversation_id: pairMeta.conversation_id },
+              });
+              break;
+            }
           }
 
           const lastCompletedMs = pairMeta.last_completed_at ? new Date(pairMeta.last_completed_at).getTime() : 0;
