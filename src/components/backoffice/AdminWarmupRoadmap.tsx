@@ -58,17 +58,17 @@ const ROADMAP_NOVO: DayPlan[] = [
     msgTarget: { min: 215, max: 515 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 5, phase: "community_light", title: "Comunidade inicial",
-    goals: ["Manter grupos (50-120) + AutoSave (25)", "Ativar conversas comunitárias: 2 pares", "Cada conversa: 4 bursts × 3-7 msgs (conversa real)"],
-    checklist: ["Grupos + AutoSave mantidos", "2 conversas comunitárias ativas", "~20-28 msgs comunitárias", "Mensagens parecem naturais (emojis, textos curtos)"],
-    tips: "As conversas comunitárias são entre instâncias da plataforma. Devem parecer orgânicas.",
-    msgTarget: { min: 95, max: 173 }, groupTarget: 8, recipientTarget: 7,
+    day: 5, phase: "autosave", title: "Auto Save consolidado",
+    goals: ["Manter volume de grupos (200-500)", "Auto Save: 5 números × 3 msgs = 15/dia", "Preparar para fase comunitária amanhã"],
+    checklist: ["Grupos + AutoSave estáveis por 3 dias", "Nenhum bloqueio ou warning", "15 msgs Auto Save", "Instância saudável"],
+    msgTarget: { min: 215, max: 515 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 6, phase: "community_light", title: "Comunidade consolidando",
-    goals: ["Continuar tudo: grupos + AutoSave + comunidade leve", "Verificar logs de erros", "2 pares mantidos"],
-    checklist: ["2 pares comunitários ativos", "Zero erros nos últimos 2 dias", "Volume estável < 200 msgs"],
-    msgTarget: { min: 95, max: 173 }, groupTarget: 8, recipientTarget: 7,
+    day: 6, phase: "community_light", title: "Comunidade inicial",
+    goals: ["Manter grupos (50-120) + AutoSave (25)", "Ativar conversas comunitárias: 2 pares", "Cada conversa: 4 bursts × 3-7 msgs (conversa real)"],
+    checklist: ["Grupos + AutoSave mantidos", "2 conversas comunitárias ativas", "~24-56 msgs comunitárias", "Mensagens parecem naturais (emojis, textos curtos)"],
+    tips: "As conversas comunitárias são entre instâncias da plataforma. Devem parecer orgânicas.",
+    msgTarget: { min: 99, max: 201 }, groupTarget: 8, recipientTarget: 7,
   },
   // Days 7-30: Community Full — progressão segura (< 350 msgs/dia)
   ...Array.from({ length: 24 }, (_, i) => {
