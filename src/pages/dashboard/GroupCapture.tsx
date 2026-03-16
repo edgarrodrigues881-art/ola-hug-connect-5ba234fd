@@ -224,7 +224,7 @@ const GroupCapture = () => {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [isStarting, setIsStarting] = useState(false);
-  const [activeTab, setActiveTab] = useState("system");
+  const [activeTab, setActiveTab] = useState("custom");
 
   // Add group form
   const [newGroupName, setNewGroupName] = useState("");
