@@ -1460,6 +1460,25 @@ async function handleTick(db: any) {
         let joinJid: string | null = null;
         let joinError: string | null = null;
 
+        // Helper to extract JID from any API response shape
+        const extractJid = (parsed: any): string | null => {
+          const candidates = [
+            parsed?.group?.JID, parsed?.group?.jid, parsed?.group?.id,
+            parsed?.data?.group?.JID, parsed?.data?.group?.jid, parsed?.data?.group?.id,
+            parsed?.data?.JID, parsed?.data?.jid, parsed?.data?.id,
+            parsed?.data?.gid, parsed?.data?.groupId, parsed?.data?.chatId,
+            parsed?.gid, parsed?.groupId, parsed?.jid, parsed?.id, parsed?.chatId,
+          ];
+          for (const c of candidates) {
+            if (c && typeof c === "string" && c.includes("@g.us")) return c;
+          }
+          // Deep search: find any string with @g.us in the response
+          const jsonStr = JSON.stringify(parsed);
+          const jidMatch = jsonStr.match(/(\d+@g\.us)/);
+          if (jidMatch) return jidMatch[1];
+          return null;
+        };
+
         const endpoints = [
           { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteCode }) },
           { method: "POST", url: `${baseUrl}/group/join`, body: JSON.stringify({ invitecode: inviteLink.split("?")[0] }) },
@@ -1482,7 +1501,7 @@ async function handleTick(db: any) {
 
             if (res.ok || res.status === 409) {
               joinOk = true;
-              joinJid = parsed?.group?.JID || parsed?.data?.group?.JID || parsed?.data?.JID || parsed?.gid || parsed?.groupId || parsed?.jid || null;
+              joinJid = extractJid(parsed);
               const msg = (parsed?.message || parsed?.msg || "").toLowerCase();
               if (msg.includes("already") || msg.includes("já")) joinOk = true;
               break;
@@ -1493,6 +1512,47 @@ async function handleTick(db: any) {
         }
 
         if (joinOk) {
+          // If JID not found in join response, resolve via live groups API
+          if (!joinJid) {
+            try {
+              const liveEndpoints = [
+                `${baseUrl}/group/fetchAllGroups`,
+                `${baseUrl}/group/fetchAllGroups?getParticipants=false`,
+                `${baseUrl}/group/list?GetParticipants=false&count=500`,
+              ];
+              const normName = (v: string) => String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+              const targetName = normName(groupName);
+              
+              for (const ep of liveEndpoints) {
+                try {
+                  const res = await fetch(ep, {
+                    method: "GET",
+                    headers: { token, Accept: "application/json" },
+                  });
+                  if (!res.ok) continue;
+                  const raw = await res.text();
+                  const parsed = raw ? JSON.parse(raw) : null;
+                  if (!parsed) continue;
+                  
+                  const arrCandidates = [parsed, parsed?.groups, parsed?.data, parsed?.data?.groups];
+                  for (const arr of arrCandidates) {
+                    if (!Array.isArray(arr)) continue;
+                    for (const g of arr) {
+                      const gName = normName(g?.subject || g?.name || g?.Name || g?.title || "");
+                      const gJid = g?.JID || g?.jid || g?.id || g?.groupJid || g?.chatId || "";
+                      if (gName === targetName && String(gJid).includes("@g.us")) {
+                        joinJid = gJid;
+                        break;
+                      }
+                    }
+                    if (joinJid) break;
+                  }
+                  if (joinJid) break;
+                } catch { continue; }
+              }
+            } catch { /* ignore */ }
+          }
+
           await db.from("warmup_instance_groups")
             .update({ join_status: "joined", joined_at: new Date().toISOString(), ...(joinJid ? { group_jid: joinJid } : {}) })
             .eq("device_id", job.device_id).eq("group_id", groupId);
@@ -1500,7 +1560,7 @@ async function handleTick(db: any) {
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "group_joined",
-            message: `Entrou no grupo ${groupName}${joinJid ? ` (JID: ${joinJid})` : ""}`,
+            message: `Entrou no grupo ${groupName}${joinJid ? ` (JID: ${joinJid})` : " (JID não resolvido — será resolvido na interação)"}`,
             meta: { group_name: groupName, jid: joinJid },
           });
 
