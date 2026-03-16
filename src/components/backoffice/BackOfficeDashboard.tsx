@@ -266,6 +266,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         case "warmup-cycles": return <AdminWarmupCycles />;
         case "warmup-jobs": return <AdminWarmupJobs />;
         case "infra": return <AdminInfra />;
+        case "tokens-global": return <AdminTokensGlobal />;
         case "community": return <AdminCommunityWarmer />;
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
         case "msg-generator": return <MessageGeneratorPreview />;
