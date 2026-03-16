@@ -76,26 +76,16 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Progressão conservadora: 1→2→2→3→3→4 pares (anti-flood)
-  if (daysSinceCommunity <= 2) return 1;   // dias 0-2: 1 par
-  if (daysSinceCommunity <= 5) return 2;   // dias 3-5: 2 pares
-  if (daysSinceCommunity <= 10) return 2;  // dias 6-10: 2 pares
-  if (daysSinceCommunity <= 15) return 3;  // dias 11-15: 3 pares
-  if (daysSinceCommunity <= 20) return 3;  // dias 16-20: 3 pares
-  return 4;                                // dias 21+: 4 pares (teto)
+  // ULTRA CONSERVADOR — máximo 1 par para evitar bans
+  return 1;
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Bursts por par conservadores: 2→3→3→4→4→5
-  if (daysSinceCommunity <= 2) return 2;
-  if (daysSinceCommunity <= 5) return 3;
-  if (daysSinceCommunity <= 10) return 3;
-  if (daysSinceCommunity <= 15) return 4;
-  if (daysSinceCommunity <= 20) return 4;
-  return 5;
+  // ULTRA CONSERVADOR — máximo 1 burst por par por dia
+  return 1;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
