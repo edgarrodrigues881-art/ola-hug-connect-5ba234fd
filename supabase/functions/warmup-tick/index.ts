@@ -626,15 +626,14 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
   
   const attempts: Array<{ path: string; body: Record<string, unknown> }> = isGroup
     ? [
+        { path: "/send/text", body: { chatId: number, number, text } },
         { path: "/send/text", body: { number, text } },
-        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
-        { path: "/send/text", body: { chatId: number, text } },
+        { path: "/chat/send-text", body: { chatId: number, to: number, body: text, text } },
       ]
     : [
         { path: "/send/text", body: { number, text } },
         { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
         { path: "/message/sendText", body: { chatId: number, text } },
-        { path: "/message/sendText", body: { to: number, text } },
       ];
 
   let lastErr = "";
