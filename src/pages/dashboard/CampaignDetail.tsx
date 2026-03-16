@@ -180,6 +180,7 @@ const CampaignDetail = () => {
   const [pauseDurationMin, setPauseDurationMin] = useState(30);
   const [pauseDurationMax, setPauseDurationMax] = useState(120);
   const [delayDirty, setDelayDirty] = useState(false);
+  const [pauseOnDisconnect, setPauseOnDisconnect] = useState(true);
 
   useEffect(() => {
     if (!campaign) return;
@@ -189,6 +190,7 @@ const CampaignDetail = () => {
     setPauseEveryMax(campaign.pause_every_max ?? 20);
     setPauseDurationMin(campaign.pause_duration_min ?? 30);
     setPauseDurationMax(campaign.pause_duration_max ?? 120);
+    setPauseOnDisconnect(campaign.pause_on_disconnect !== false);
   }, [campaign]);
 
   const saveDelayConfig = useCallback(async () => {
