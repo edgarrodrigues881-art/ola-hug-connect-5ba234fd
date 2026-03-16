@@ -1966,6 +1966,7 @@ async function handleTick(db: any) {
           break;
         }
 
+        const oldPhase = cycle.phase;
         const newPhase = getPhaseForDay(newDay, chipState);
 
         // Cancel old interaction jobs and join_group jobs (join only on day 1)
@@ -1981,18 +1982,38 @@ async function handleTick(db: any) {
           day_index: newDay,
           phase: newPhase,
           last_daily_reset_at: resetAt,
+          daily_interaction_budget_used: 0,
+          daily_unique_recipients_used: 0,
         }).eq("id", cycle.id);
 
         cycle.day_index = newDay;
         cycle.phase = newPhase;
         cycle.last_daily_reset_at = resetAt;
 
+        // [BUG 3 FIX] When transitioning to autosave_enabled or community_enabled,
+        // ensure community membership is activated (was only done by enable_autosave job before)
+        if (newPhase !== oldPhase && ["autosave_enabled", "community_enabled"].includes(newPhase)) {
+          const { data: membership } = await db.from("warmup_community_membership")
+            .select("id, is_enabled").eq("device_id", job.device_id).maybeSingle();
+
+          if (!membership) {
+            await db.from("warmup_community_membership").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: cycle.id,
+              is_eligible: true, is_enabled: true, enabled_at: resetAt,
+            });
+          } else if (!membership.is_enabled) {
+            await db.from("warmup_community_membership")
+              .update({ is_enabled: true, is_eligible: true, enabled_at: resetAt, cycle_id: cycle.id })
+              .eq("id", membership.id);
+          }
+        }
+
         const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "daily_reset",
-          message: `Reset: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, perfil: ${chipLabels[chipState] || chipState}`,
-          meta: { day: newDay, phase: newPhase },
+          message: `Reset: dia ${newDay}/${cycle.days_total}, fase: ${oldPhase} → ${newPhase}, perfil: ${chipLabels[chipState] || chipState}`,
+          meta: { day: newDay, phase: newPhase, old_phase: oldPhase },
         });
 
         // Rotate community pairs on daily reset if in community phase
