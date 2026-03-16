@@ -1767,8 +1767,8 @@ async function handleTick(db: any) {
 
               for (const ig of allIGs) {
                 if (ig.join_status === "joined") continue;
-                const poolGroup = groupsPoolMap[ig.group_id];
-                const poolName = norm(poolGroup?.name || "");
+                const grpRef = groupsMap[ig.group_id];
+                const grpName = norm(grpRef?.name || ig.group_name || "");
                 const igJid = String(ig.group_jid || "").toLowerCase().trim();
 
                 const nameMatch = poolName && liveNames.has(poolName);
