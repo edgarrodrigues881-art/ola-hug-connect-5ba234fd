@@ -317,8 +317,9 @@ const GroupCapture = () => {
 
   const selectAllGroups = useCallback(() =>
     setSelectedGroups((prev) => prev.length === allGroups.length ? [] : allGroups.map((g: any) => g.link)), [allGroups]);
+  const onlineDevices = devices.filter((d) => ["Connected", "Ready", "authenticated"].includes(d.status));
   const selectAllDevices = useCallback(() =>
-    setSelectedDevices((prev) => prev.length === devices.length ? [] : devices.map((d) => d.id)), [devices]);
+    setSelectedDevices((prev) => prev.length === onlineDevices.length ? [] : onlineDevices.map((d) => d.id)), [onlineDevices]);
 
   const hasOffline = useMemo(() =>
     selectedDevices.some(id => {
