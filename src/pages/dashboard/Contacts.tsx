@@ -15,13 +15,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable, ArrowRight, Loader2, CheckSquare, FileSpreadsheet, Database, UserRoundPlus, AlertTriangle, Ban, Phone,
+  Upload, Download, Search, Plus, Trash2, Tag, Copy, Users, MoreVertical, X, Send, UserPlus, ChevronDown, Pencil, Variable, ArrowRight, Loader2, CheckSquare, FileSpreadsheet, Database, UserRoundPlus, AlertTriangle, Ban, Phone, CheckCircle2,
 } from "lucide-react";
 import { useContacts, useCreateContact, useCreateContacts, useUpdateContact, useDeleteContacts, type Contact } from "@/hooks/useContacts";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
+const TAG_COLORS = [
+  { bg: "bg-emerald-500/15", text: "text-emerald-400", border: "border-emerald-500/30", dot: "bg-emerald-400" },
+  { bg: "bg-sky-500/15", text: "text-sky-400", border: "border-sky-500/30", dot: "bg-sky-400" },
+  { bg: "bg-amber-500/15", text: "text-amber-400", border: "border-amber-500/30", dot: "bg-amber-400" },
+  { bg: "bg-rose-500/15", text: "text-rose-400", border: "border-rose-500/30", dot: "bg-rose-400" },
+  { bg: "bg-violet-500/15", text: "text-violet-400", border: "border-violet-500/30", dot: "bg-violet-400" },
+  { bg: "bg-cyan-500/15", text: "text-cyan-400", border: "border-cyan-500/30", dot: "bg-cyan-400" },
+  { bg: "bg-orange-500/15", text: "text-orange-400", border: "border-orange-500/30", dot: "bg-orange-400" },
+  { bg: "bg-pink-500/15", text: "text-pink-400", border: "border-pink-500/30", dot: "bg-pink-400" },
+  { bg: "bg-lime-500/15", text: "text-lime-400", border: "border-lime-500/30", dot: "bg-lime-400" },
+  { bg: "bg-indigo-500/15", text: "text-indigo-400", border: "border-indigo-500/30", dot: "bg-indigo-400" },
+  { bg: "bg-teal-500/15", text: "text-teal-400", border: "border-teal-500/30", dot: "bg-teal-400" },
+  { bg: "bg-fuchsia-500/15", text: "text-fuchsia-400", border: "border-fuchsia-500/30", dot: "bg-fuchsia-400" },
+];
+const DEFAULT_TAG_COLORS: Record<string, number> = { cliente: 0, lead: 1, vip: 3, novo: 5 };
 // Fixed min-width ensures scrollbar on small screens, fits on large screens
 const TABLE_MIN_WIDTH = 500;
 const TABLE_GRID_COLS = "40px minmax(120px,1.5fr) minmax(120px,1.3fr) minmax(100px,1fr) 40px";
@@ -60,9 +75,10 @@ interface ContactRowProps {
   onRemoveTag: (contactId: string, tag: string) => void;
   onDelete: (ids: string[]) => void;
   onEdit: (contact: Contact) => void;
+  getTagStyle: (tag: string) => typeof TAG_COLORS[0];
 }
 
-const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit }: ContactRowProps): ReactElement {
+const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit, getTagStyle }: ContactRowProps): ReactElement {
   return (
     <div className="grid items-center border-b border-primary/5 hover:bg-primary/[0.02] text-sm transition-colors" style={{ minWidth: TABLE_MIN_WIDTH, gridTemplateColumns: TABLE_GRID_COLS }}>
       <div className="p-2 flex items-center justify-center">
@@ -75,12 +91,16 @@ const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSele
       <div className="p-2 font-medium text-foreground truncate">{contact.name}</div>
       <div className="p-2 text-muted-foreground font-mono text-xs truncate">{contact.phone}</div>
       <div className="p-2 flex gap-1 flex-wrap overflow-hidden">
-        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 2).map((tag: string) => (
-          <Badge key={tag} variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/10 group" onClick={() => onRemoveTag(contact.id, tag)}>
-            {tag}
-            <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </Badge>
-        )) : <span className="text-[11px] text-muted-foreground">—</span>}
+        {(contact.tags || []).length > 0 ? (contact.tags || []).slice(0, 3).map((tag: string) => {
+          const style = getTagStyle(tag);
+          return (
+            <span key={tag} className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border cursor-pointer group transition-colors", style.bg, style.text, style.border, "hover:opacity-80")} onClick={() => onRemoveTag(contact.id, tag)}>
+              <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+              {tag}
+              <X className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </span>
+          );
+        }) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
       <div className="p-2 overflow-hidden">
         <DropdownMenu>
@@ -126,8 +146,15 @@ const Contacts = () => {
   const [showAddVars, setShowAddVars] = useState(false);
   const [newContact, setNewContact] = useState({ name: "", phone: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" });
   const [customTags, setCustomTags] = useState<string[]>([]);
+  const [tagColors, setTagColors] = useState<Record<string, number>>({});
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [createTagInput, setCreateTagInput] = useState("");
+  const [newTagColorIdx, setNewTagColorIdx] = useState(0);
+
+  const getTagStyle = useCallback((tag: string) => {
+    const idx = tagColors[tag] ?? 0;
+    return TAG_COLORS[idx % TAG_COLORS.length];
+  }, [tagColors]);
 
   // Edit contact state
   const [editContactOpen, setEditContactOpen] = useState(false);
@@ -141,6 +168,14 @@ const Contacts = () => {
   // Load tags from localStorage on mount (safe parse)
   useEffect(() => {
     const stored = localStorage.getItem("contactCustomTags");
+    const storedColors = localStorage.getItem("contactTagColors");
+
+    let loadedColors: Record<string, number> = { ...DEFAULT_TAG_COLORS };
+    if (storedColors) {
+      try { loadedColors = { ...DEFAULT_TAG_COLORS, ...JSON.parse(storedColors) }; } catch { /* ignore */ }
+    }
+    setTagColors(loadedColors);
+    localStorage.setItem("contactTagColors", JSON.stringify(loadedColors));
 
     if (!stored) {
       setCustomTags(DEFAULT_TAGS);
@@ -172,8 +207,18 @@ const Contacts = () => {
     const newList = [...customTags, tag];
     setCustomTags(newList);
     localStorage.setItem("contactCustomTags", JSON.stringify(newList));
+    const newColors = { ...tagColors, [tag]: newTagColorIdx };
+    setTagColors(newColors);
+    localStorage.setItem("contactTagColors", JSON.stringify(newColors));
+    setNewTagColorIdx((newTagColorIdx + 1) % TAG_COLORS.length);
     setCreateTagInput("");
     toast({ title: `Tag "${tag}" criada` });
+  };
+
+  const changeTagColor = (tag: string, colorIdx: number) => {
+    const newColors = { ...tagColors, [tag]: colorIdx };
+    setTagColors(newColors);
+    localStorage.setItem("contactTagColors", JSON.stringify(newColors));
   };
 
   const handleDeleteTag = (tag: string) => {
@@ -478,50 +523,84 @@ const Contacts = () => {
             </div>
             <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full md:w-40 justify-between h-9 text-xs">
-                  {tagFilter === "all" ? "Todas as tags" : tagFilter}
+                <Button variant="outline" className="w-full md:w-44 justify-between h-9 text-xs gap-2">
+                  {tagFilter === "all" ? (
+                    "Todas as tags"
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <span className={cn("w-2 h-2 rounded-full", getTagStyle(tagFilter).dot)} />
+                      {tagFilter}
+                    </span>
+                  )}
                   <ChevronDown className="w-3.5 h-3.5 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-2">
-                <div className="space-y-1">
+              <PopoverContent align="end" className="w-64 p-0" sideOffset={8}>
+                <div className="p-2 border-b border-border/50">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1">Filtrar por tag</p>
+                </div>
+                <div className="p-1.5 space-y-0.5 max-h-52 overflow-y-auto">
                   <button
                     onClick={() => { setTagFilter("all"); setTagPopoverOpen(false); }}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-muted transition-colors ${tagFilter === "all" ? "bg-muted font-medium" : ""}`}
+                    className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2", tagFilter === "all" && "bg-muted font-medium")}
                   >
-                    ✓ Todas as tags
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                    Todas as tags
                   </button>
-                  {customTags.map(tag => (
-                    <div key={tag} className="flex items-center gap-1 group">
-                      <button
-                        onClick={() => { setTagFilter(tag); setTagPopoverOpen(false); }}
-                        className={`flex-1 text-left px-2 py-1.5 text-xs rounded hover:bg-muted transition-colors ${tagFilter === tag ? "bg-muted font-medium" : ""}`}
-                      >
-                        {tag}
-                      </button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="border-t border-border pt-2 mt-2">
-                    <div className="flex gap-1">
-                      <Input
+                  {customTags.map(tag => {
+                    const style = getTagStyle(tag);
+                    return (
+                      <div key={tag} className="flex items-center group">
+                        <button
+                          onClick={() => { setTagFilter(tag); setTagPopoverOpen(false); }}
+                          className={cn("flex-1 text-left px-2.5 py-2 text-xs rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2", tagFilter === tag && "bg-muted font-medium")}
+                        >
+                          <span className={cn("w-2 h-2 rounded-full shrink-0", style.dot)} />
+                          {tag}
+                        </button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="h-6 w-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted" onClick={e => e.stopPropagation()}>
+                              <span className={cn("w-3 h-3 rounded-full border-2 border-background", style.dot)} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2" side="left" align="center">
+                            <div className="grid grid-cols-6 gap-1.5">
+                              {TAG_COLORS.map((c, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => changeTagColor(tag, idx)}
+                                  className={cn("w-5 h-5 rounded-full transition-transform hover:scale-125", c.dot, tagColors[tag] === idx && "ring-2 ring-foreground ring-offset-1 ring-offset-background")}
+                                />
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <button
+                          className="h-6 w-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-destructive"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="p-2 border-t border-border/50">
+                  <div className="flex gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-1 rounded-lg border border-border/50 bg-background px-2">
+                      <span className={cn("w-2 h-2 rounded-full shrink-0", TAG_COLORS[newTagColorIdx].dot)} />
+                      <input
                         placeholder="Nova tag..."
                         value={createTagInput}
                         onChange={e => setCreateTagInput(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && handleCreateTag()}
-                        className="h-7 text-xs"
+                        className="h-7 text-xs bg-transparent outline-none flex-1 text-foreground placeholder:text-muted-foreground"
                       />
-                      <Button size="sm" onClick={handleCreateTag} className="h-7 px-2">
-                        <Plus className="w-3 h-3" />
-                      </Button>
                     </div>
+                    <Button size="sm" onClick={handleCreateTag} className="h-7 px-2.5 rounded-lg">
+                      <Plus className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </PopoverContent>
@@ -567,7 +646,7 @@ const Contacts = () => {
         ) : (
           <div style={{ maxHeight: filtered.length > 10 ? 480 : undefined, overflowY: filtered.length > 10 ? 'auto' : undefined }}>
             {filtered.map((contact, i) => (
-              <ContactRow key={contact.id} contact={contact} index={i + 1} selectMode={selectMode} isSelected={selected.has(contact.id)} onToggleSelect={toggleSelect} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} />
+              <ContactRow key={contact.id} contact={contact} index={i + 1} selectMode={selectMode} isSelected={selected.has(contact.id)} onToggleSelect={toggleSelect} onRemoveTag={removeTag} onDelete={handleDeleteIds} onEdit={openEditDialog} getTagStyle={getTagStyle} />
             ))}
           </div>
         )}
@@ -618,18 +697,23 @@ const Contacts = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <button type="button" className="w-full flex flex-wrap items-center gap-1.5 min-h-[36px] p-2 rounded-md border border-border/50 bg-background text-xs hover:border-primary/30 transition-colors cursor-pointer">
-                      {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => (
-                        <Badge key={tag} variant="outline" className="text-[10px] gap-1" onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
-                          {tag}
-                          <X className="w-2.5 h-2.5" />
-                        </Badge>
-                      )) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
+                      {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => {
+                        const style = getTagStyle(tag);
+                        return (
+                          <span key={tag} className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border", style.bg, style.text, style.border)} onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
+                            <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+                            {tag}
+                            <X className="w-2.5 h-2.5" />
+                          </span>
+                        );
+                      }) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56 p-2" align="start">
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                  <PopoverContent className="w-56 p-1.5" align="start">
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto">
                       {customTags.map(tag => {
                         const isSelected = (editContact.tags || []).includes(tag);
+                        const style = getTagStyle(tag);
                         return (
                           <button
                             key={tag}
@@ -639,10 +723,11 @@ const Contacts = () => {
                               const tags = p.tags || [];
                               return { ...p, tags: isSelected ? tags.filter(t => t !== tag) : [...tags, tag] };
                             })}
-                            className={cn("w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 hover:bg-muted transition-colors", isSelected && "bg-muted font-medium")}
+                            className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg flex items-center gap-2 hover:bg-muted/50 transition-colors", isSelected && "bg-muted font-medium")}
                           >
-                            <Checkbox checked={isSelected} className="h-3.5 w-3.5 pointer-events-none" />
+                            <span className={cn("w-2 h-2 rounded-full shrink-0", style.dot)} />
                             {tag}
+                            {isSelected && <CheckCircle2 className="w-3 h-3 text-primary ml-auto" />}
                           </button>
                         );
                       })}
@@ -671,24 +756,25 @@ const Contacts = () => {
           <DialogHeader><DialogTitle>Adicionar tags</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <Label className="text-xs">Selecione até 2 tags</Label>
-            <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+            <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
               {[...customTags].sort((a, b) => a.localeCompare(b)).map(tag => {
                 const isSelected = selectedTags.includes(tag);
+                const style = getTagStyle(tag);
                 return (
-                  <label key={tag} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          if (selectedTags.length < 2) setSelectedTags([...selectedTags, tag]);
-                        } else {
-                          setSelectedTags(selectedTags.filter(t => t !== tag));
-                        }
-                      }}
-                      disabled={!isSelected && selectedTags.length >= 2}
-                    />
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) setSelectedTags(selectedTags.filter(t => t !== tag));
+                      else if (selectedTags.length < 2) setSelectedTags([...selectedTags, tag]);
+                    }}
+                    disabled={!isSelected && selectedTags.length >= 2}
+                    className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors", isSelected ? "bg-muted font-medium" : "hover:bg-muted/50", !isSelected && selectedTags.length >= 2 && "opacity-40")}
+                  >
+                    <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", style.dot)} />
                     {tag}
-                  </label>
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />}
+                  </button>
                 );
               })}
             </div>
