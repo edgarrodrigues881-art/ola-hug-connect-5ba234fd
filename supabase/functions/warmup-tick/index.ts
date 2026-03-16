@@ -811,6 +811,107 @@ function pickMediaType(budgetUsed: number): "text" | "image" | "sticker" {
 const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
 const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
 
+type CommunityPairMeta = {
+  initiator: "a" | "b";
+  expected_sender_device_id: string | null;
+  last_sender_device_id: string | null;
+  turns_completed: number;
+  max_turns: number;
+  conversation_id: string | null;
+  last_turn_at: string | null;
+  last_completed_at: string | null;
+};
+
+function getCommunityInitiatorDeviceId(pair: any, initiator: "a" | "b"): string {
+  return initiator === "b" ? pair.instance_id_b : pair.instance_id_a;
+}
+
+function getCommunityPeerDeviceId(pair: any, deviceId: string): string {
+  return pair.instance_id_a === deviceId ? pair.instance_id_b : pair.instance_id_a;
+}
+
+function normalizeCommunityPairMeta(pair: any): CommunityPairMeta {
+  const raw = pair?.meta && typeof pair.meta === "object"
+    ? pair.meta as Record<string, any>
+    : {};
+
+  const initiator: "a" | "b" = raw.initiator === "b" ? "b" : "a";
+  const maxTurns = Number.isInteger(raw.max_turns) && raw.max_turns >= 2 && raw.max_turns <= 6
+    ? raw.max_turns
+    : 4;
+  const rawTurnsCompleted = Number.isInteger(raw.turns_completed) && raw.turns_completed >= 0
+    ? raw.turns_completed
+    : 0;
+  const turnsCompleted = Math.min(rawTurnsCompleted, maxTurns);
+  const initiatorDeviceId = getCommunityInitiatorDeviceId(pair, initiator);
+  const peerDeviceId = getCommunityPeerDeviceId(pair, initiatorDeviceId);
+  const fallbackExpectedSender = turnsCompleted === 0
+    ? initiatorDeviceId
+    : turnsCompleted % 2 === 1
+      ? peerDeviceId
+      : initiatorDeviceId;
+
+  return {
+    initiator,
+    expected_sender_device_id: turnsCompleted >= maxTurns
+      ? null
+      : (typeof raw.expected_sender_device_id === "string"
+        ? raw.expected_sender_device_id
+        : fallbackExpectedSender),
+    last_sender_device_id: typeof raw.last_sender_device_id === "string"
+      ? raw.last_sender_device_id
+      : null,
+    turns_completed: turnsCompleted >= maxTurns ? 0 : turnsCompleted,
+    max_turns: maxTurns,
+    conversation_id: typeof raw.conversation_id === "string" ? raw.conversation_id : null,
+    last_turn_at: typeof raw.last_turn_at === "string" ? raw.last_turn_at : null,
+    last_completed_at: typeof raw.last_completed_at === "string" ? raw.last_completed_at : null,
+  };
+}
+
+async function enqueueCommunityTurn(
+  db: any,
+  params: {
+    user_id: string;
+    device_id: string;
+    cycle_id: string;
+    pair_id: string;
+    conversation_id: string;
+    turn_index: number;
+    delay_seconds: number;
+  },
+) {
+  const { data: existing } = await db.from("warmup_jobs")
+    .select("id")
+    .eq("status", "pending")
+    .eq("device_id", params.device_id)
+    .eq("cycle_id", params.cycle_id)
+    .eq("job_type", "community_interaction")
+    .contains("payload", {
+      pair_id: params.pair_id,
+      conversation_id: params.conversation_id,
+      turn_index: params.turn_index,
+    })
+    .limit(1);
+
+  if (existing?.length) return;
+
+  await db.from("warmup_jobs").insert({
+    user_id: params.user_id,
+    device_id: params.device_id,
+    cycle_id: params.cycle_id,
+    job_type: "community_interaction",
+    payload: {
+      pair_id: params.pair_id,
+      conversation_id: params.conversation_id,
+      turn_index: params.turn_index,
+      source: "community_reply",
+    },
+    run_at: new Date(Date.now() + params.delay_seconds * 1000).toISOString(),
+    status: "pending",
+  });
+}
+
 // ══════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ══════════════════════════════════════════════════════════
