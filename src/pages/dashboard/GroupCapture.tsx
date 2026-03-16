@@ -378,7 +378,7 @@ const GroupCapture = () => {
             </div>
             Grupos de Aquecimento
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gerencie grupos do sistema e seus próprios grupos</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Cadastre seus próprios grupos para usar no aquecimento</p>
         </div>
         <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5 text-xs h-10 px-5 rounded-xl shadow-md">
           <LogIn className="w-4 h-4" /> Entrar nos Grupos
