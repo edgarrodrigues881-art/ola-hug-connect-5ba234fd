@@ -322,8 +322,18 @@ async function scheduleDayJobs(
       });
     }
   }
-  // Community DISABLED
-  // if (phase === "autosave_enabled") { ... enable_community ... }
+  // Enable community on the day after autosave
+  if (phase === "autosave_enabled") {
+    const communityDay = getGroupsEndDay(chipState) + 2;
+    if (dayIndex >= communityDay - 1) {
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "enable_community", payload: {},
+        run_at: new Date(effectiveEnd - 60000).toISOString(),
+        status: "pending",
+      });
+    }
+  }
 
   // Insert jobs in batches
   if (jobs.length > 0) {
