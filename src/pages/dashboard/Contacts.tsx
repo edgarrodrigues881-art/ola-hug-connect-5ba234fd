@@ -163,6 +163,14 @@ const Contacts = () => {
   // Load tags from localStorage on mount (safe parse)
   useEffect(() => {
     const stored = localStorage.getItem("contactCustomTags");
+    const storedColors = localStorage.getItem("contactTagColors");
+
+    let loadedColors: Record<string, number> = { ...DEFAULT_TAG_COLORS };
+    if (storedColors) {
+      try { loadedColors = { ...DEFAULT_TAG_COLORS, ...JSON.parse(storedColors) }; } catch { /* ignore */ }
+    }
+    setTagColors(loadedColors);
+    localStorage.setItem("contactTagColors", JSON.stringify(loadedColors));
 
     if (!stored) {
       setCustomTags(DEFAULT_TAGS);
