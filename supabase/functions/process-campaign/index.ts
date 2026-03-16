@@ -162,9 +162,21 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   const hasButtons = buttons && buttons.length > 0;
   const choices = hasButtons ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice)) : [];
   if (choices.length > 0) {
+    const isAudioMedia = mediaUrl ? detectMediaType(mediaUrl) === "audio" : false;
     const payload: any = { number: phone, type: "button", text: body, choices };
-    if (mediaUrl) payload.imageButton = mediaUrl;
-    return await uazapiRequest(baseUrl, token, "/send/menu", payload);
+    // Audio can't be used as imageButton — send menu without it, then audio separately
+    if (mediaUrl && !isAudioMedia) payload.imageButton = mediaUrl;
+    await uazapiRequest(baseUrl, token, "/send/menu", payload);
+    // If media is audio, send it as a voice note after the menu
+    if (mediaUrl && isAudioMedia) {
+      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+      await uazapiRequest(baseUrl, token, "/send/media", {
+        number: phone,
+        type: "ptt",
+        file: mediaUrl,
+      });
+    }
+    return;
   }
   if (mediaUrl) {
     const mediaType = detectMediaType(mediaUrl);
