@@ -1529,6 +1529,7 @@ export type Database = {
           days_total: number
           device_id: string
           first_24h_ends_at: string
+          group_source: string
           id: string
           is_running: boolean
           last_daily_reset_at: string | null
@@ -1554,6 +1555,7 @@ export type Database = {
           days_total?: number
           device_id: string
           first_24h_ends_at?: string
+          group_source?: string
           id?: string
           is_running?: boolean
           last_daily_reset_at?: string | null
@@ -1579,6 +1581,7 @@ export type Database = {
           days_total?: number
           device_id?: string
           first_24h_ends_at?: string
+          group_source?: string
           id?: string
           is_running?: boolean
           last_daily_reset_at?: string | null
@@ -1727,6 +1730,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_custom: boolean
           link: string
           name: string
           updated_at: string
@@ -1736,6 +1740,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_custom?: boolean
           link: string
           name: string
           updated_at?: string
@@ -1745,6 +1750,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_custom?: boolean
           link?: string
           name?: string
           updated_at?: string
