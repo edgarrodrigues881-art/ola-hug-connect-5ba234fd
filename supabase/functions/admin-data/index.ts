@@ -1209,7 +1209,7 @@ Deno.serve(async (req) => {
         }
       }
       return { deleted: false, reason: "api_failed" };
-    }
+    };
 
     // ─── DELETE TOKEN ───
     if (action === "delete-token" && req.method === "POST") {
