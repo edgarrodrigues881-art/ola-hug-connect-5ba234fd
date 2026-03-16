@@ -1812,13 +1812,13 @@ async function handleTick(db: any) {
         if (joinedGroups.length > 0) {
           const target = pickRandom(joinedGroups);
           targetGroupId = target.group_id;
-          const poolGroup = groupsPoolMap[target.group_id];
-          groupName = poolGroup?.name || "Grupo";
+          const grpRef = groupsMap[target.group_id];
+          groupName = grpRef?.name || target.group_name || "Grupo";
 
-          // Resolve JID by DB, fallback by invite JID, then live lookup by name
+          // Resolve JID by DB, fallback by invite link JID, then live lookup by name
           groupJid = target.group_jid;
-          if (!groupJid && poolGroup?.external_group_ref?.includes("@g.us")) {
-            groupJid = poolGroup.external_group_ref;
+          if (!groupJid && (target.invite_link || grpRef?.external_group_ref)?.includes("@g.us")) {
+            groupJid = target.invite_link || grpRef?.external_group_ref;
           }
           if (!groupJid) {
             try {
