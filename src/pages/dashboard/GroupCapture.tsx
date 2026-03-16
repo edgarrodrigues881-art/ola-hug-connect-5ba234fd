@@ -2,10 +2,11 @@ import { useState, useMemo, useCallback } from "react";
 import dgGroupAvatar from "@/assets/dg-group-avatar.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   UsersRound, Copy, Check, LogIn, Timer,
-  Loader2, Shield, StopCircle, XCircle, Clock, Users
+  Loader2, Shield, StopCircle, XCircle, Clock, Users, Plus, Trash2, Link2, UserPlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -15,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast as sonnerToast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /* ── Helpers ── */
 function CopyButton({ text }: { text: string }) {
@@ -159,6 +161,60 @@ function GroupJoinCampaignsWidget() {
   );
 }
 
+/* ── Group List Component ── */
+function GroupList({ groups, isCustom, onDelete }: { groups: any[]; isCustom: boolean; onDelete?: (id: string) => void }) {
+  if (groups.length === 0) {
+    return (
+      <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        <div className="py-16 text-center">
+          <UsersRound className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground/50 font-medium">
+            {isCustom ? "Nenhum grupo próprio cadastrado" : "Nenhum grupo do sistema"}
+          </p>
+          {isCustom && (
+            <p className="text-xs text-muted-foreground/30 mt-1">Adicione seus grupos usando o formulário acima</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+        <h3 className="text-sm font-bold text-foreground">{groups.length} grupo{groups.length !== 1 ? "s" : ""}</h3>
+        {isCustom && (
+          <Badge variant="outline" className="text-[10px] border-primary/20 text-primary/70">Seus grupos</Badge>
+        )}
+      </div>
+      <div className="divide-y divide-border/10">
+        {groups.map((g: any) => (
+          <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/5 transition-colors group/row">
+            <img src={dgGroupAvatar} alt="Grupo" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-border/10" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-foreground truncate">{g.name}</p>
+              <p className="text-[10px] text-muted-foreground/35 truncate font-mono mt-0.5">{g.link}</p>
+            </div>
+            <div className="flex items-center gap-1 opacity-50 group-hover/row:opacity-100 transition-opacity">
+              <CopyButton text={g.link} />
+              {isCustom && onDelete && (
+                <button
+                  className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive transition-colors"
+                  onClick={() => onDelete(g.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Page ── */
 const GroupCapture = () => {
   const { toast } = useToast();
@@ -168,19 +224,30 @@ const GroupCapture = () => {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [isStarting, setIsStarting] = useState(false);
+  const [activeTab, setActiveTab] = useState("system");
 
-  const { data: groups = [], isLoading } = useQuery({
+  // Add group form
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupLink, setNewGroupLink] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Fetch ALL groups (system + custom)
+  const { data: allGroups = [], isLoading } = useQuery({
     queryKey: ["warmup-groups"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("warmup_groups" as any)
-        .select("id, name, link, description, created_at")
+        .from("warmup_groups")
+        .select("id, name, link, description, is_custom, created_at")
         .order("name", { ascending: true });
       return (data || []) as any[];
     },
     enabled: !!user,
     staleTime: 30000,
   });
+
+  const systemGroups = useMemo(() => allGroups.filter((g: any) => !g.is_custom), [allGroups]);
+  const customGroups = useMemo(() => allGroups.filter((g: any) => g.is_custom), [allGroups]);
+  const currentGroups = activeTab === "system" ? systemGroups : customGroups;
 
   const { data: devices = [] } = useQuery({
     queryKey: ["devices-for-join"],
@@ -197,13 +264,59 @@ const GroupCapture = () => {
     staleTime: 60000,
   });
 
+  // Add custom group
+  const handleAddGroup = async () => {
+    if (!user || !newGroupName.trim() || !newGroupLink.trim()) return;
+
+    // Validate link
+    const link = newGroupLink.trim();
+    if (!link.includes("chat.whatsapp.com/")) {
+      toast({ title: "Link inválido", description: "O link deve ser um convite do WhatsApp (chat.whatsapp.com/...)", variant: "destructive" });
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      const { error } = await supabase
+        .from("warmup_groups")
+        .insert({
+          user_id: user.id,
+          name: newGroupName.trim(),
+          link: link,
+          is_custom: true,
+          description: "Grupo próprio do usuário",
+        });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["warmup-groups"] });
+      setNewGroupName("");
+      setNewGroupLink("");
+      toast({ title: "Grupo adicionado!" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  // Delete custom group
+  const handleDeleteGroup = async (id: string) => {
+    try {
+      const { error } = await supabase.from("warmup_groups").delete().eq("id", id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["warmup-groups"] });
+      toast({ title: "Grupo removido" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
   const toggleGroup = useCallback((link: string) =>
     setSelectedGroups((prev) => prev.includes(link) ? prev.filter((l) => l !== link) : [...prev, link]), []);
   const toggleDevice = useCallback((id: string) =>
     setSelectedDevices((prev) => prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]), []);
 
   const selectAllGroups = useCallback(() =>
-    setSelectedGroups((prev) => prev.length === groups.length ? [] : groups.map((g: any) => g.link)), [groups]);
+    setSelectedGroups((prev) => prev.length === allGroups.length ? [] : allGroups.map((g: any) => g.link)), [allGroups]);
   const selectAllDevices = useCallback(() =>
     setSelectedDevices((prev) => prev.length === devices.length ? [] : devices.map((d) => d.id)), [devices]);
 
@@ -224,7 +337,7 @@ const GroupCapture = () => {
       for (const deviceId of selectedDevices) {
         const dev = devices.find((d) => d.id === deviceId);
         for (const groupLink of selectedGroups) {
-          const grp = groups.find((g: any) => g.link === groupLink);
+          const grp = allGroups.find((g: any) => g.link === groupLink);
           queueItems.push({ device_id: deviceId, device_name: dev?.name || deviceId, group_link: groupLink, group_name: grp?.name || groupLink });
         }
       }
@@ -265,7 +378,7 @@ const GroupCapture = () => {
             </div>
             Grupos de Aquecimento
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Grupos para aquecimento automático</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Gerencie grupos do sistema e seus próprios grupos</p>
         </div>
         <Button onClick={() => setJoinModalOpen(true)} size="sm" className="gap-1.5 text-xs h-10 px-5 rounded-xl shadow-md">
           <LogIn className="w-4 h-4" /> Entrar nos Grupos
@@ -275,41 +388,82 @@ const GroupCapture = () => {
       {/* Campaigns */}
       <GroupJoinCampaignsWidget />
 
-      {/* Groups List */}
-      {isLoading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
-      ) : groups.length === 0 ? (
-        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-          <div className="py-16 text-center">
-            <UsersRound className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground/50 font-medium">Nenhum grupo cadastrado</p>
-          </div>
-        </div>
-      ) : (
-        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
-            <h3 className="text-sm font-bold text-foreground">{groups.length} grupo{groups.length !== 1 ? "s" : ""}</h3>
-          </div>
-          <div className="divide-y divide-border/10">
-            {groups.map((g: any) => (
-              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/5 transition-colors group/row">
-                <img src={dgGroupAvatar} alt="Grupo" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-border/10" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground truncate">{g.name}</p>
-                  <p className="text-[10px] text-muted-foreground/35 truncate font-mono mt-0.5">{g.link}</p>
+      {/* Tabs: System vs Custom */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="bg-muted/10 border border-border/15 rounded-xl p-1 h-auto">
+          <TabsTrigger value="system" className="text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1.5 px-4 py-2">
+            <Shield className="w-3.5 h-3.5" />
+            Sistema
+            <Badge variant="secondary" className="text-[9px] ml-1 h-4 px-1.5">{systemGroups.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="custom" className="text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1.5 px-4 py-2">
+            <UserPlus className="w-3.5 h-3.5" />
+            Meus Grupos
+            <Badge variant="secondary" className="text-[9px] ml-1 h-4 px-1.5">{customGroups.length}</Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="system" className="space-y-4 mt-0">
+          {isLoading ? (
+            <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
+          ) : (
+            <GroupList groups={systemGroups} isCustom={false} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="custom" className="space-y-4 mt-0">
+          {/* Add group form */}
+          <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+            <div className="p-5 space-y-3">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Plus className="w-4 h-4 text-primary" />
+                Adicionar Grupo
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Nome do grupo</label>
+                  <Input
+                    placeholder="Ex: Meu Grupo #01"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    className="h-9 text-xs rounded-xl border-border/15 bg-muted/5"
+                  />
                 </div>
-                <div className="opacity-50 group-hover/row:opacity-100 transition-opacity">
-                  <CopyButton text={g.link} />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Link do convite</label>
+                  <div className="relative">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/30" />
+                    <Input
+                      placeholder="https://chat.whatsapp.com/..."
+                      value={newGroupLink}
+                      onChange={(e) => setNewGroupLink(e.target.value)}
+                      className="h-9 text-xs rounded-xl border-border/15 bg-muted/5 pl-9"
+                    />
+                  </div>
                 </div>
               </div>
-            ))}
+              <Button
+                onClick={handleAddGroup}
+                disabled={isAdding || !newGroupName.trim() || !newGroupLink.trim()}
+                size="sm"
+                className="gap-1.5 text-xs h-9 rounded-xl"
+              >
+                {isAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                Adicionar
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Join Modal — premium */}
+          {isLoading ? (
+            <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
+          ) : (
+            <GroupList groups={customGroups} isCustom={true} onDelete={handleDeleteGroup} />
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Join Modal */}
       <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
         <DialogContent className="max-w-sm sm:max-w-md max-h-[80vh] overflow-y-auto p-0 bg-card/95 backdrop-blur-2xl border-border/10 rounded-2xl shadow-2xl">
           <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
@@ -355,27 +509,47 @@ const GroupCapture = () => {
               </div>
             </section>
 
-            {/* Groups */}
+            {/* Groups — show both system and custom */}
             <section className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                  Grupos <span className="normal-case font-normal">({selectedGroups.length}/{groups.length})</span>
+                  Grupos <span className="normal-case font-normal">({selectedGroups.length}/{allGroups.length})</span>
                 </span>
                 <button className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors" onClick={selectAllGroups}>
-                  {selectedGroups.length === groups.length ? "Desmarcar" : "Todos"}
+                  {selectedGroups.length === allGroups.length ? "Desmarcar" : "Todos"}
                 </button>
               </div>
               <div className="max-h-36 overflow-y-auto rounded-xl border border-border/15 bg-muted/5 p-1.5 space-y-0.5">
-                {groups.map((g: any) => {
-                  const sel = selectedGroups.includes(g.link);
-                  return (
-                    <label key={g.link} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
-                      <Checkbox checked={sel} onCheckedChange={() => toggleGroup(g.link)} />
-                      <span className="text-xs font-medium truncate">{g.name}</span>
-                    </label>
-                  );
-                })}
-                {groups.length === 0 && <p className="text-[11px] text-muted-foreground/30 text-center py-4">Nenhum grupo</p>}
+                {customGroups.length > 0 && (
+                  <>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-primary/50 px-3 pt-1.5 pb-0.5">Meus Grupos</p>
+                    {customGroups.map((g: any) => {
+                      const sel = selectedGroups.includes(g.link);
+                      return (
+                        <label key={g.link} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
+                          <Checkbox checked={sel} onCheckedChange={() => toggleGroup(g.link)} />
+                          <span className="text-xs font-medium truncate">{g.name}</span>
+                          <Badge variant="outline" className="text-[8px] h-4 px-1 ml-auto border-primary/20 text-primary/50 shrink-0">Próprio</Badge>
+                        </label>
+                      );
+                    })}
+                  </>
+                )}
+                {systemGroups.length > 0 && (
+                  <>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 px-3 pt-1.5 pb-0.5">Sistema</p>
+                    {systemGroups.map((g: any) => {
+                      const sel = selectedGroups.includes(g.link);
+                      return (
+                        <label key={g.link} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${sel ? "bg-primary/5 border border-primary/10" : "border border-transparent hover:bg-muted/20"}`}>
+                          <Checkbox checked={sel} onCheckedChange={() => toggleGroup(g.link)} />
+                          <span className="text-xs font-medium truncate">{g.name}</span>
+                        </label>
+                      );
+                    })}
+                  </>
+                )}
+                {allGroups.length === 0 && <p className="text-[11px] text-muted-foreground/30 text-center py-4">Nenhum grupo</p>}
               </div>
             </section>
 
