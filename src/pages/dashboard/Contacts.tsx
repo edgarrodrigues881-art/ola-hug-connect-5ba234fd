@@ -697,18 +697,23 @@ const Contacts = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <button type="button" className="w-full flex flex-wrap items-center gap-1.5 min-h-[36px] p-2 rounded-md border border-border/50 bg-background text-xs hover:border-primary/30 transition-colors cursor-pointer">
-                      {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => (
-                        <Badge key={tag} variant="outline" className="text-[10px] gap-1" onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
-                          {tag}
-                          <X className="w-2.5 h-2.5" />
-                        </Badge>
-                      )) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
+                      {(editContact.tags || []).length > 0 ? (editContact.tags || []).map((tag: string) => {
+                        const style = getTagStyle(tag);
+                        return (
+                          <span key={tag} className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border", style.bg, style.text, style.border)} onClick={(e) => { e.stopPropagation(); setEditContact(p => p ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p); }}>
+                            <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+                            {tag}
+                            <X className="w-2.5 h-2.5" />
+                          </span>
+                        );
+                      }) : <span className="text-muted-foreground text-xs">Selecionar tags...</span>}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56 p-2" align="start">
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                  <PopoverContent className="w-56 p-1.5" align="start">
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto">
                       {customTags.map(tag => {
                         const isSelected = (editContact.tags || []).includes(tag);
+                        const style = getTagStyle(tag);
                         return (
                           <button
                             key={tag}
@@ -718,10 +723,11 @@ const Contacts = () => {
                               const tags = p.tags || [];
                               return { ...p, tags: isSelected ? tags.filter(t => t !== tag) : [...tags, tag] };
                             })}
-                            className={cn("w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 hover:bg-muted transition-colors", isSelected && "bg-muted font-medium")}
+                            className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg flex items-center gap-2 hover:bg-muted/50 transition-colors", isSelected && "bg-muted font-medium")}
                           >
-                            <Checkbox checked={isSelected} className="h-3.5 w-3.5 pointer-events-none" />
+                            <span className={cn("w-2 h-2 rounded-full shrink-0", style.dot)} />
                             {tag}
+                            {isSelected && <CheckCircle2 className="w-3 h-3 text-primary ml-auto" />}
                           </button>
                         );
                       })}
