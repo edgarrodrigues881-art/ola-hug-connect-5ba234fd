@@ -513,15 +513,21 @@ const Contacts = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full max-w-5xl mx-auto">
-            <div className="relative flex-[3] min-w-0">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-full" />
-            </div>
-            <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+      {/* Filters — premium search bar */}
+      <div className="relative rounded-2xl border border-border/30 bg-gradient-to-r from-card via-card to-card p-[1px] shadow-lg dark:shadow-[0_4px_32px_rgba(0,0,0,0.4)] overflow-hidden max-w-5xl mx-auto">
+        {/* Subtle top gradient accent line */}
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 rounded-2xl bg-card/80 backdrop-blur-xl px-4 py-3">
+          <div className="relative flex-[3] min-w-0">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+            <Input
+              placeholder="Buscar por nome ou telefone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 w-full border-border/20 bg-background/50 focus-visible:bg-background/80 h-10 rounded-xl text-sm"
+            />
+          </div>
+          <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full md:w-44 justify-between h-9 text-xs gap-2">
                   {tagFilter === "all" ? (
@@ -620,8 +626,7 @@ const Contacts = () => {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Contact Table */}
       <Card className="glass-card overflow-x-auto border border-primary/10" style={{ WebkitOverflowScrolling: 'touch' }}>
