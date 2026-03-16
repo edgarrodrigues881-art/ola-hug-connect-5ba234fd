@@ -117,7 +117,12 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
 
-  // Community desativado para testes
+  // Community: 3 pares, 25-45 msgs cada lado (50-90 total por par)
+  if (phase === "community_enabled") {
+    v.communityPeers = 3;
+    v.communityMsgsPerPeer = randInt(25, 45);
+  }
+
   return v;
 }
 
@@ -284,23 +289,31 @@ async function scheduleDayJobs(
     }
   }
 
-  // ── COMMUNITY INTERACTIONS (conversation bursts) ──
+  // ── COMMUNITY INTERACTIONS (conversation-style, spread across entire window) ──
+  // 3 pares, cada par troca 50-90 msgs/dia (cada lado envia ~25-45)
+  // Mensagens intercaladas com gaps de 5-15 min simulando conversa real
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
-    const peerWindowMs = windowMs / volumes.communityPeers;
     for (let p = 0; p < volumes.communityPeers; p++) {
-      const peerStart = effectiveStart + peerWindowMs * p;
-      const convStart = peerStart + randInt(0, Math.floor(peerWindowMs * 0.1));
+      // Spread each conversation across the full window with random start offset
+      const convStartOffset = randInt(5, 30) * 60 * 1000 + p * randInt(3, 8) * 60 * 1000;
+      let cursor = effectiveStart + convStartOffset;
+
       for (let m = 0; m < volumes.communityMsgsPerPeer; m++) {
-        const msgOffset = m * randInt(30, 120) * 1000;
-        const runAt = new Date(convStart + msgOffset);
-        if (runAt.getTime() > effectiveEnd) break;
-        const isImage = Math.random() < 0.25;
+        if (cursor > effectiveEnd - 60000) break;
+
+        // ~15% image, ~5% sticker, rest text
+        const mediaRoll = Math.random();
+        const mediaType = mediaRoll < 0.15 ? "image" : mediaRoll < 0.20 ? "sticker" : "text";
+
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "community_interaction",
-          payload: { peer_index: p, msg_index: m, is_image: isImage },
-          run_at: runAt.toISOString(), status: "pending",
+          payload: { peer_index: p, msg_index: m, media_type: mediaType },
+          run_at: new Date(cursor).toISOString(), status: "pending",
         });
+
+        // Gap between messages: 5-15 min (simulates ping-pong conversation)
+        cursor += randInt(5, 15) * 60 * 1000;
       }
     }
   }
@@ -317,8 +330,18 @@ async function scheduleDayJobs(
       });
     }
   }
-  // Community DISABLED
-  // if (phase === "autosave_enabled") { ... enable_community ... }
+  // Enable community on the day after autosave
+  if (phase === "autosave_enabled") {
+    const communityDay = getGroupsEndDay(chipState) + 2;
+    if (dayIndex >= communityDay - 1) {
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "enable_community", payload: {},
+        run_at: new Date(effectiveEnd - 60000).toISOString(),
+        status: "pending",
+      });
+    }
+  }
 
   // Insert jobs in batches
   if (jobs.length > 0) {

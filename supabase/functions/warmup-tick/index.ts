@@ -88,7 +88,12 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
 
-  // Community desativado para testes
+  // Community: 3 pares, 25-45 msgs cada lado (50-90 total por par)
+  if (phase === "community_enabled") {
+    v.communityPeers = 3;
+    v.communityMsgsPerPeer = randInt(25, 45);
+  }
+
   return v;
 }
 
@@ -242,20 +247,27 @@ async function scheduleDayJobs(
     }
   }
 
-  // Community interactions (bursts)
+  // Community interactions — conversation-style, spread across entire window
+  // 3 pares, cada par troca 50-90 msgs/dia (cada lado envia ~25-45)
   if (volumes.communityPeers > 0 && volumes.communityMsgsPerPeer > 0) {
-    const pw = windowMs / volumes.communityPeers;
     for (let p = 0; p < volumes.communityPeers; p++) {
-      const convStart = effectiveStart + pw * p + randInt(0, Math.floor(pw * 0.1));
+      const convStartOffset = randInt(5, 30) * 60 * 1000 + p * randInt(3, 8) * 60 * 1000;
+      let cursor = effectiveStart + convStartOffset;
+
       for (let m = 0; m < volumes.communityMsgsPerPeer; m++) {
-        const runAt = new Date(convStart + m * randInt(30, 120) * 1000);
-        if (runAt.getTime() > effectiveEnd) break;
+        if (cursor > effectiveEnd - 60000) break;
+
+        const mediaRoll = Math.random();
+        const mediaType = mediaRoll < 0.15 ? "image" : mediaRoll < 0.20 ? "sticker" : "text";
+
         jobs.push({
           user_id: userId, device_id: deviceId, cycle_id: cycleId,
           job_type: "community_interaction",
-          payload: { peer_index: p, msg_index: m, is_image: Math.random() < 0.25 },
-          run_at: runAt.toISOString(), status: "pending",
+          payload: { peer_index: p, msg_index: m, media_type: mediaType },
+          run_at: new Date(cursor).toISOString(), status: "pending",
         });
+
+        cursor += randInt(5, 15) * 60 * 1000;
       }
     }
   }
@@ -268,8 +280,17 @@ async function scheduleDayJobs(
       run_at: new Date(effectiveEnd - 60000).toISOString(), status: "pending",
     });
   }
-  // Community DISABLED
-  // if (phase === "autosave_enabled") { ... enable_community ... }
+  // Enable community on the day after autosave
+  if (phase === "autosave_enabled") {
+    const communityDay = getGroupsEndDay(chipState) + 2;
+    if (dayIndex >= communityDay - 1) {
+      jobs.push({
+        user_id: userId, device_id: deviceId, cycle_id: cycleId,
+        job_type: "enable_community", payload: {},
+        run_at: new Date(effectiveEnd - 60000).toISOString(), status: "pending",
+      });
+    }
+  }
 
   // Insert jobs
   for (let i = 0; i < jobs.length; i += 100) {
@@ -1616,63 +1637,78 @@ async function handleTick(db: any) {
         break;
       }
 
-      // ── COMMUNITY INTERACTION ──
+      // ── COMMUNITY INTERACTION (conversation-style with media) ──
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
         const peerIndex = job.payload?.peer_index ?? 0;
-        const isImage = job.payload?.is_image === true;
+        const mediaType = job.payload?.media_type || "text";
 
-        // Find peers: paired instances or other active cycles
+        // Find active pairs for this cycle
         const { data: pairs } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b")
           .eq("cycle_id", cycle.id).eq("status", "active");
 
-        const { data: otherCycles } = await db.from("warmup_cycles")
-          .select("id, device_id, user_id")
-          .eq("is_running", true).neq("device_id", job.device_id)
-          .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
-          .limit(50);
-
-        const peers: { deviceId: string; pairId?: string }[] = [];
+        // If no pairs yet, try to find from other cycles or fallback
+        let peerDeviceId: string | null = null;
 
         if (pairs?.length) {
-          for (const p of pairs) {
-            const partnerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
-            peers.push({ deviceId: partnerId, pairId: p.id });
-          }
-        }
-        if (otherCycles?.length) {
-          for (const oc of otherCycles) {
-            if (!peers.some(p => p.deviceId === oc.device_id)) {
-              peers.push({ deviceId: oc.device_id });
-            }
+          const selectedPair = pairs[peerIndex % pairs.length];
+          peerDeviceId = selectedPair.instance_id_a === job.device_id
+            ? selectedPair.instance_id_b
+            : selectedPair.instance_id_a;
+        } else {
+          // Fallback: find other community-enabled devices from different users
+          const { data: otherCycles } = await db.from("warmup_cycles")
+            .select("device_id, user_id")
+            .eq("is_running", true).neq("device_id", job.device_id).neq("user_id", job.user_id)
+            .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
+            .limit(10);
+
+          if (otherCycles?.length) {
+            const shuffled = otherCycles.sort(() => Math.random() - 0.5);
+            peerDeviceId = shuffled[peerIndex % shuffled.length].device_id;
           }
         }
 
-        if (peers.length === 0) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_peers", message: "Nenhum peer encontrado" });
+        if (!peerDeviceId) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_peers", message: `Nenhum peer encontrado para par ${peerIndex}` });
           break;
         }
 
-        const selectedPeer = peers[peerIndex % peers.length];
-        const { data: pd } = await db.from("devices").select("number, status").eq("id", selectedPeer.deviceId).single();
+        const { data: pd } = await db.from("devices").select("number, status").eq("id", peerDeviceId).single();
 
         if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline` });
+          // Peer offline — skip this message (don't block the conversation)
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline — pulando` });
           break;
         }
 
         const targetPhone = pd.number.replace(/\+/g, "");
+        let sentDescription = "";
 
-        if (isImage) {
-          try {
-            await uazapiSendImage(baseUrl, token, targetPhone, pickRandom(imagePool), pickRandom(IMAGE_CAPTIONS));
-          } catch {
-            await uazapiSendText(baseUrl, token, targetPhone, generateNaturalMessage("community"));
+        try {
+          if (mediaType === "image") {
+            const imgUrl = pickRandom(imagePool);
+            const caption = pickRandom(IMAGE_CAPTIONS);
+            await uazapiSendImage(baseUrl, token, targetPhone, imgUrl, "");
+            await new Promise(r => setTimeout(r, randInt(1000, 3000)));
+            await uazapiSendText(baseUrl, token, targetPhone, caption);
+            sentDescription = `[IMG+TXT] ${caption}`;
+          } else if (mediaType === "sticker") {
+            const imgUrl = pickRandom(imagePool);
+            await uazapiSendSticker(baseUrl, token, targetPhone, imgUrl);
+            sentDescription = `[STICKER] 🎭`;
+          } else {
+            const msg = generateNaturalMessage("community");
+            await uazapiSendText(baseUrl, token, targetPhone, msg);
+            sentDescription = msg.substring(0, 50);
           }
-        } else {
-          await uazapiSendText(baseUrl, token, targetPhone, generateNaturalMessage("community"));
+        } catch (e) {
+          // Fallback to text if media fails
+          const fallbackMsg = generateNaturalMessage("community");
+          await uazapiSendText(baseUrl, token, targetPhone, fallbackMsg);
+          sentDescription = `[fallback] ${fallbackMsg.substring(0, 40)}`;
         }
 
         await db.from("warmup_cycles").update({
@@ -1683,7 +1719,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_msg_sent",
-          message: `Comunitário: ${isImage ? "📷" : "💬"} peer ${peerIndex} → ${targetPhone.substring(0, 6)}...`,
+          message: `Comunitário par ${peerIndex + 1}/3: ${sentDescription}`,
+          meta: { peer_device: peerDeviceId, media_type: mediaType, target: targetPhone.substring(0, 6) + "..." },
         });
         break;
       }
@@ -1720,8 +1757,55 @@ async function handleTick(db: any) {
 
       // ── ENABLE COMMUNITY ──
       case "enable_community": {
+        // Auto-create up to 3 pairs with other eligible devices (cross-account)
+        const { data: eligible } = await db.from("warmup_community_membership")
+          .select("device_id, user_id")
+          .eq("is_enabled", true).eq("is_eligible", true)
+          .neq("user_id", job.user_id)
+          .limit(50);
+
+        // Close old pairs
+        await db.from("community_pairs")
+          .update({ status: "closed", closed_at: new Date().toISOString() })
+          .eq("cycle_id", cycle.id).eq("status", "active");
+
+        let pairsCreated = 0;
+        if (eligible?.length) {
+          // Shuffle and pick up to 3 unique partners from different users
+          const shuffled = eligible.sort(() => Math.random() - 0.5);
+          const usedUsers = new Set<string>();
+          const usedDevices = new Set<string>();
+
+          for (const e of shuffled) {
+            if (pairsCreated >= 3) break;
+            if (usedUsers.has(e.user_id) || usedDevices.has(e.device_id)) continue;
+
+            // Check if partner device is connected
+            const { data: partnerDev } = await db.from("devices")
+              .select("status, number").eq("id", e.device_id).single();
+            if (!partnerDev?.number || !CONNECTED_STATUSES.includes(partnerDev.status)) continue;
+
+            await db.from("community_pairs").insert({
+              cycle_id: cycle.id,
+              instance_id_a: job.device_id,
+              instance_id_b: e.device_id,
+              status: "active",
+              meta: { initiator: Math.random() < 0.5 ? "a" : "b" },
+            });
+
+            usedUsers.add(e.user_id);
+            usedDevices.add(e.device_id);
+            pairsCreated++;
+          }
+        }
+
         await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
-        bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_enabled", message: "Comunidade ativada" });
+        bufferAudit({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "community_enabled",
+          message: `Comunidade ativada: ${pairsCreated} pares criados de ${eligible?.length || 0} elegíveis`,
+          meta: { pairs_created: pairsCreated },
+        });
         break;
       }
 
