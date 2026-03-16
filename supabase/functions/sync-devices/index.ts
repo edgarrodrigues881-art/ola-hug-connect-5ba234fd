@@ -465,15 +465,11 @@ Deno.serve(async (req) => {
           // New/updated WhatsApp URL — check if it's a pps.whatsapp.net URL that needs persisting
           const isWhatsAppUrl = providerPic.includes("pps.whatsapp.net") || providerPic.includes("mmg.whatsapp.net");
           const alreadyPersisted = currentPic?.includes("/storage/") || currentPic?.includes("supabase");
-          const picChanged = !currentPic || !alreadyPersisted || currentPic.split("?")[0] !== (currentPic?.split("?")[0]);
           
-          if (isWhatsAppUrl && picChanged) {
-            // Download and persist to storage
+          if (isWhatsAppUrl) {
+            // Always persist — download fresh and upload to storage (handles both new photos and photo changes)
             const storedUrl = await persistProfilePic(svc, device.id, providerPic);
-            newPic = storedUrl || providerPic; // fallback to original URL if upload fails
-          } else if (alreadyPersisted && isWhatsAppUrl) {
-            // Already have a persisted version, keep it
-            newPic = currentPic;
+            newPic = storedUrl || providerPic;
           } else {
             newPic = providerPic;
           }
