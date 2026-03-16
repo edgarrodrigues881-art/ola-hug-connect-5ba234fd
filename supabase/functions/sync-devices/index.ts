@@ -459,6 +459,7 @@ Deno.serve(async (req) => {
           newPic = currentPic;
         } else if (providerPic === null) {
           // Provider explicitly says no photo — remove from storage too
+          try { await svc.storage.from("avatars").remove([`profile-pictures/${device.id}.jpg`, `profile-pictures/${device.id}.png`]); } catch { /* */ }
           newPic = null;
         } else {
           // New/updated WhatsApp URL — check if it's a pps.whatsapp.net URL that needs persisting
