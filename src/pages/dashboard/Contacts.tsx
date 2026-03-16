@@ -626,7 +626,6 @@ const Contacts = () => {
               </Button>
             </div>
           )}
-        </div>
       </div>
 
       {/* Contact Table */}
