@@ -462,6 +462,67 @@ const WarmupInstanceDetail = () => {
     }
   };
 
+  /* ── Test Community — forces next community_interaction job or creates a burst ── */
+  const handleTestCommunity = async () => {
+    if (!cycle?.id || !deviceId || !user) return;
+    setTestingCommunity(true);
+    try {
+      // Check for pending community jobs first
+      const { data: pendingComm, error: pendingErr } = await supabase
+        .from("warmup_jobs")
+        .select("id, payload, run_at")
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending")
+        .eq("job_type", "community_interaction")
+        .order("run_at", { ascending: true })
+        .limit(1);
+      if (pendingErr) throw pendingErr;
+
+      if (pendingComm && pendingComm.length > 0) {
+        const next = pendingComm[0];
+        const basePayload = (next.payload && typeof next.payload === "object"
+          ? (next.payload as Record<string, unknown>)
+          : {});
+        const forcedPayload = { ...basePayload, forced: true };
+        const { error: upErr } = await supabase
+          .from("warmup_jobs")
+          .update({ run_at: new Date().toISOString(), attempts: 0, last_error: null, payload: forcedPayload as any })
+          .eq("id", next.id)
+          .eq("status", "pending");
+        if (upErr) throw upErr;
+
+        await supabase.functions.invoke("warmup-tick", { body: {} });
+        await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+        await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+        toast({ title: "⚡ Comunitário forçado", description: "Executando próximo burst comunitário agora." });
+        return;
+      }
+
+      // No pending community jobs: create a single burst job
+      const { error: insertErr } = await supabase.from("warmup_jobs").insert({
+        user_id: user.id,
+        device_id: deviceId,
+        cycle_id: cycle.id,
+        job_type: "community_interaction" as any,
+        payload: { forced: true, burst_index: 0 },
+        run_at: new Date().toISOString(),
+        status: "pending" as any,
+      });
+      if (insertErr) throw insertErr;
+
+      await supabase.functions.invoke("warmup-tick", { body: {} });
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+      await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+      toast({ title: "🧪 Burst comunitário agendado!", description: "Um burst de mensagens comunitárias foi disparado." });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setTestingCommunity(false);
+    }
+  };
+
   /* advance day: skip current day's jobs, move to next day (or complete if last day) */
   const handleAdvancePhase = async () => {
     if (!deviceId || !cycle) return;
