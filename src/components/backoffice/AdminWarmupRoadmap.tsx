@@ -243,7 +243,7 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     tips: "⚠️ Chip extremamente sensível. Apenas entre nos grupos, sem enviar nada.",
     msgTarget: { min: 0, max: 5 }, groupTarget: 8, recipientTarget: 0,
   },
-  ...Array.from({ length: 4 }, (_, i) => ({
+  ...Array.from({ length: 3 }, (_, i) => ({
     day: i + 2,
     phase: "groups_only",
     title: i === 0 ? "Primeiras msgs conservadoras" : `Dia ${i + 2} — Grupos apenas`,
@@ -253,26 +253,26 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     msgTarget: { min: 50, max: 120 }, groupTarget: 8, recipientTarget: 0,
   } as DayPlan)),
   {
-    day: 6, phase: "autosave", title: "Auto Save leve",
+    day: 5, phase: "autosave", title: "Auto Save leve",
     goals: ["Grupos: 120-200 msgs", "Ativar Auto Save: 3 números × 2 msgs = 6/dia"],
     checklist: ["120-200 msgs nos grupos", "6 msgs Auto Save", "3 destinatários", "Sem problemas"],
     tips: "Auto Save com volume mínimo: apenas 3 números com 2 msgs cada.",
     msgTarget: { min: 126, max: 206 }, groupTarget: 8, recipientTarget: 3,
   },
-  ...Array.from({ length: 4 }, (_, i) => ({
-    day: i + 7,
+  ...Array.from({ length: 3 }, (_, i) => ({
+    day: i + 6,
     phase: "autosave",
-    title: i === 0 ? "Checkpoint: 1 semana ✅" : `Dia ${i + 7} — Grupos + AutoSave`,
+    title: i === 1 ? "Checkpoint: 1 semana ✅" : `Dia ${i + 6} — Grupos + AutoSave`,
     goals: ["Grupos: 120-220 msgs", "Auto Save: 3-4 números × 2 msgs"],
     checklist: ["120-220 msgs grupos", "6-8 msgs Auto Save", "Sem restrições"],
-    tips: i === 0 ? "1 semana sem ban! Mas mantenha cautela — chip fraco pode recair." : undefined,
+    tips: i === 1 ? "1 semana sem ban! Mas mantenha cautela — chip fraco pode recair." : undefined,
     msgTarget: { min: 126, max: 228 }, groupTarget: 8, recipientTarget: 4,
   } as DayPlan)),
-  // Days 11-30: community_light — progressão ultra-conservadora
-  ...Array.from({ length: 20 }, (_, i) => {
-    const day = i + 11;
+  // Days 9-30: community_light — progressão ultra-conservadora (início Dia 9)
+  ...Array.from({ length: 22 }, (_, i) => {
+    const day = i + 9;
     const isCheckpoint = [14, 21, 30].includes(day);
-    const daysSinceCommunity = day - 11;
+    const daysSinceCommunity = day - 9;
 
     // Ultra-conservador: 1→2→2→3→3→4
     const communityPairs = daysSinceCommunity <= 2 ? 1 :
@@ -291,7 +291,7 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     return {
       day,
       phase: day >= 25 ? "consolidation" : "community_light",
-      title: day === 11 ? "Comunitário leve ativado" :
+      title: day === 9 ? "Comunitário leve ativado" :
              day === 14 ? "Checkpoint: 2 semanas ✅" :
              day === 21 ? "3 semanas de maturação 🛡️" :
              day === 25 ? "Consolidação final" :
