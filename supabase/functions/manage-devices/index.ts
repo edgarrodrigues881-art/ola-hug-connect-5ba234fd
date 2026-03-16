@@ -266,14 +266,67 @@ Deno.serve(async (req) => {
         throw new Error(`Limite excedido. Disponível: ${maxAllowed - (currentCount ?? 0)}.`);
       }
 
-      // Get available tokens
-      const { data: tokens } = await admin
+      // Get available tokens (pool + blocked fallback)
+      const { data: poolTokens } = await admin
         .from("user_api_tokens")
         .select("id, token")
         .eq("user_id", user.id)
-        .eq("status", "available")
+        .in("status", ["available", "blocked"])
+        .is("device_id", null)
         .order("created_at", { ascending: true })
         .limit(totalCount);
+
+      const tokens = [...(poolTokens || [])];
+
+      // Generate missing tokens on-demand
+      const missing = totalCount - tokens.length;
+      if (missing > 0) {
+        const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+        const ADMIN_TOKEN_VAL = Deno.env.get("UAZAPI_TOKEN") || "";
+        if (BASE_URL && ADMIN_TOKEN_VAL) {
+          const { data: prof } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+          const clientLabel = (prof?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+          const { count: existingTokenCount } = await admin.from("user_api_tokens")
+            .select("id", { count: "exact", head: true }).eq("user_id", user.id);
+
+          for (let i = 0; i < missing; i++) {
+            const instName = `${clientLabel}_${(existingTokenCount ?? 0) + tokens.length + i + 1}`;
+            const headerVariants = [
+              { admintoken: ADMIN_TOKEN_VAL },
+              { token: ADMIN_TOKEN_VAL },
+              { Authorization: `Bearer ${ADMIN_TOKEN_VAL}` },
+            ];
+            let newToken: string | null = null;
+            for (const authHeaders of headerVariants) {
+              try {
+                const res = await fetch(`${BASE_URL}/instance/init`, {
+                  method: "POST",
+                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: instName }),
+                });
+                if (res.status === 401) continue;
+                const resData = await res.json().catch(() => ({}));
+                if (res.ok) {
+                  newToken = resData.token || resData.instance?.token || resData.data?.token;
+                  break;
+                }
+              } catch { /* try next */ }
+            }
+            if (newToken) {
+              const { data: dup } = await admin.from("user_api_tokens")
+                .select("id").eq("token", newToken).maybeSingle();
+              if (!dup) {
+                const { data: ins } = await admin.from("user_api_tokens").insert({
+                  user_id: user.id, token: newToken, admin_id: user.id,
+                  status: "available", healthy: true, label: instName,
+                  last_checked_at: new Date().toISOString(),
+                }).select("id, token").single();
+                if (ins) tokens.push(ins);
+              }
+            }
+          }
+        }
+      }
 
       // Build inserts
       const inserts: any[] = [];
