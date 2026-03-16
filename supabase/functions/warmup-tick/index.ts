@@ -1724,93 +1724,103 @@ async function handleTick(db: any) {
         break;
       }
 
-      // ── COMMUNITY INTERACTION (burst conversation with media) ──
-      // Cada job = 1 burst de 2-4 mensagens seguidas (simula conversa real)
+      // ── COMMUNITY INTERACTION (real 1v1 ping-pong conversation) ──
+      // O iniciador ORQUESTRA a conversa inteira: A→B, B→A, A→B, B→A
+      // Usa credenciais de AMBOS os dispositivos para simular diálogo real
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
         const peerIndex = job.payload?.peer_index ?? 0;
 
-        // [BUG 4 FIX] Search pairs by device_id (either A or B), NOT by cycle_id.
-        // Pairs are only linked to the creator's cycle_id, so device B would never find them.
+        // Find active pairs by device_id (either side)
         const { data: pairsAsA } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b")
+          .select("id, instance_id_a, instance_id_b, meta")
           .eq("instance_id_a", job.device_id).eq("status", "active");
         const { data: pairsAsB } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b")
+          .select("id, instance_id_a, instance_id_b, meta")
           .eq("instance_id_b", job.device_id).eq("status", "active");
 
         const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
-        // Deduplicate by pair id
         const seenPairIds = new Set<string>();
         const pairs = allPairs.filter(p => { if (seenPairIds.has(p.id)) return false; seenPairIds.add(p.id); return true; });
 
-        let peerDeviceId: string | null = null;
-        let initiatorSide: string | null = null;
-
-        if (pairs?.length) {
-          const selectedPair = pairs[peerIndex % pairs.length];
-          peerDeviceId = selectedPair.instance_id_a === job.device_id
-            ? selectedPair.instance_id_b
-            : selectedPair.instance_id_a;
-          // Determine if this device is the initiator for this burst
-          const meta = selectedPair.meta as any;
-          initiatorSide = meta?.initiator || "a";
-          const iAmA = selectedPair.instance_id_a === job.device_id;
-          const iAmInitiator = (initiatorSide === "a" && iAmA) || (initiatorSide === "b" && !iAmA);
-
-          // Only the initiator sends — prevents both sides flooding each other
-          if (!iAmInitiator) {
-            bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_skip_non_initiator", message: `Par ${peerIndex}: não sou o iniciador — pulando burst` });
-            break;
-          }
-        } else {
-          // NO FALLBACK — without active pairs, skip community interaction entirely
-          // This prevents random flooding across uncoordinated devices
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_pairs", message: `Nenhum par ativo para par ${peerIndex} — pulando (sem fallback)` });
+        if (!pairs?.length) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_pairs", message: `Nenhum par ativo — pulando` });
           break;
         }
 
-        if (!peerDeviceId) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_peers", message: `Nenhum peer encontrado para par ${peerIndex}` });
+        const selectedPair = pairs[peerIndex % pairs.length];
+        const peerDeviceId = selectedPair.instance_id_a === job.device_id
+          ? selectedPair.instance_id_b
+          : selectedPair.instance_id_a;
+
+        // Only the initiator orchestrates — prevents both sides triggering
+        const meta = selectedPair.meta as any;
+        const initiatorSide = meta?.initiator || "a";
+        const iAmA = selectedPair.instance_id_a === job.device_id;
+        const iAmInitiator = (initiatorSide === "a" && iAmA) || (initiatorSide === "b" && !iAmA);
+
+        if (!iAmInitiator) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_skip_non_initiator", message: `Par ${peerIndex}: não sou o orquestrador — pulando` });
           break;
         }
 
-        const { data: pd } = await db.from("devices").select("number, status").eq("id", peerDeviceId).single();
+        // Fetch BOTH devices' full credentials
+        const { data: peerDev } = await db.from("devices")
+          .select("id, number, status, uazapi_token, uazapi_base_url")
+          .eq("id", peerDeviceId).single();
 
-        if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) {
-          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer ${peerIndex} offline — pulando burst` });
+        if (!peerDev?.number || !CONNECTED_STATUSES.includes(peerDev.status)) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_offline", message: `Peer offline — pulando` });
           break;
         }
 
-        const targetPhone = pd.number.replace(/\+/g, "");
+        if (!peerDev.uazapi_base_url || !peerDev.uazapi_token) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_peer_no_creds", message: `Peer sem credenciais UAZAPI — pulando` });
+          break;
+        }
 
-        // ── BURST: Send exactly 2 TEXT messages (safe conversation) ──
-        // NO images, NO stickers — these inflate message count and trigger spam detection
-        const burstSize = 2;
+        const myPhone = device.number?.replace(/\+/g, "") || "";
+        const peerPhone = peerDev.number.replace(/\+/g, "");
+
+        if (!myPhone) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_no_number", message: `Meu dispositivo sem número — pulando` });
+          break;
+        }
+
+        // ── PING-PONG: Real 1v1 conversation ──
+        // Alternating: A→B, B→A, A→B, B→A (4 messages total, 2 each)
+        const conversation = [
+          { sender: "me",   senderUrl: baseUrl, senderToken: token, targetPhone: peerPhone },
+          { sender: "peer", senderUrl: peerDev.uazapi_base_url, senderToken: peerDev.uazapi_token, targetPhone: myPhone },
+          { sender: "me",   senderUrl: baseUrl, senderToken: token, targetPhone: peerPhone },
+          { sender: "peer", senderUrl: peerDev.uazapi_base_url, senderToken: peerDev.uazapi_token, targetPhone: myPhone },
+        ];
+
         let sentCount = 0;
         const sentSummary: string[] = [];
 
-        for (let b = 0; b < burstSize; b++) {
-          // Typing delay between messages: 8-45 seconds
-          if (b > 0) {
-            await new Promise(r => setTimeout(r, randInt(8, 45) * 1000));
+        for (let i = 0; i < conversation.length; i++) {
+          const turn = conversation[i];
+
+          // Typing delay: 10-60 seconds between each message (realistic conversation pace)
+          if (i > 0) {
+            await new Promise(r => setTimeout(r, randInt(10, 60) * 1000));
           }
 
           try {
             const msg = generateNaturalMessage("community");
-            await uazapiSendText(baseUrl, token, targetPhone, msg);
-            sentSummary.push("💬");
+            await uazapiSendText(turn.senderUrl, turn.senderToken, turn.targetPhone, msg);
+            sentSummary.push(turn.sender === "me" ? "→" : "←");
             sentCount++;
           } catch (e) {
-            // On failure, stop burst entirely — do NOT retry
+            // On any failure, stop conversation — don't force it
+            bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "community_turn_failed", message: `Turno ${i + 1} falhou (${turn.sender}) — parando conversa`, meta: { error: e instanceof Error ? e.message : String(e) } });
             break;
           }
         }
 
-        // Update budget: count burst as 1 interaction unit (not per-message)
-        // This prevents premature cancellation — scheduleDayJobs counts each community_interaction
-        // job as 1 unit, so budget_used must match that granularity.
+        // Update budget
         if (sentCount > 0) {
           await db.from("warmup_cycles").update({
             daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
@@ -1821,8 +1831,8 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_burst_sent",
-          message: `Comunitário par ${peerIndex + 1}/3: burst ${sentSummary.join("")} (${sentCount} msgs)`,
-          meta: { peer_device: peerDeviceId, burst_size: sentCount, target: targetPhone.substring(0, 6) + "..." },
+          message: `Comunitário 1v1: ${sentSummary.join("")} (${sentCount} msgs, par ${peerIndex + 1})`,
+          meta: { peer_device: peerDeviceId, sent: sentCount, pattern: sentSummary.join(""), target: peerPhone.substring(0, 6) + "..." },
         });
         break;
       }
