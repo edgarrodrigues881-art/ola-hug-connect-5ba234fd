@@ -527,7 +527,7 @@ const Contacts = () => {
               className="pl-10 w-full border-border/20 bg-background/50 focus-visible:bg-background/80 h-10 rounded-xl text-sm"
             />
           </div>
-            <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+          <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full md:w-44 justify-between h-9 text-xs gap-2">
                   {tagFilter === "all" ? (
