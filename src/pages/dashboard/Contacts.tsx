@@ -67,7 +67,7 @@ interface ContactRowProps {
   onRemoveTag: (contactId: string, tag: string) => void;
   onDelete: (ids: string[]) => void;
   onEdit: (contact: Contact) => void;
-  getTagStyle: (tag: string) => typeof TAG_COLORS[0];
+  getTagColor: (tag: string) => string;
 }
 
 const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSelected, onToggleSelect, onRemoveTag, onDelete, onEdit, getTagStyle }: ContactRowProps): ReactElement {
