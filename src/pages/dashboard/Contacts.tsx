@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils";
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
 // Fixed min-width ensures scrollbar on small screens, fits on large screens
-const TABLE_MIN_WIDTH = 1200;
-const TABLE_GRID_COLS = "40px minmax(100px,1.4fr) minmax(100px,1.2fr) minmax(80px,1fr) repeat(10,minmax(60px,1fr)) 40px";
+const TABLE_MIN_WIDTH = 500;
+const TABLE_GRID_COLS = "40px minmax(120px,1.5fr) minmax(120px,1.3fr) minmax(100px,1fr) 40px";
 
 const VarFields = ({ values, onChange }: { values: { [key: string]: any }; onChange: (key: string, val: string) => void }) => (
   <div className="grid grid-cols-2 gap-2">
@@ -82,11 +82,6 @@ const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSele
           </Badge>
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
-      {VAR_KEYS.map(k => (
-        <div key={k} className="p-2 text-xs text-muted-foreground truncate">
-          {contact[k]?.trim() || "—"}
-        </div>
-      ))}
       <div className="p-2 overflow-hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -563,9 +558,6 @@ const Contacts = () => {
           <div className="p-2 truncate">Nome</div>
           <div className="p-2 truncate">Telefone</div>
           <div className="p-2 truncate">Tags</div>
-          {VAR_KEYS.map((_, i) => (
-            <div key={i} className="p-2 truncate">Var {i + 1}</div>
-          ))}
           <div className="p-2"></div>
         </div>
         {isLoading ? (
