@@ -1,4 +1,4 @@
-import dgLogo from "@/assets/dg-logo-new.png";
+import dgLogo from "@/assets/dg-logo-crown.jpeg";
 import { Megaphone, Sparkles, ShieldCheck, MessageCircle, UsersRound } from "lucide-react";
 
 const benefits = [
