@@ -1,4 +1,4 @@
-// sync-devices v5.0 — circuit breaker + 404 strike system for 1000+ instances
+// sync-devices v6.0 — persistent profile pics in storage + circuit breaker + 404 strikes
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
