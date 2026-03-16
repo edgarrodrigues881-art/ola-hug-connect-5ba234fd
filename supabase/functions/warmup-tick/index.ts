@@ -1366,8 +1366,8 @@ async function handleTick(db: any) {
     if (!instanceGroupsMap[ig.device_id]) instanceGroupsMap[ig.device_id] = [];
     instanceGroupsMap[ig.device_id].push(ig);
   });
-  const groupsPoolMap: Record<string, any> = {};
-  groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
+  const groupsMap: Record<string, any> = {};
+  groupsPoolArr.forEach((g: any) => { groupsMap[g.id] = { ...g, external_group_ref: g.link }; });
 
   console.log(`[warmup-tick] Loaded: ${cyclesArr.length} cycles, ${devicesArr.length} devices, ${filteredJobs.length} jobs`);
 
