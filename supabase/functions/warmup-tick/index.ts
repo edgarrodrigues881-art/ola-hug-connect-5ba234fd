@@ -956,7 +956,10 @@ const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
 const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
 
 // Max active pairs a device can participate in (as A or B)
-const MAX_ACTIVE_PAIRS_PER_DEVICE = 2;
+// Unstable chips get only 1 pair; new/recovered get 2
+function getMaxPairsForChip(chipState: string): number {
+  return chipState === "unstable" ? 1 : 2;
+}
 
 async function getActivePairCount(db: any, deviceId: string): Promise<number> {
   const { count: countA } = await db.from("community_pairs")
@@ -966,6 +969,12 @@ async function getActivePairCount(db: any, deviceId: string): Promise<number> {
     .select("id", { count: "exact", head: true })
     .eq("instance_id_b", deviceId).eq("status", "active");
   return (countA || 0) + (countB || 0);
+}
+
+async function getDeviceChipState(db: any, deviceId: string): Promise<string> {
+  const { data } = await db.from("warmup_cycles")
+    .select("chip_state").eq("device_id", deviceId).eq("is_running", true).limit(1).single();
+  return data?.chip_state || "new";
 }
 
 type CommunityPairMeta = {
@@ -2494,7 +2503,8 @@ async function handleTick(db: any) {
 
             // Check if partner already has too many active pairs
             const partnerPairCount = await getActivePairCount(db, e.device_id);
-            if (partnerPairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+            const partnerChipState = await getDeviceChipState(db, e.device_id);
+            if (partnerPairCount >= getMaxPairsForChip(partnerChipState)) continue;
 
             await db.from("community_pairs").insert({
               cycle_id: cycle.id,
@@ -2710,7 +2720,8 @@ async function handleTick(db: any) {
 
                 // Check if partner already has too many active pairs
                 const peerPairCount = await getActivePairCount(db, e.device_id);
-                if (peerPairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+                const peerChipState = await getDeviceChipState(db, e.device_id);
+                if (peerPairCount >= getMaxPairsForChip(peerChipState)) continue;
 
                 await db.from("community_pairs").insert({
                   cycle_id: cycle.id, instance_id_a: job.device_id, instance_id_b: e.device_id,
@@ -2898,7 +2909,8 @@ async function handleDailyReset(db: any) {
 
             // Check if partner already has too many active pairs
             const inlinePairCount = await getActivePairCount(db, e.device_id);
-            if (inlinePairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+            const inlineChipState = await getDeviceChipState(db, e.device_id);
+            if (inlinePairCount >= getMaxPairsForChip(inlineChipState)) continue;
 
             await db.from("community_pairs").insert({
               cycle_id: cycle.id, instance_id_a: cycle.device_id, instance_id_b: e.device_id,
