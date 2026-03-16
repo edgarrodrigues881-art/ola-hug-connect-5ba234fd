@@ -1094,10 +1094,13 @@ async function handleTick(db: any) {
   if (fetchErr) throw fetchErr;
   if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0 });
 
-  // Limit: only 1 autosave_interaction per device per tick to avoid burst sending
+  // Limit: only 1 autosave/community interaction per device per tick to preserve natural pacing
   const autosaveSeenDevices = new Set<string>();
+  const communitySeenDevices = new Set<string>();
   const filteredJobs: any[] = [];
   const deferredAutosaveIds: string[] = [];
+  const deferredCommunityIds: string[] = [];
+
   for (const j of pendingJobs) {
     if (j.job_type === "autosave_interaction") {
       const key = j.device_id;
@@ -1107,13 +1110,32 @@ async function handleTick(db: any) {
       }
       autosaveSeenDevices.add(key);
     }
+
+    if (j.job_type === "community_interaction") {
+      const key = j.device_id;
+      if (communitySeenDevices.has(key)) {
+        deferredCommunityIds.push(j.id);
+        continue;
+      }
+      communitySeenDevices.add(key);
+    }
+
     filteredJobs.push(j);
   }
-  // Defer extra autosave jobs by 2-4 min so next tick picks them up one at a time
-  if (deferredAutosaveIds.length > 0) {
-    for (let i = 0; i < deferredAutosaveIds.length; i += 200) {
-      const newRunAt = new Date(Date.now() + randInt(120, 240) * 1000).toISOString();
-      await db.from("warmup_jobs").update({ run_at: newRunAt }).in("id", deferredAutosaveIds.slice(i, i + 200));
+
+  // Defer extra autosave/community jobs so each device speaks one turn at a time
+  const deferredJobGroups = [
+    { ids: deferredAutosaveIds, minSeconds: 120, maxSeconds: 240 },
+    { ids: deferredCommunityIds, minSeconds: 45, maxSeconds: 120 },
+  ];
+
+  for (const group of deferredJobGroups) {
+    if (group.ids.length === 0) continue;
+    for (let i = 0; i < group.ids.length; i += 200) {
+      const newRunAt = new Date(Date.now() + randInt(group.minSeconds, group.maxSeconds) * 1000).toISOString();
+      await db.from("warmup_jobs")
+        .update({ run_at: newRunAt })
+        .in("id", group.ids.slice(i, i + 200));
     }
   }
 
