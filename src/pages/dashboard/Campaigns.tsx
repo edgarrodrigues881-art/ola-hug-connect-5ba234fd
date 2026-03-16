@@ -221,6 +221,7 @@ const Campaigns = () => {
   const [showContactTools, setShowContactTools] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
+  const [pauseOnDisconnect, setPauseOnDisconnect] = useState(true);
   const [showContactTable, setShowContactTable] = useState(false);
   const [manualPhone, setManualPhone] = useState("");
   const [manualName, setManualName] = useState("");
