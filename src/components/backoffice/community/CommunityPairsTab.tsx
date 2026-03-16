@@ -41,7 +41,7 @@ const CommunityPairsTab = () => {
   });
 
   const generatePairs = useMutation({
-    mutationFn: async (allowSameOwner = false) => {
+    mutationFn: async (allowSameOwner: boolean) => {
       const { data, error } = await supabase.functions.invoke("admin-data?action=community-generate-pairs", {
         body: { allow_same_owner: allowSameOwner },
       });
