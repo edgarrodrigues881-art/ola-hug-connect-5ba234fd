@@ -772,8 +772,8 @@ const Devices = () => {
   const handleEdit = async () => {
     if (!editingDevice || !editName.trim()) return;
 
-    // Prevent immediate sync overwrite while provider may still lag
-    muteAutoSync(45_000);
+    // Prevent only a brief overwrite while provider settles
+    muteAutoSync(8_000);
 
     const newProxyId = editProxyValue === "none" ? null : editProxyValue;
     const dbUpdates: Record<string, any> = {
@@ -1048,8 +1048,8 @@ const Devices = () => {
       return;
     }
 
-    // Avoid fast reversion from auto-sync right after saving profile edits
-    muteAutoSync(45_000);
+    // Avoid fast reversion briefly, then let sync reconcile almost immediately
+    muteAutoSync(8_000);
 
     setWpSaving(true);
     try {
@@ -1130,6 +1130,13 @@ const Devices = () => {
       }
       closeProfileDialog();
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+      setTimeout(() => {
+        supabase.functions.invoke("sync-devices").then(() => {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        }).catch(() => {
+          queryClient.invalidateQueries({ queryKey: ["devices"] });
+        });
+      }, 1500);
     } catch (err: any) {
       console.error("Profile update error:", err);
       toast({ title: "Erro ao atualizar perfil", description: err?.message || "Erro desconhecido", variant: "destructive" });
