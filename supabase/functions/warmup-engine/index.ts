@@ -95,6 +95,17 @@ function getDailyBudget(): number {
   return randInt(50, 120);
 }
 
+function getCommunityPeers(dayIndex: number, chipState: string): number {
+  const communityStartDay = getGroupsEndDay(chipState) + 2;
+  const daysSinceCommunity = dayIndex - communityStartDay;
+  if (daysSinceCommunity < 0) return 0;
+  if (daysSinceCommunity === 0) return 3;  // primeiro dia: apenas 3
+  if (daysSinceCommunity <= 4) return 5;   // dias 1-4: 5 pares
+  if (daysSinceCommunity <= 7) return Math.min(5 + (daysSinceCommunity - 4), 10); // ramp 6→10
+  if (daysSinceCommunity <= 10) return Math.min(10 + (daysSinceCommunity - 7), 15); // ramp 11→15
+  return Math.min(15 + (daysSinceCommunity - 10), 20); // ramp 16→20 (teto)
+}
+
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
   const v: DayVolumes = {
     groupMsgs: 0,
@@ -111,18 +122,17 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   // Grupos SEMPRE recebem o orçamento total (50-120)
   v.groupMsgs = getDailyBudget();
 
-  // Autosave: 5 contatos × 3 msgs cada = 15 msgs/dia
+  // Autosave: 5 contatos × 5 msgs cada = 25 msgs/dia
   if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
+    v.autosaveRounds = 5;
   }
 
-  // Community: 3 pares, cada par troca 50-90 msgs/dia
+  // Community: ramp-up gradual baseado em dias desde ativação
   // Cada burst = 3-7 msgs de uma vez (conversa real)
-  // Total de bursts por par = 8-12
   if (phase === "community_enabled") {
-    v.communityPeers = 3;
-    v.communityMsgsPerPeer = randInt(8, 12); // bursts, not individual msgs
+    v.communityPeers = getCommunityPeers(dayIndex, chipState);
+    v.communityMsgsPerPeer = randInt(8, 12); // bursts por par
   }
 
   return v;
