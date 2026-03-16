@@ -424,8 +424,10 @@ Deno.serve(async (req) => {
           ? (Date.now() - updatedAtMs) < 30 * 1000
           : false;
 
-        // Deep check when cached/unknown picture state is returned by status endpoint.
-        // This avoids false clears and also helps recover pictures that were previously wiped.
+        // Deep check: always re-fetch fresh profile pic from dedicated endpoints when:
+        // 1. Status endpoint returned unknown/undefined pic state
+        // 2. Current pic is already persisted in storage (need to detect changes)
+        const alreadyPersistedInStorage = currentPic?.includes("/storage/") || currentPic?.includes("supabase");
         if (
           isConnected &&
           !justEdited &&
@@ -434,7 +436,7 @@ Deno.serve(async (req) => {
           deepProfileChecks < MAX_DEEP_PROFILE_CHECKS &&
           (
             providerPic === undefined ||
-            (currentPic && typeof providerPic === "string" && currentPic === providerPic)
+            alreadyPersistedInStorage
           )
         ) {
           deepProfileChecks++;
@@ -465,15 +467,11 @@ Deno.serve(async (req) => {
           // New/updated WhatsApp URL — check if it's a pps.whatsapp.net URL that needs persisting
           const isWhatsAppUrl = providerPic.includes("pps.whatsapp.net") || providerPic.includes("mmg.whatsapp.net");
           const alreadyPersisted = currentPic?.includes("/storage/") || currentPic?.includes("supabase");
-          const picChanged = !currentPic || !alreadyPersisted || currentPic.split("?")[0] !== (currentPic?.split("?")[0]);
           
-          if (isWhatsAppUrl && picChanged) {
-            // Download and persist to storage
+          if (isWhatsAppUrl) {
+            // Always persist — download fresh and upload to storage (handles both new photos and photo changes)
             const storedUrl = await persistProfilePic(svc, device.id, providerPic);
-            newPic = storedUrl || providerPic; // fallback to original URL if upload fails
-          } else if (alreadyPersisted && isWhatsAppUrl) {
-            // Already have a persisted version, keep it
-            newPic = currentPic;
+            newPic = storedUrl || providerPic;
           } else {
             newPic = providerPic;
           }
