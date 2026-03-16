@@ -80,6 +80,8 @@ function getCommunityStartDay(chipState: string): number {
 const WarmupInstanceDetail = () => {
   const { deviceId } = useParams<{ deviceId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromFolder = searchParams.get("folder");
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
