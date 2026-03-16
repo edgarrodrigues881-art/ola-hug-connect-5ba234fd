@@ -725,19 +725,26 @@ const AutoSave = () => {
 
       {/* ── Delete All Confirmation ── */}
       <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Apagar todos os contatos?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Essa ação vai remover todos os <strong>{contacts.length}</strong> contatos Auto Save. Não é possível desfazer.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteAll}>
-              Apagar todos
-            </Button>
-          </DialogFooter>
+        <DialogContent className="sm:max-w-[340px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                </div>
+                Apagar todos os contatos?
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Essa ação vai remover todos os <strong>{contacts.length}</strong> contatos Auto Save. Não é possível desfazer.
+            </p>
+          </div>
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">Apagar todos</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
