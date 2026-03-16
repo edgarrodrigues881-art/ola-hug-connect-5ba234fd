@@ -137,18 +137,18 @@ const Community = () => {
         </div>
 
         {/* Benefit cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
           {benefits.map((item) => (
             <div
               key={item.title}
-              className="group flex items-start gap-3.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md p-4 transition-all duration-300 hover:border-[#d4af37]/25 hover:bg-card/70 hover:shadow-[0_0_25px_rgba(212,175,55,0.06)]"
+              className="group flex items-start gap-4 rounded-2xl border border-[#d4af37]/15 bg-gradient-to-br from-[#d4af37]/[0.04] to-transparent backdrop-blur-md p-5 transition-all duration-300 hover:border-[#d4af37]/35 hover:bg-[#d4af37]/[0.07] hover:shadow-[0_0_30px_rgba(212,175,55,0.08),inset_0_1px_0_rgba(212,175,55,0.1)]"
             >
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center transition-all duration-300 group-hover:bg-primary/20 group-hover:border-primary/40 group-hover:shadow-[0_0_12px_hsl(var(--primary)/0.2)]">
-                <item.icon className="w-[18px] h-[18px] text-primary" />
+              <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#d4af37]/15 to-[#b8860b]/10 border border-[#d4af37]/25 flex items-center justify-center transition-all duration-300 group-hover:from-[#d4af37]/25 group-hover:to-[#b8860b]/15 group-hover:border-[#d4af37]/40 group-hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                <item.icon className="w-[18px] h-[18px] text-[#d4af37]" />
               </div>
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-foreground leading-tight">{item.title}</p>
-                <p className="text-[12px] text-muted-foreground leading-snug mt-1">{item.desc}</p>
+                <p className="text-[14px] font-semibold text-foreground leading-tight">{item.title}</p>
+                <p className="text-[12px] text-muted-foreground/80 leading-snug mt-1.5">{item.desc}</p>
               </div>
             </div>
           ))}
