@@ -4,21 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, RefreshCw, Users, Wifi, WifiOff, ChevronDown, Filter } from "lucide-react";
+import { Loader2, Search, RefreshCw, MessageCircle, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
 
 const CommunityPoolTab = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterEnrolled, setFilterEnrolled] = useState("all");
-  const [filterPhase, setFilterPhase] = useState("community");
-  const [showFilters, setShowFilters] = useState(false);
-  const [showOnlyWithCycle, setShowOnlyWithCycle] = useState(true);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["community-pool"],
@@ -43,31 +36,24 @@ const CommunityPoolTab = () => {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const filtered = (data || []).filter((d: any) => {
-    if (search) {
-      const q = search.toLowerCase();
-      if (!d.name?.toLowerCase().includes(q) && !d.number?.includes(q) && !d.owner_name?.toLowerCase().includes(q) && !d.owner_email?.toLowerCase().includes(q)) return false;
-    }
-    if (filterStatus === "connected" && !["connected", "ready"].includes(d.status?.toLowerCase())) return false;
-    if (filterStatus === "disconnected" && d.status?.toLowerCase() !== "disconnected") return false;
-    if (filterEnrolled === "yes" && !d.is_enrolled) return false;
-    if (filterEnrolled === "no" && d.is_enrolled) return false;
-    if (filterPhase === "community" && !["community_enabled", "community_light"].includes(d.cycle_phase)) return false;
-    if (filterPhase !== "all" && filterPhase !== "community" && d.cycle_phase !== filterPhase) return false;
-    if (showOnlyWithCycle && !d.cycle_active) return false;
-    return true;
+  // Only show accounts in community phase
+  const communityAccounts = (data || []).filter((d: any) =>
+    ["community_enabled", "community_light"].includes(d.cycle_phase)
+  );
+
+  const filtered = communityAccounts.filter((d: any) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return d.name?.toLowerCase().includes(q) || d.number?.includes(q) || d.owner_name?.toLowerCase().includes(q) || d.owner_email?.toLowerCase().includes(q);
   });
 
-  const allData = data || [];
-  const enrolled = allData.filter((d: any) => d.is_enrolled).length;
-  const connected = allData.filter((d: any) => ["connected", "ready"].includes(d.status?.toLowerCase())).length;
-  const hasActiveFilter = filterStatus !== "all" || filterEnrolled !== "all" || filterPhase !== "community" || !showOnlyWithCycle;
+  const conversando = filtered.filter((d: any) => d.is_enrolled).length;
+  const pronto = filtered.filter((d: any) => d.is_eligible && !d.is_enrolled).length;
 
-  const statusColor = (s: string) => {
-    const lower = s?.toLowerCase();
-    if (lower === "connected" || lower === "ready") return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-    if (lower === "disconnected") return "bg-red-500/15 text-red-400 border-red-500/30";
-    return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
+  const getChipStatus = (d: any) => {
+    if (d.is_enrolled) return { label: "Conversando", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: <MessageCircle size={12} /> };
+    if (d.is_eligible) return { label: "Pronto", color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Clock size={12} /> };
+    return { label: "Inativo", color: "bg-muted/50 text-muted-foreground border-border", icon: null };
   };
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
@@ -78,137 +64,88 @@ const CommunityPoolTab = () => {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-card border border-border rounded-xl p-3 text-center">
           <Users size={16} className="mx-auto text-primary mb-1" />
-          <p className="text-lg font-bold text-foreground">{allData.length}</p>
-          <p className="text-[10px] text-muted-foreground">Total</p>
+          <p className="text-lg font-bold text-foreground">{filtered.length}</p>
+          <p className="text-[10px] text-muted-foreground">Na fase comunitária</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Wifi size={16} className="mx-auto text-emerald-400 mb-1" />
-          <p className="text-lg font-bold text-foreground">{connected}</p>
-          <p className="text-[10px] text-muted-foreground">Conectados</p>
+          <MessageCircle size={16} className="mx-auto text-emerald-400 mb-1" />
+          <p className="text-lg font-bold text-foreground">{conversando}</p>
+          <p className="text-[10px] text-muted-foreground">Conversando</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <WifiOff size={16} className="mx-auto text-muted-foreground mb-1" />
-          <p className="text-lg font-bold text-foreground">{enrolled}</p>
-          <p className="text-[10px] text-muted-foreground">Ativos</p>
+          <Clock size={16} className="mx-auto text-amber-400 mb-1" />
+          <p className="text-lg font-bold text-foreground">{pronto}</p>
+          <p className="text-[10px] text-muted-foreground">Pronto</p>
         </div>
       </div>
 
-      {/* Search + Filters */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 min-w-0">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 bg-card border-border text-xs h-8" />
-          </div>
-          <button
-            onClick={() => setShowFilters(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all shrink-0 ${
-              showFilters || hasActiveFilter
-                ? "bg-primary/10 border-primary/30 text-primary"
-                : "bg-card border-border text-muted-foreground hover:border-primary/40"
-            }`}
-          >
-            <Filter size={12} />
-            Filtros
-            {hasActiveFilter && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-            <ChevronDown size={12} className={`transition-transform ${showFilters ? "rotate-180" : ""}`} />
-          </button>
-          <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-8 px-2 shrink-0">
-            <RefreshCw size={13} />
-          </Button>
+      {/* Search */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar por nome, telefone ou usuário..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 bg-card border-border text-xs h-8" />
         </div>
-
-        {showFilters && (
-          <div className="space-y-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos status</SelectItem>
-                  <SelectItem value="connected">Conectados</SelectItem>
-                  <SelectItem value="disconnected">Desconectados</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterEnrolled} onValueChange={setFilterEnrolled}>
-                <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Ativo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="yes">Ativo</SelectItem>
-                  <SelectItem value="no">Inativo</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterPhase} onValueChange={setFilterPhase}>
-                <SelectTrigger className="h-8 bg-background border-border text-xs"><SelectValue placeholder="Phase" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas phases</SelectItem>
-                  <SelectItem value="community">🔥 Comunitário (enabled + light)</SelectItem>
-                  <SelectItem value="pre_24h">pre_24h</SelectItem>
-                  <SelectItem value="groups_only">groups_only</SelectItem>
-                  <SelectItem value="autosave_enabled">autosave_enabled</SelectItem>
-                  <SelectItem value="community_enabled">community_enabled</SelectItem>
-                  <SelectItem value="community_light">community_light</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <Switch checked={showOnlyWithCycle} onCheckedChange={setShowOnlyWithCycle} className="scale-75" />
-              <span className="text-[11px] text-muted-foreground">Mostrar apenas com ciclo ativo</span>
-            </div>
-          </div>
-        )}
+        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-8 px-2 shrink-0">
+          <RefreshCw size={13} />
+        </Button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground font-medium">{filtered.length} instância(s)</p>
+      <p className="text-[10px] text-muted-foreground font-medium">{filtered.length} conta(s) na fase comunitária</p>
 
       {/* ═══ MOBILE: Card layout ═══ */}
       <div className="space-y-2 sm:hidden">
         {filtered.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground text-sm">Nenhuma instância encontrada</p>
-        ) : filtered.map((d: any) => (
-          <div key={d.id} className="bg-card border border-border rounded-xl p-3.5 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground truncate">{d.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{d.owner_name} · {d.number || "—"}</p>
+          <p className="text-center py-8 text-muted-foreground text-sm">Nenhuma conta na fase comunitária</p>
+        ) : filtered.map((d: any) => {
+          const chip = getChipStatus(d);
+          return (
+            <div key={d.id} className="bg-card border border-border rounded-xl p-3.5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground truncate">{d.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{d.owner_name} · {d.number || "—"}</p>
+                </div>
+                <Badge variant="outline" className={`text-[10px] shrink-0 gap-1 ${chip.color}`}>
+                  {chip.icon}{chip.label}
+                </Badge>
               </div>
-              <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColor(d.status)}`}>{d.status}</Badge>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2 text-[11px]">
-              <div>
-                <p className="text-muted-foreground/60 font-medium">Phase</p>
-                <p className="font-semibold text-foreground">{d.cycle_phase || "—"}</p>
+              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                  <p className="text-muted-foreground/60 font-medium">Phase</p>
+                  <p className="font-semibold text-foreground">{d.cycle_phase}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground/60 font-medium">Dia</p>
+                  <p className="font-semibold text-foreground">{d.cycle_day_index}/{d.cycle_days_total}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground/60 font-medium">Conexão</p>
+                  <p className="font-semibold text-foreground">{["connected", "ready"].includes(d.status?.toLowerCase()) ? "🟢" : "🔴"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground/60 font-medium">Dia</p>
-                <p className="font-semibold text-foreground">{d.cycle_active ? `${d.cycle_day_index}/${d.cycle_days_total}` : "—"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground/60 font-medium">Ciclo</p>
-                <p className="font-semibold text-foreground">{d.cycle_active ? "✅" : "—"}</p>
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-border/50">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">Ativo</span>
-                <Switch
-                  checked={d.is_enrolled}
-                  onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_enrolled", value: v, user_id: d.user_id })}
-                  className="scale-75"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">Elegível</span>
-                <Switch
-                  checked={d.is_eligible}
-                  onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_eligible", value: v, user_id: d.user_id })}
-                  className="scale-75"
-                />
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground">Ativo (conversando)</span>
+                  <Switch
+                    checked={d.is_enrolled}
+                    onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_enrolled", value: v, user_id: d.user_id })}
+                    className="scale-75"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground">Elegível</span>
+                  <Switch
+                    checked={d.is_eligible}
+                    onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_eligible", value: v, user_id: d.user_id })}
+                    className="scale-75"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ═══ DESKTOP: Table layout ═══ */}
@@ -217,15 +154,14 @@ const CommunityPoolTab = () => {
           className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto"
           style={{ contain: "layout style", willChange: "scroll-position", overscrollBehavior: "contain" }}
         >
-          <table className="w-full text-sm min-w-[980px]">
+          <table className="w-full text-sm min-w-[800px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                 <th className="text-left px-3 py-2.5">Usuário</th>
                 <th className="text-left px-3 py-2.5">Instância</th>
                 <th className="text-left px-3 py-2.5">Telefone</th>
+                <th className="text-left px-3 py-2.5">Conexão</th>
                 <th className="text-left px-3 py-2.5">Status</th>
-                <th className="text-left px-3 py-2.5">Ciclo</th>
-                <th className="text-left px-3 py-2.5">Phase</th>
                 <th className="text-left px-3 py-2.5">Dia</th>
                 <th className="text-center px-3 py-2.5">Ativo</th>
                 <th className="text-center px-3 py-2.5">Elegível</th>
@@ -233,39 +169,46 @@ const CommunityPoolTab = () => {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-8 text-muted-foreground text-sm">Nenhuma instância encontrada</td></tr>
-              ) : filtered.map((d: any) => (
-                <tr key={d.id} className="hover:bg-muted/30 transition-colors text-xs">
-                  <td className="px-3 py-2.5">
-                    <div className="truncate max-w-[150px] font-medium text-foreground">{d.owner_name}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">{d.owner_email}</div>
-                  </td>
-                  <td className="px-3 py-2.5 font-medium text-foreground">{d.name}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{d.number || "—"}</td>
-                  <td className="px-3 py-2.5">
-                    <Badge variant="outline" className={`text-[10px] ${statusColor(d.status)}`}>{d.status}</Badge>
-                  </td>
-                  <td className="px-3 py-2.5">{d.cycle_active ? "✅" : "—"}</td>
-                  <td className="px-3 py-2.5">
-                    {d.cycle_phase ? <Badge variant="outline" className="text-[10px]">{d.cycle_phase}</Badge> : "—"}
-                  </td>
-                  <td className="px-3 py-2.5">{d.cycle_active ? `${d.cycle_day_index}/${d.cycle_days_total}` : "—"}</td>
-                  <td className="px-3 py-2.5 text-center">
-                    <Switch
-                      checked={d.is_enrolled}
-                      onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_enrolled", value: v, user_id: d.user_id })}
-                      className="scale-75"
-                    />
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <Switch
-                      checked={d.is_eligible}
-                      onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_eligible", value: v, user_id: d.user_id })}
-                      className="scale-75"
-                    />
-                  </td>
-                </tr>
-              ))}
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">Nenhuma conta na fase comunitária</td></tr>
+              ) : filtered.map((d: any) => {
+                const chip = getChipStatus(d);
+                return (
+                  <tr key={d.id} className="hover:bg-muted/30 transition-colors text-xs">
+                    <td className="px-3 py-2.5">
+                      <div className="truncate max-w-[150px] font-medium text-foreground">{d.owner_name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{d.owner_email}</div>
+                    </td>
+                    <td className="px-3 py-2.5 font-medium text-foreground">{d.name}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{d.number || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      {["connected", "ready"].includes(d.status?.toLowerCase())
+                        ? <Badge variant="outline" className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Online</Badge>
+                        : <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-400 border-red-500/30">Offline</Badge>
+                      }
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Badge variant="outline" className={`text-[10px] gap-1 ${chip.color}`}>
+                        {chip.icon}{chip.label}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2.5">{d.cycle_day_index}/{d.cycle_days_total}</td>
+                    <td className="px-3 py-2.5 text-center">
+                      <Switch
+                        checked={d.is_enrolled}
+                        onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_enrolled", value: v, user_id: d.user_id })}
+                        className="scale-75"
+                      />
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <Switch
+                        checked={d.is_eligible}
+                        onCheckedChange={(v) => toggleMutation.mutate({ device_id: d.id, field: "is_eligible", value: v, user_id: d.user_id })}
+                        className="scale-75"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
