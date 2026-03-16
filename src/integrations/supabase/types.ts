@@ -1605,6 +1605,42 @@ export type Database = {
           },
         ]
       }
+      warmup_daily_stats: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          messages_failed: number
+          messages_sent: number
+          messages_total: number
+          stat_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          messages_failed?: number
+          messages_sent?: number
+          messages_total?: number
+          stat_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          messages_failed?: number
+          messages_sent?: number
+          messages_total?: number
+          stat_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       warmup_folder_devices: {
         Row: {
           created_at: string
