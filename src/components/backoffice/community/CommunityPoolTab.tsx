@@ -60,7 +60,7 @@ const CommunityPoolTab = () => {
   const allData = data || [];
   const enrolled = allData.filter((d: any) => d.is_enrolled).length;
   const connected = allData.filter((d: any) => ["connected", "ready"].includes(d.status?.toLowerCase())).length;
-  const hasActiveFilter = filterStatus !== "all" || filterEnrolled !== "all" || filterPhase !== "all";
+  const hasActiveFilter = filterStatus !== "connected" || filterEnrolled !== "all" || filterPhase !== "all" || !showOnlyWithCycle;
 
   const statusColor = (s: string) => {
     const lower = s?.toLowerCase();
