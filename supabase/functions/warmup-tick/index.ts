@@ -1690,7 +1690,7 @@ async function handleTick(db: any) {
         } else {
           const { data: otherCycles } = await db.from("warmup_cycles")
             .select("device_id, user_id")
-            .eq("is_running", true).neq("device_id", job.device_id).neq("user_id", job.user_id)
+            .eq("is_running", true).neq("device_id", job.device_id)
             .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
             .limit(10);
 
