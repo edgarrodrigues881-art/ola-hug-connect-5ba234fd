@@ -109,7 +109,8 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   v.groupMsgs = getDailyBudget();
 
   // Autosave como BÔNUS extra (10-15 interações) quando fase permitir
-  if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
+  // [BUG 6 FIX] Removed community_light (dead code - getPhaseForDay never returns it)
+  if (["autosave_enabled", "community_enabled"].includes(phase)) {
     v.autosaveContacts = 5;
     v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
@@ -303,25 +304,10 @@ async function scheduleDayJobs(
     }
   }
 
-  // Phase transitions — Autosave reativado, community desativado
-  if (phase === "groups_only" && dayIndex >= getGroupsEndDay(chipState)) {
-    jobs.push({
-      user_id: userId, device_id: deviceId, cycle_id: cycleId,
-      job_type: "enable_autosave", payload: {},
-      run_at: new Date(effectiveEnd - 60000).toISOString(), status: "pending",
-    });
-  }
-  // Enable community on the day after autosave
-  if (phase === "autosave_enabled") {
-    const communityDay = getGroupsEndDay(chipState) + 2;
-    if (dayIndex >= communityDay - 1) {
-      jobs.push({
-        user_id: userId, device_id: deviceId, cycle_id: cycleId,
-        job_type: "enable_community", payload: {},
-        run_at: new Date(effectiveEnd - 60000).toISOString(), status: "pending",
-      });
-    }
-  }
+  // [BUG 1+2 FIX] Phase transitions are now handled ENTIRELY by daily_reset.
+  // Removed enable_autosave/enable_community end-of-day jobs to avoid:
+  // - Wasted first day (jobs fire at end of window, no time for interactions)
+  // - Duplicate pair creation between enable_community and daily_reset
 
   // Insert jobs
   for (let i = 0; i < jobs.length; i += 100) {
@@ -1675,10 +1661,19 @@ async function handleTick(db: any) {
 
         const peerIndex = job.payload?.peer_index ?? 0;
 
-        // Find active pairs for this cycle
-        const { data: pairs } = await db.from("community_pairs")
+        // [BUG 4 FIX] Search pairs by device_id (either A or B), NOT by cycle_id.
+        // Pairs are only linked to the creator's cycle_id, so device B would never find them.
+        const { data: pairsAsA } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b")
-          .eq("cycle_id", cycle.id).eq("status", "active");
+          .eq("instance_id_a", job.device_id).eq("status", "active");
+        const { data: pairsAsB } = await db.from("community_pairs")
+          .select("id, instance_id_a, instance_id_b")
+          .eq("instance_id_b", job.device_id).eq("status", "active");
+
+        const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
+        // Deduplicate by pair id
+        const seenPairIds = new Set<string>();
+        const pairs = allPairs.filter(p => { if (seenPairIds.has(p.id)) return false; seenPairIds.add(p.id); return true; });
 
         let peerDeviceId: string | null = null;
 
@@ -1688,10 +1683,11 @@ async function handleTick(db: any) {
             ? selectedPair.instance_id_b
             : selectedPair.instance_id_a;
         } else {
+          // Fallback: find any running community device
           const { data: otherCycles } = await db.from("warmup_cycles")
             .select("device_id, user_id")
             .eq("is_running", true).neq("device_id", job.device_id)
-            .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
+            .in("phase", ["autosave_enabled", "community_enabled"])
             .limit(10);
 
           if (otherCycles?.length) {
@@ -1971,6 +1967,7 @@ async function handleTick(db: any) {
           break;
         }
 
+        const oldPhase = cycle.phase;
         const newPhase = getPhaseForDay(newDay, chipState);
 
         // Cancel old interaction jobs and join_group jobs (join only on day 1)
@@ -1986,18 +1983,38 @@ async function handleTick(db: any) {
           day_index: newDay,
           phase: newPhase,
           last_daily_reset_at: resetAt,
+          daily_interaction_budget_used: 0,
+          daily_unique_recipients_used: 0,
         }).eq("id", cycle.id);
 
         cycle.day_index = newDay;
         cycle.phase = newPhase;
         cycle.last_daily_reset_at = resetAt;
 
+        // [BUG 3 FIX] When transitioning to autosave_enabled or community_enabled,
+        // ensure community membership is activated (was only done by enable_autosave job before)
+        if (newPhase !== oldPhase && ["autosave_enabled", "community_enabled"].includes(newPhase)) {
+          const { data: membership } = await db.from("warmup_community_membership")
+            .select("id, is_enabled").eq("device_id", job.device_id).maybeSingle();
+
+          if (!membership) {
+            await db.from("warmup_community_membership").insert({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: cycle.id,
+              is_eligible: true, is_enabled: true, enabled_at: resetAt,
+            });
+          } else if (!membership.is_enabled) {
+            await db.from("warmup_community_membership")
+              .update({ is_enabled: true, is_eligible: true, enabled_at: resetAt, cycle_id: cycle.id })
+              .eq("id", membership.id);
+          }
+        }
+
         const chipLabels: Record<string, string> = { new: "NOVO", recovered: "BANIDO/RECUPERAÇÃO", unstable: "CRÍTICO/INSTÁVEL" };
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "daily_reset",
-          message: `Reset: dia ${newDay}/${cycle.days_total}, fase: ${newPhase}, perfil: ${chipLabels[chipState] || chipState}`,
-          meta: { day: newDay, phase: newPhase },
+          message: `Reset: dia ${newDay}/${cycle.days_total}, fase: ${oldPhase} → ${newPhase}, perfil: ${chipLabels[chipState] || chipState}`,
+          meta: { day: newDay, phase: newPhase, old_phase: oldPhase },
         });
 
         // Rotate community pairs on daily reset if in community phase
