@@ -558,9 +558,6 @@ const Contacts = () => {
           <div className="p-2 truncate">Nome</div>
           <div className="p-2 truncate">Telefone</div>
           <div className="p-2 truncate">Tags</div>
-          {VAR_KEYS.map((_, i) => (
-            <div key={i} className="p-2 truncate">Var {i + 1}</div>
-          ))}
           <div className="p-2"></div>
         </div>
         {isLoading ? (
