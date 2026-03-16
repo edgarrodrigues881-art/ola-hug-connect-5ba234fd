@@ -109,7 +109,8 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   v.groupMsgs = getDailyBudget();
 
   // Autosave como BÔNUS extra (10-15 interações) quando fase permitir
-  if (["autosave_enabled", "community_enabled", "community_light"].includes(phase)) {
+  // [BUG 6 FIX] Removed community_light (dead code - getPhaseForDay never returns it)
+  if (["autosave_enabled", "community_enabled"].includes(phase)) {
     v.autosaveContacts = 5;
     v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
   }
