@@ -139,6 +139,7 @@ export function useCreateCampaign() {
           device_id: validDeviceId,
           device_ids: campaignData.device_ids || [],
           messages_per_instance: campaignData.messages_per_instance || 0,
+          pause_on_disconnect: campaignData.pause_on_disconnect ?? true,
           user_id: user!.id,
           total_contacts: contacts.length,
           status: campaignData.scheduled_at ? "scheduled" : "pending",
