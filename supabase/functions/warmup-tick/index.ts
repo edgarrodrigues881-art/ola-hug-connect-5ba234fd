@@ -955,6 +955,19 @@ function pickMediaTypeCommunity(budgetUsed: number): "text" | "image" | "audio" 
 const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
 const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
 
+// Max active pairs a device can participate in (as A or B)
+const MAX_ACTIVE_PAIRS_PER_DEVICE = 2;
+
+async function getActivePairCount(db: any, deviceId: string): Promise<number> {
+  const { count: countA } = await db.from("community_pairs")
+    .select("id", { count: "exact", head: true })
+    .eq("instance_id_a", deviceId).eq("status", "active");
+  const { count: countB } = await db.from("community_pairs")
+    .select("id", { count: "exact", head: true })
+    .eq("instance_id_b", deviceId).eq("status", "active");
+  return (countA || 0) + (countB || 0);
+}
+
 type CommunityPairMeta = {
   initiator: "a" | "b";
   expected_sender_device_id: string | null;
@@ -2479,6 +2492,10 @@ async function handleTick(db: any) {
               .select("status, number").eq("id", e.device_id).single();
             if (!partnerDev?.number || !CONNECTED_STATUSES.includes(partnerDev.status)) continue;
 
+            // Check if partner already has too many active pairs
+            const partnerPairCount = await getActivePairCount(db, e.device_id);
+            if (partnerPairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+
             await db.from("community_pairs").insert({
               cycle_id: cycle.id,
               instance_id_a: job.device_id,
@@ -2691,6 +2708,10 @@ async function handleTick(db: any) {
                   .select("status, number").eq("id", e.device_id).single();
                 if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
 
+                // Check if partner already has too many active pairs
+                const peerPairCount = await getActivePairCount(db, e.device_id);
+                if (peerPairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+
                 await db.from("community_pairs").insert({
                   cycle_id: cycle.id, instance_id_a: job.device_id, instance_id_b: e.device_id,
                   status: "active", meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
@@ -2874,6 +2895,10 @@ async function handleDailyReset(db: any) {
             const { data: pd } = await db.from("devices")
               .select("status, number").eq("id", e.device_id).single();
             if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
+
+            // Check if partner already has too many active pairs
+            const inlinePairCount = await getActivePairCount(db, e.device_id);
+            if (inlinePairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
 
             await db.from("community_pairs").insert({
               cycle_id: cycle.id, instance_id_a: cycle.device_id, instance_id_b: e.device_id,
