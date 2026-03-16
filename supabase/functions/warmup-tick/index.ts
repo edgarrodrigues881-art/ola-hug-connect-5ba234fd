@@ -333,7 +333,7 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
   if (existing?.length > 0) return 0;
 
   const { data: pending } = await db.from("warmup_instance_groups")
-    .select("group_id, warmup_groups_pool(id, name)")
+    .select("group_id, group_name, invite_link")
     .eq("device_id", deviceId).eq("join_status", "pending");
   if (!pending?.length) return 0;
 
@@ -343,10 +343,12 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
   let cumMs = randInt(5, 15) * 60000;
 
   for (const g of shuffled) {
+    const jobPayload: any = { group_id: g.group_id, group_name: g.group_name || "Grupo" };
+    if (g.invite_link) jobPayload.invite_link = g.invite_link;
     joinJobs.push({
       user_id: userId, device_id: deviceId, cycle_id: cycleId,
       job_type: "join_group",
-      payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
+      payload: jobPayload,
       run_at: new Date(nowMs + cumMs).toISOString(), status: "pending",
     });
     cumMs += randInt(5, 30) * 60000;
@@ -1334,8 +1336,8 @@ async function handleTick(db: any) {
     batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
     batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
     batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id", "user_id", uniqueUserIds, q => q.eq("is_active", true).order("id", { ascending: true })),
-    batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status", "device_id", uniqueDeviceIds),
-    db.from("warmup_groups_pool").select("id, external_group_ref, name").eq("is_active", true).then((r: any) => r.data || []),
+    batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status, group_name, invite_link", "device_id", uniqueDeviceIds),
+    db.from("warmup_groups").select("id, link, name").then((r: any) => r.data || []),
     getImagePool(db),
     getAudioPool(db),
   ]);
@@ -1364,8 +1366,8 @@ async function handleTick(db: any) {
     if (!instanceGroupsMap[ig.device_id]) instanceGroupsMap[ig.device_id] = [];
     instanceGroupsMap[ig.device_id].push(ig);
   });
-  const groupsPoolMap: Record<string, any> = {};
-  groupsPoolArr.forEach((g: any) => { groupsPoolMap[g.id] = g; });
+  const groupsMap: Record<string, any> = {};
+  groupsPoolArr.forEach((g: any) => { groupsMap[g.id] = { ...g, external_group_ref: g.link }; });
 
   console.log(`[warmup-tick] Loaded: ${cyclesArr.length} cycles, ${devicesArr.length} devices, ${filteredJobs.length} jobs`);
 
@@ -1471,11 +1473,11 @@ async function handleTick(db: any) {
           break;
         }
 
-        const poolGroup = groupsPoolMap[groupId];
-        const directInviteLink = job.payload?.invite_link;
-        if (!directInviteLink && !poolGroup?.external_group_ref) throw new Error(`Grupo ${groupName} sem link de convite`);
+        const groupRef = groupsMap[groupId];
+        const directInviteLink = job.payload?.invite_link || record?.invite_link;
+        if (!directInviteLink && !groupRef?.external_group_ref) throw new Error(`Grupo ${groupName} sem link de convite`);
 
-        const inviteLink = directInviteLink || poolGroup.external_group_ref;
+        const inviteLink = directInviteLink || groupRef.external_group_ref;
         const inviteCode = inviteLink.replace(/^https?:\/\//, "").replace(/^chat\.whatsapp\.com\//, "").split("?")[0].split("/")[0].trim();
         if (!inviteCode || inviteCode.length < 10) throw new Error(`Código inválido: ${inviteLink}`);
 
@@ -1765,18 +1767,18 @@ async function handleTick(db: any) {
 
               for (const ig of allIGs) {
                 if (ig.join_status === "joined") continue;
-                const poolGroup = groupsPoolMap[ig.group_id];
-                const poolName = norm(poolGroup?.name || "");
+                const grpRef = groupsMap[ig.group_id];
+                const grpName = norm(grpRef?.name || ig.group_name || "");
                 const igJid = String(ig.group_jid || "").toLowerCase().trim();
 
-                const nameMatch = poolName && liveNames.has(poolName);
+                const nameMatch = grpName && liveNames.has(grpName);
                 const jidMatch = igJid && liveJids.has(igJid);
 
                 // Also try to find JID from live groups
                 let resolvedJid = ig.group_jid;
                 if (!resolvedJid) {
                   const match = liveGroupsCache.find((g: any) =>
-                    norm(g.subject || g.name || g.Name || g.title || "") === poolName
+                    norm(g.subject || g.name || g.Name || g.title || "") === grpName
                   );
                   if (match) resolvedJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
                 }
@@ -1792,7 +1794,7 @@ async function handleTick(db: any) {
                   bufferAudit({
                     user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
                     level: "info", event_type: "auto_sync_joined",
-                    message: `Auto-sync: grupo "${poolGroup?.name}" detectado no dispositivo → marcado como joined`,
+                    message: `Auto-sync: grupo "${grpRef?.name || ig.group_name}" detectado no dispositivo → marcado como joined`,
                   });
                 }
               }
@@ -1810,13 +1812,13 @@ async function handleTick(db: any) {
         if (joinedGroups.length > 0) {
           const target = pickRandom(joinedGroups);
           targetGroupId = target.group_id;
-          const poolGroup = groupsPoolMap[target.group_id];
-          groupName = poolGroup?.name || "Grupo";
+          const grpRef = groupsMap[target.group_id];
+          groupName = grpRef?.name || target.group_name || "Grupo";
 
-          // Resolve JID by DB, fallback by invite JID, then live lookup by name
+          // Resolve JID by DB, fallback by invite link JID, then live lookup by name
           groupJid = target.group_jid;
-          if (!groupJid && poolGroup?.external_group_ref?.includes("@g.us")) {
-            groupJid = poolGroup.external_group_ref;
+          if (!groupJid && (target.invite_link || grpRef?.external_group_ref)?.includes("@g.us")) {
+            groupJid = target.invite_link || grpRef?.external_group_ref;
           }
           if (!groupJid) {
             try {
@@ -2926,7 +2928,7 @@ async function handleDailyReset(db: any) {
 
     // [BUG B FIX] Reschedule failed join_group jobs instead of just cancelling them
     const { data: failedJoinGroups } = await db.from("warmup_instance_groups")
-      .select("group_id, warmup_groups_pool(id, name)")
+      .select("group_id, group_name, invite_link")
       .eq("device_id", cycle.device_id).eq("join_status", "pending");
 
     if (failedJoinGroups?.length > 0) {

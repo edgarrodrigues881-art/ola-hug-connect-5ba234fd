@@ -400,7 +400,7 @@ async function ensureJoinGroupJobs(
   // Find groups that haven't been joined yet (by device_id, not cycle)
   const { data: pendingGroups } = await db
     .from("warmup_instance_groups")
-    .select("group_id, warmup_groups_pool(id, name)")
+    .select("group_id, group_name, invite_link")
     .eq("device_id", deviceId)
     .eq("join_status", "pending");
 
@@ -413,13 +413,15 @@ async function ensureJoinGroupJobs(
   let cumulativeMs = randInt(5, 15) * 60 * 1000;
   for (let i = 0; i < shuffled.length; i++) {
     const g = shuffled[i];
-    const groupName = (g as any).warmup_groups_pool?.name || "Grupo";
+    const groupName = g.group_name || "Grupo";
     const runAt = new Date(nowMs + cumulativeMs);
 
+    const jobPayload: any = { group_id: g.group_id, group_name: groupName };
+    if (g.invite_link) jobPayload.invite_link = g.invite_link;
     joinJobs.push({
       user_id: userId, device_id: deviceId, cycle_id: cycleId,
       job_type: "join_group",
-      payload: { group_id: g.group_id, group_name: groupName },
+      payload: jobPayload,
       run_at: runAt.toISOString(), status: "pending",
     });
     cumulativeMs += randInt(5, 30) * 60 * 1000;
@@ -609,73 +611,30 @@ async function handleStart(db: any, userId: string | null, body: any) {
 
   if (cycleErr) throw cycleErr;
 
-  // 3. Register groups — from pool (system) or user's custom groups
-  let allGroups: { id: string; name: string; invite_link?: string }[] = [];
+  // 3. Register groups — always from user's warmup_groups
+  const { data: userGroups } = await db
+    .from("warmup_groups")
+    .select("id, name, link")
+    .eq("user_id", userId)
+    .eq("is_custom", true);
+  
+  const allGroups = shuffleArray((userGroups || []).map((g: any) => ({
+    id: g.id,
+    name: g.name,
+    invite_link: g.link,
+  })));
 
-  if (resolvedGroupSource === "custom") {
-    // Use user's custom groups from warmup_groups table
-    const { data: customGroups } = await db
-      .from("warmup_groups")
-      .select("id, name, link")
-      .eq("user_id", userId)
-      .eq("is_custom", true);
-    
-    allGroups = shuffleArray((customGroups || []).map((g: any) => ({
-      id: g.id,
-      name: g.name,
-      invite_link: g.link,
-    })));
-  } else {
-    // Use system groups from pool
-    const { data: poolGroups } = await db
-      .from("warmup_groups_pool")
-      .select("id, name")
-      .eq("is_active", true);
-    
-    allGroups = shuffleArray((poolGroups || []).map((g: any) => ({
-      id: g.id,
-      name: g.name,
-    })));
-  }
+  // Clear old instance_groups for this device
+  await db.from("warmup_instance_groups").delete()
+    .eq("device_id", device_id).eq("user_id", userId);
 
-  if (resolvedGroupSource === "custom") {
-    // For custom groups: skip warmup_instance_groups (FK references warmup_groups_pool)
-    // Groups are managed entirely via join_group job payloads with invite_link
-    // Clear any existing instance_groups for this device to avoid stale data
-    await db.from("warmup_instance_groups").delete()
-      .eq("device_id", device_id).eq("user_id", userId);
-  } else {
-    // System groups — original logic
-    // Check for existing group records for this device
-    const { data: existingGroups } = await db
-      .from("warmup_instance_groups")
-      .select("id, group_id, join_status")
-      .eq("device_id", device_id);
-
-    if (existingGroups?.length > 0) {
-      // Update existing records to reference new cycle
-      await db.from("warmup_instance_groups")
-        .update({ cycle_id: cycle.id })
-        .eq("device_id", device_id);
-
-      // Insert any NEW pool groups that don't have records yet
-      const existingGroupIds = new Set(existingGroups.map((g: any) => g.group_id));
-      const missingGroups = allGroups.filter((g: any) => !existingGroupIds.has(g.id));
-      for (const g of missingGroups) {
-        await db.from("warmup_instance_groups").insert({
-          user_id: userId, device_id,
-          group_id: g.id, cycle_id: cycle.id, join_status: "pending",
-        });
-      }
-    } else {
-      // Fresh: register all pool groups
-      for (const g of allGroups) {
-        await db.from("warmup_instance_groups").insert({
-          user_id: userId, device_id,
-          group_id: g.id, cycle_id: cycle.id, join_status: "pending",
-        });
-      }
-    }
+  // Register all user groups in warmup_instance_groups
+  for (const g of allGroups) {
+    await db.from("warmup_instance_groups").insert({
+      user_id: userId, device_id,
+      group_id: g.id, cycle_id: cycle.id, join_status: "pending",
+      group_name: g.name, invite_link: g.invite_link,
+    });
   }
 
   // 4. Schedule jobs based on start_day
@@ -903,7 +862,7 @@ async function handleResume(db: any, userId: string | null, body: any) {
   if (cycle.day_index <= 1) {
     const { data: pendingGroups } = await db
       .from("warmup_instance_groups")
-      .select("group_id, warmup_groups_pool(id, name)")
+      .select("group_id, group_name, invite_link")
       .eq("device_id", device_id)
       .eq("cycle_id", cycle.id)
       .eq("join_status", "pending");
@@ -915,10 +874,12 @@ async function handleResume(db: any, userId: string | null, body: any) {
 
       for (let i = 0; i < shuffled.length; i++) {
         const g = shuffled[i];
+        const jobPayload: any = { group_id: g.group_id, group_name: g.group_name || "Grupo" };
+        if (g.invite_link) jobPayload.invite_link = g.invite_link;
         joinJobs.push({
           user_id: userId, device_id, cycle_id: cycle.id,
           job_type: "join_group",
-          payload: { group_id: g.group_id, group_name: g.warmup_groups_pool?.name || "Grupo" },
+          payload: jobPayload,
           run_at: new Date(now.getTime() + cumulativeMs).toISOString(),
           status: "pending",
         });
