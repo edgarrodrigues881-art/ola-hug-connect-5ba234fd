@@ -40,7 +40,7 @@ const CampaignList = lazyRetry(() => import("./pages/dashboard/CampaignList"));
 const Contacts = lazyRetry(() => import("./pages/dashboard/Contacts"));
 const Reports = lazyRetry(() => import("./pages/dashboard/Reports"));
 const Templates = lazyRetry(() => import("./pages/dashboard/Templates"));
-const Warmup = lazyRetry(() => import("./pages/dashboard/Warmup"));
+// Warmup V1 removed — V2 (WarmupInstances) is the active system
 const Proxy = lazyRetry(() => import("./pages/dashboard/Proxy"));
 const Notifications = lazyRetry(() => import("./pages/dashboard/Notifications"));
 const SettingsPage = lazyRetry(() => import("./pages/dashboard/Settings"));
