@@ -1080,7 +1080,8 @@ Deno.serve(async (req) => {
                   failedCount++;
                   if (failedCount % 5 === 0) await serviceClient.from("campaigns").update({ failed_count: failedCount }).eq("id", campaignId);
                   if (isDisconnectError(lastSendError)) {
-                    await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id);
+                    const didPause = await handleDisconnectPause(serviceClient, campaignId, deviceIds, failedCount, campaign.name, campaign.user_id, pauseOnDisconnect);
+                    if (didPause) break;
                   }
                   break;
                 }
