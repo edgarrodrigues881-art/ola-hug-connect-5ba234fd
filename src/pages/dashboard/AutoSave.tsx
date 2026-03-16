@@ -46,29 +46,30 @@ function AutoSaveRowInner({ index, style, filtered, onEdit, onToggle, onDelete, 
   if (!c) return null;
   return (
     <div style={{ ...style, paddingBottom: 6, paddingRight: 4 }}>
-      <div className={cn(!c.is_active && "opacity-50", "h-[62px] rounded-lg border bg-card text-card-foreground shadow-sm")}>
-        <div className="p-3 flex items-center gap-3 h-full">
+      <div className={cn(
+        "h-[62px] rounded-xl border border-border/15 bg-card/60 backdrop-blur-sm transition-all duration-150 hover:border-border/30 hover:bg-card/80 group/row",
+        !c.is_active && "opacity-40"
+      )}>
+        <div className="px-4 flex items-center gap-3.5 h-full">
           <div className={cn(
-            "w-2 h-2 rounded-full shrink-0",
-            c.is_active ? "bg-emerald-400" : "bg-muted-foreground/30"
+            "w-2 h-2 rounded-full shrink-0 ring-2",
+            c.is_active ? "bg-emerald-400 ring-emerald-400/20" : "bg-muted-foreground/30 ring-muted-foreground/10"
           )} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-foreground truncate">
-                {c.contact_name || "Sem nome"}
-              </p>
-            </div>
-            <p className="text-[11px] font-mono text-muted-foreground">{c.phone_e164}</p>
+            <p className="text-[13px] font-semibold text-foreground truncate">
+              {c.contact_name || "Sem nome"}
+            </p>
+            <p className="text-[11px] font-mono text-muted-foreground/60">{c.phone_e164}</p>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onEdit(c)}>
-              <Edit2 className="w-3 h-3" />
+          <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover/row:opacity-100 transition-opacity">
+            <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/40 transition-colors" onClick={() => onEdit(c)}>
+              <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
-            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent" onClick={() => onToggle(c)}>
-              {c.is_active ? <PowerOff className="w-3 h-3 text-amber-400" /> : <Power className="w-3 h-3 text-emerald-400" />}
+            <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/40 transition-colors" onClick={() => onToggle(c)}>
+              {c.is_active ? <PowerOff className="w-3.5 h-3.5 text-amber-400" /> : <Power className="w-3.5 h-3.5 text-emerald-400" />}
             </button>
-            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent text-destructive" onClick={() => onDelete(c.id)}>
-              <Trash2 className="w-3 h-3" />
+            <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-destructive/10 transition-colors" onClick={() => onDelete(c.id)}>
+              <Trash2 className="w-3.5 h-3.5 text-destructive/70" />
             </button>
           </div>
         </div>
@@ -383,152 +384,193 @@ const AutoSave = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary shrink-0" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
             Auto Save
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5 max-w-[280px] sm:max-w-none">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Gerencie os contatos da camada Auto Save
           </p>
         </div>
-
-        {/* Action buttons - grid on mobile */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9" onClick={() => setImportOpen(true)}>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl border-border/15" onClick={() => setImportOpen(true)}>
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           {contacts.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 text-destructive hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl text-destructive border-destructive/20 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
               <Trash2 className="w-3.5 h-3.5" /> Apagar todos
             </Button>
           )}
-          <Button size="sm" className="gap-1.5 text-xs h-9 col-span-2 sm:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="gap-1.5 text-xs h-9 rounded-xl shadow-md" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <Card className="max-w-[160px]"><CardContent className="p-3 text-center">
-        <p className="text-xl font-bold tabular-nums text-foreground">{contacts.length}</p>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total</p>
-      </CardContent></Card>
+      {/* Stats cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Total", value: contacts.length, color: "#a1a1aa", icon: Users },
+          { label: "Ativos", value: activeCount, color: "#10b981", icon: CheckCircle2 },
+          { label: "Inativos", value: contacts.length - activeCount, color: "#6b7280", icon: XCircle },
+        ].map(s => (
+          <div key={s.label} className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl p-4 overflow-hidden group hover:border-border/40 transition-colors">
+            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent to-transparent" style={{ backgroundImage: `linear-gradient(to right, transparent, ${s.color}40, transparent)` }} />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1.5">{s.label}</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${s.color}15` }}>
+                <s.icon className="w-4 h-4" style={{ color: s.color }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+      {/* Search & Tags */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/40" />
           <Input
             placeholder="Buscar nome ou número..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-9 h-10 text-xs rounded-xl bg-muted/10 border-border/15"
           />
         </div>
         {allTags.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
             {tagFilter && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-6 cursor-pointer hover:bg-destructive/10"
+              <button
+                className="px-3 py-1.5 rounded-xl text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20 shadow-sm"
                 onClick={() => setTagFilter("")}
               >
                 ✕ {tagFilter}
-              </Badge>
+              </button>
             )}
             {allTags.filter(t => t !== tagFilter).slice(0, 5).map(tag => (
-              <Badge
+              <button
                 key={tag}
-                variant="outline"
-                className="text-[10px] h-6 cursor-pointer hover:bg-primary/10"
+                className="px-3 py-1.5 rounded-xl text-[10px] font-medium border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                 onClick={() => setTagFilter(tag)}
               >
                 {tag}
-              </Badge>
+              </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Table */}
+      {/* Contact list */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" /></div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {contacts.length === 0 ? "Nenhum contato cadastrado" : "Nenhum contato encontrado com esses filtros"}
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="py-16 text-center">
+            <Users className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground/50 font-medium">
+              {contacts.length === 0 ? "Nenhum contato cadastrado" : "Nenhum contato encontrado"}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <div
-          className="rounded-xl border border-border/30 overflow-hidden"
-          style={{
-            contain: "layout style",
-            height: Math.min(filtered.length * 68, 520),
-          }}
-        >
-          <VirtualList
-            rowCount={filtered.length}
-            rowHeight={68}
-            overscanCount={10}
-            style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
-            rowProps={rowProps}
-            rowComponent={AutoSaveRowInner}
-          />
+        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+            <h3 className="text-sm font-bold text-foreground">{filtered.length} contato{filtered.length !== 1 ? "s" : ""}</h3>
+          </div>
+          <div
+            className="p-2"
+            style={{
+              contain: "layout style",
+              height: Math.min(filtered.length * 68, 520),
+            }}
+          >
+            <VirtualList
+              rowCount={filtered.length}
+              rowHeight={68}
+              overscanCount={10}
+              style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
+              rowProps={rowProps}
+              rowComponent={AutoSaveRowInner}
+            />
+          </div>
         </div>
       )}
 
       {/* ── Add Modal ── */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Adicionar Contato</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Número (E.164)</Label>
-              <Input value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="62994192500" className="mt-1 font-mono" />
-              <p className="text-[10px] text-muted-foreground mt-1">Exemplo: 62994192500 ou +5562994192500</p>
+        <DialogContent className="sm:max-w-[380px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-primary" />
+                </div>
+                Adicionar Contato
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Número (E.164)</Label>
+              <Input value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="62994192500" className="font-mono text-xs h-10 rounded-xl bg-muted/10 border-border/15" />
+              <p className="text-[10px] text-muted-foreground/40">Ex: 62994192500 ou +5562994192500</p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleAdd} disabled={!addPhone.trim() || createContact.isPending}>
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+            <Button size="sm" onClick={handleAdd} disabled={!addPhone.trim() || createContact.isPending} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">
               {createContact.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Adicionar"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* ── Edit Modal ── */}
       <Dialog open={!!editContact} onOpenChange={v => !v && setEditContact(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Editar Contato</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Número</Label>
-              <Input value={editContact?.phone_e164 || ""} disabled className="mt-1 font-mono opacity-50" />
+        <DialogContent className="sm:max-w-[380px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Edit2 className="w-4 h-4 text-primary" />
+                </div>
+                Editar Contato
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Número</Label>
+              <Input value={editContact?.phone_e164 || ""} disabled className="font-mono text-xs h-10 rounded-xl bg-muted/10 border-border/15 opacity-50" />
             </div>
-            <div>
-              <Label className="text-xs">Nome</Label>
-              <Input value={editName} onChange={e => setEditName(e.target.value)} className="mt-1" />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Nome</Label>
+              <Input value={editName} onChange={e => setEditName(e.target.value)} className="text-xs h-10 rounded-xl bg-muted/10 border-border/15" />
             </div>
-            <div>
-              <Label className="text-xs">Tags</Label>
-              <Input value={editTags} onChange={e => setEditTags(e.target.value)} className="mt-1" />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Tags</Label>
+              <Input value={editTags} onChange={e => setEditTags(e.target.value)} className="text-xs h-10 rounded-xl bg-muted/10 border-border/15" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setEditContact(null)}>Cancelar</Button>
-            <Button size="sm" onClick={handleEdit} disabled={updateContact.isPending}>
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" size="sm" onClick={() => setEditContact(null)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+            <Button size="sm" onClick={handleEdit} disabled={updateContact.isPending} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">
               {updateContact.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvar"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -683,19 +725,26 @@ const AutoSave = () => {
 
       {/* ── Delete All Confirmation ── */}
       <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Apagar todos os contatos?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Essa ação vai remover todos os <strong>{contacts.length}</strong> contatos Auto Save. Não é possível desfazer.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteAll}>
-              Apagar todos
-            </Button>
-          </DialogFooter>
+        <DialogContent className="sm:max-w-[340px] p-0 bg-card/95 backdrop-blur-2xl border-border/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="px-6 pt-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                </div>
+                Apagar todos os contatos?
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Essa ação vai remover todos os <strong>{contacts.length}</strong> contatos Auto Save. Não é possível desfazer.
+            </p>
+          </div>
+          <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
+            <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">Apagar todos</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
