@@ -1803,20 +1803,16 @@ async function handleTick(db: any) {
           return generateNaturalMessage("group");
         };
 
-        const requestedMediaType = pickMediaType(cycle.daily_interaction_budget_used || 0);
+        const requestedMediaType = pickMediaTypeGroup(cycle.daily_interaction_budget_used || 0);
         let actualMediaType: "text" | "image" | "sticker" = requestedMediaType;
         let message = getMsg();
         let sendFallbackReason: string | null = null;
-
-        // NOTE: Reply (quotedMsgId) disabled — UAZAPI does not support fetching chat messages
 
         try {
           if (requestedMediaType === "image") {
             const imgUrl = pickRandom(imagePool);
             const caption = pickRandom(IMAGE_CAPTIONS);
-            // Enviar foto sem caption + mensagem de texto separada para garantir visibilidade
             await uazapiSendImage(baseUrl, token, groupJid, imgUrl, "");
-            // Pequeno delay entre foto e texto (1-3s)
             await new Promise(r => setTimeout(r, randInt(1000, 3000)));
             await uazapiSendText(baseUrl, token, groupJid, caption);
             message = `[IMG+TXT] ${caption}`;
