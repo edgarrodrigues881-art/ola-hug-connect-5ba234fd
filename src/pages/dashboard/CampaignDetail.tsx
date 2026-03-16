@@ -496,28 +496,7 @@ const CampaignDetail = () => {
         <StatCard label="Falhas" value={stats.failed} icon={XCircle} colorClass="bg-destructive/10 text-destructive" />
       </div>
 
-      {/* ── Taxa de sucesso ──────────────────────────────────────── */}
-      {isFinished && stats.total > 0 && (
-        <div className="rounded-xl border border-border/30 bg-card/50 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold",
-              successRate >= 80 ? "bg-primary/10 text-primary" : successRate >= 50 ? "bg-yellow-500/10 text-yellow-400" : "bg-destructive/10 text-destructive"
-            )}>
-              {successRate}%
-            </div>
-            <div>
-              <p className="text-xs font-medium text-foreground">Taxa de sucesso</p>
-              <p className="text-[10px] text-muted-foreground">{stats.sent} de {stats.total} entregues com sucesso</p>
-            </div>
-          </div>
-          {campaign.completed_at && (
-            <span className="text-[10px] text-muted-foreground/60">
-              Finalizada em {format(new Date(campaign.completed_at), "dd/MM/yyyy 'às' HH:mm")}
-            </span>
-          )}
-        </div>
-      )}
+
 
       {/* ── Delay Config (collapsible) ───────────────────────────── */}
       <div className="rounded-xl border border-border/30 bg-card/50 overflow-hidden">
