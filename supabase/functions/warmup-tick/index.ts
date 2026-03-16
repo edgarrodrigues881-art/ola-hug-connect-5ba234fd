@@ -2066,7 +2066,7 @@ async function handleTick(db: any) {
               let created = 0;
               for (const e of sorted) {
                 if (created >= newNeeded) break;
-                if (usedDevices.has(e.device_id) || usedUsers.has(e.user_id)) continue;
+                if (usedDevices.has(e.device_id)) continue;
 
                 const { data: pd } = await db.from("devices")
                   .select("status, number").eq("id", e.device_id).single();
