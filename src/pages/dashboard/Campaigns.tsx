@@ -2161,7 +2161,7 @@ const Campaigns = () => {
               </Button>
             )}
             {step < 4 ? (
-              <Button onClick={() => setStep(step + 1)} className="gap-1.5 sm:gap-3 h-10 sm:h-11 flex-1 sm:flex-none sm:px-14 text-xs sm:text-[15px] font-bold tracking-wide shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:brightness-110 transition-all duration-150">
+              <Button onClick={() => { const next = step + 1; if (next === 2 && contacts.length === 0) { setContacts([{ id: Date.now(), nome: "", numero: "", var1: "", var2: "", var3: "", var4: "", var5: "", var6: "", var7: "", var8: "", var9: "", var10: "" }]); setShowContactTable(true); } setStep(next); }} className="gap-1.5 sm:gap-3 h-10 sm:h-11 flex-1 sm:flex-none sm:px-14 text-xs sm:text-[15px] font-bold tracking-wide shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:brightness-110 transition-all duration-150">
                 CONTINUAR <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             ) : (
