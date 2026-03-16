@@ -336,12 +336,6 @@ export function useToggleAutosave() {
   });
 }
 
-// ── Placeholder: Create Pairs for Day ──
-export async function createPairsForDay(cycleId: string): Promise<{ wouldCreate: number }> {
-  // Placeholder: logs that pairing would happen but does not execute conversations
-  console.log(`[community] createPairsForDay called for cycle ${cycleId} — no-op placeholder`);
-  return { wouldCreate: 0 };
-}
 
 // ── Audit Logs ──
 export function useWarmupAuditLogs(cycleId?: string, limit = 200) {
