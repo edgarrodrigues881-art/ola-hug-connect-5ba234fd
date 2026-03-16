@@ -424,8 +424,10 @@ Deno.serve(async (req) => {
           ? (Date.now() - updatedAtMs) < 30 * 1000
           : false;
 
-        // Deep check when cached/unknown picture state is returned by status endpoint.
-        // This avoids false clears and also helps recover pictures that were previously wiped.
+        // Deep check: always re-fetch fresh profile pic from dedicated endpoints when:
+        // 1. Status endpoint returned unknown/undefined pic state
+        // 2. Current pic is already persisted in storage (need to detect changes)
+        const alreadyPersistedInStorage = currentPic?.includes("/storage/") || currentPic?.includes("supabase");
         if (
           isConnected &&
           !justEdited &&
@@ -434,7 +436,7 @@ Deno.serve(async (req) => {
           deepProfileChecks < MAX_DEEP_PROFILE_CHECKS &&
           (
             providerPic === undefined ||
-            (currentPic && typeof providerPic === "string" && currentPic === providerPic)
+            alreadyPersistedInStorage
           )
         ) {
           deepProfileChecks++;
