@@ -1503,7 +1503,9 @@ Deno.serve(async (req) => {
       });
     }
 
-
+    // ─── UPDATE MONITOR TOKEN ───
+    if (action === "update-monitor-token" && req.method === "POST") {
+      const { target_user_id, whatsapp_monitor_token } = await req.json();
       console.log("[admin-data] update-monitor-token for:", target_user_id, "token:", whatsapp_monitor_token ? "***" : "(empty)");
       const { error: updErr } = await adminClient.from("profiles").update({
         whatsapp_monitor_token: whatsapp_monitor_token || null,
