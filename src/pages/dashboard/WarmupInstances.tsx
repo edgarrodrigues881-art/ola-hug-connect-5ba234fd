@@ -477,7 +477,8 @@ const WarmupInstances = () => {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
-  const [bulkDaysTotal, setBulkDaysTotal] = useState("14");
+  const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
+  const [bulkStartDay, setBulkStartDay] = useState("1");
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const { user } = useAuth();
