@@ -1543,7 +1543,7 @@ const WarmupInstances = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Dia final</label>
-                  <Select value={bulkDaysTotal} onValueChange={setBulkDaysTotal}>
+                  <Select value={safeBulkDaysTotal} onValueChange={setBulkDaysTotal}>
                     <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
                       <SelectValue />
                     </SelectTrigger>
