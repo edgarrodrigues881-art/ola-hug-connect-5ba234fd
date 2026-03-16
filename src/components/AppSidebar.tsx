@@ -205,7 +205,7 @@ export function AppSidebar() {
             to={item.url}
             className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
               transition-[background-color,color,opacity] duration-[120ms] ease-out
-              ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-full' : `gap-[11px] ${indent ? 'pl-8' : 'px-3.5'} pr-3.5 py-[10px]`}
+              ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : `gap-[11px] ${indent ? 'pl-8' : 'px-3.5'} pr-3.5 py-[10px]`}
               ${active
                 ? 'bg-primary/10 text-foreground font-semibold'
                 : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
@@ -236,8 +236,8 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="sidebar-premium">
       {/* Header / Brand */}
-      <div className={`flex items-center border-b border-sidebar-border ${collapsed ? 'justify-center py-4 px-0' : 'gap-3 px-5 py-5'}`}>
-        <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover" />
+      <div className={`flex items-center border-b border-sidebar-border ${collapsed ? 'justify-center py-4 px-2' : 'gap-3 px-5 py-5'}`}>
+        <img src={logo} alt="Logo" className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-lg shrink-0 object-cover mx-auto" />
         {!collapsed && (
           <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground truncate">
             <span className="text-primary">DG</span> Contingência <span className="text-primary">PRO</span>
@@ -257,7 +257,7 @@ export function AppSidebar() {
               <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
             )}
             <SidebarGroupContent>
-              <SidebarMenu className="px-2.5 space-y-[2px]">
+              <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
                 {group.items.map((item) => renderNavItem(item as any))}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -275,16 +275,16 @@ export function AppSidebar() {
             <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="px-2.5 space-y-[2px]">
+            <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {/* Main warmup item with expand arrow */}
               <SidebarMenuItem>
                 <div className="flex items-center">
                   <SidebarMenuButton asChild tooltip="Aquecimento" className="flex-1">
                     <NavLink
                       to="/dashboard/warmup-v2"
-                      className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
+                       className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
                         transition-[background-color,color,opacity] duration-[120ms] ease-out
-                        ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-full' : 'gap-[11px] px-3.5 py-[10px]'}
+                        ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 py-[10px]'}
                         ${isActive("/dashboard/warmup-v2")
                           ? 'bg-primary/10 text-foreground font-semibold'
                           : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
@@ -394,7 +394,7 @@ export function AppSidebar() {
             <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="px-2.5 space-y-[2px]">
+            <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
@@ -406,7 +406,7 @@ export function AppSidebar() {
       <div className="mt-auto border-t border-sidebar-border p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`flex items-center gap-3 w-full rounded-[10px] hover:bg-sidebar-accent/30 transition-colors duration-150 ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}`}>
+            <button className={`flex items-center gap-3 w-full rounded-[10px] hover:bg-sidebar-accent/30 transition-colors duration-150 ${collapsed ? 'justify-center px-2 py-2' : 'px-2.5 py-2'}`}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-8 min-w-[32px] h-8 min-h-[32px] rounded-full shrink-0 object-cover ring-1 ring-border" />
               ) : (
