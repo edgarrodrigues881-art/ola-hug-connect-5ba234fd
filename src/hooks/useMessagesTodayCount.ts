@@ -34,7 +34,7 @@ export function useMessagesTodayCount() {
       return count || 0;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000,
-    staleTime: 4000,
+    refetchInterval: 15000,
+    staleTime: 10000,
   });
 }
