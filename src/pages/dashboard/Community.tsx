@@ -98,19 +98,19 @@ const Community = () => {
         <div className="relative flex items-center justify-center">
           {/* Outer glow pulse */}
           <div className="absolute w-72 h-72 rounded-2xl bg-[radial-gradient(circle,rgba(212,175,55,0.15)_0%,transparent_65%)] blur-2xl animate-[pulse_3s_ease-in-out_infinite]" />
-          {/* White glow behind gold border */}
-          <div className="absolute w-64 h-64 rounded-2xl shadow-[0_0_60px_rgba(255,255,255,0.08),0_0_120px_rgba(255,255,255,0.04)] pointer-events-none" />
-          {/* Animated conic border */}
+          {/* Animated conic border with snake light */}
           <div className="relative w-60 h-60 rounded-2xl p-[3px] shadow-[0_0_40px_rgba(212,175,55,0.3),0_0_80px_rgba(212,175,55,0.1)] overflow-hidden">
+            {/* Gold base border */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#b8860b] via-[#d4af37] to-[#b8860b]" />
+            {/* Snake white light */}
             <div
-              className="absolute inset-[-50%] rounded-2xl"
+              className="absolute inset-[-50%]"
               style={{
-                background: "conic-gradient(from 0deg, #b8860b, #d4af37, #f5d76e, #fffbe6, #f5d76e, #d4af37, #b8860b)",
-                animation: "spin-slow 4s linear infinite",
+                background: "conic-gradient(from 0deg, transparent 0%, transparent 70%, rgba(255,255,255,0.8) 78%, #ffffff 82%, rgba(255,255,255,0.8) 86%, transparent 94%, transparent 100%)",
+                animation: "spin-slow 3s linear infinite",
               }}
             />
-            {/* Inner white glow between gold border and logo */}
-            <div className="relative w-full h-full rounded-[13px] bg-background flex items-center justify-center overflow-hidden z-10 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]">
+            <div className="relative w-full h-full rounded-[13px] bg-background flex items-center justify-center overflow-hidden z-10">
               <img
                 src={dgLogo}
                 alt="DG Contingência PRO"
