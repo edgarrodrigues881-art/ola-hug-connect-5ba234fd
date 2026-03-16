@@ -836,9 +836,9 @@ function normalizeCommunityPairMeta(pair: any): CommunityPairMeta {
     : {};
 
   const initiator: "a" | "b" = raw.initiator === "b" ? "b" : "a";
-  const maxTurns = Number.isInteger(raw.max_turns) && raw.max_turns >= 2 && raw.max_turns <= 6
+  const maxTurns = Number.isInteger(raw.max_turns) && raw.max_turns >= 2 && raw.max_turns <= 120
     ? raw.max_turns
-    : 4;
+    : randInt(40, 80);
   const rawTurnsCompleted = Number.isInteger(raw.turns_completed) && raw.turns_completed >= 0
     ? raw.turns_completed
     : 0;
