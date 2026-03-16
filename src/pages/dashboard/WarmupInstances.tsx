@@ -480,6 +480,15 @@ const WarmupInstances = () => {
   const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
   const [bulkStartDay, setBulkStartDay] = useState("1");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const safeBulkDaysTotal = String(Math.max(Number(bulkDaysTotal) || 1, Number(bulkStartDay) || 1));
+
+  const openBulkWarmupDialog = useCallback(() => {
+    setBulkSelected(new Set());
+    setBulkChipState("new");
+    setBulkStartDay("1");
+    setBulkDaysTotal("14");
+    setBulkOpen(true);
+  }, []);
 
   const { user } = useAuth();
   const navigate = useNavigate();
