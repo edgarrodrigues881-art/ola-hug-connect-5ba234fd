@@ -968,7 +968,7 @@ const Campaigns = () => {
     const isSent = previewMode === "sent";
 
     return (
-      <div className="rounded-[20px] overflow-hidden border-2 border-[hsl(210_10%_18%)] shadow-2xl shadow-black/40 flex flex-col" style={{ height: '520px' }}>
+      <div className="rounded-[20px] overflow-hidden border-2 border-[hsl(210_10%_18%)] shadow-2xl shadow-black/40 flex flex-col flex-1 min-h-[400px]">
         {/* ── WhatsApp Header ── */}
         <div className="bg-[#202C33] px-4 py-3 flex items-center gap-3 border-b border-[#313D45]">
           <div className="w-9 h-9 rounded-full bg-[#6B7B8D]/30 flex items-center justify-center">
@@ -1149,7 +1149,7 @@ const Campaigns = () => {
         {step === 1 && (
           <div className="space-y-6 sm:space-y-12">
             {/* Editor + Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8 items-stretch">
               {/* Editor column */}
               <div className="lg:col-span-3 space-y-4 sm:space-y-8">
                 {/* Message editor */}
@@ -1300,7 +1300,7 @@ const Campaigns = () => {
               </div>
 
               {/* Preview column */}
-              <div className="lg:col-span-2 lg:sticky lg:top-4 self-start">
+              <div className="lg:col-span-2 lg:sticky lg:top-4 flex flex-col">
                 <WhatsAppPreview />
               </div>
             </div>
