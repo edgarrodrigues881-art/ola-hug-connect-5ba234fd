@@ -2896,6 +2896,10 @@ async function handleDailyReset(db: any) {
               .select("status, number").eq("id", e.device_id).single();
             if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
 
+            // Check if partner already has too many active pairs
+            const inlinePairCount = await getActivePairCount(db, e.device_id);
+            if (inlinePairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+
             await db.from("community_pairs").insert({
               cycle_id: cycle.id, instance_id_a: cycle.device_id, instance_id_b: e.device_id,
               status: "active", meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
