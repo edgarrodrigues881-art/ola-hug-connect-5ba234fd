@@ -156,6 +156,7 @@ const WarmupInstanceDetail = () => {
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const [repairingSchedule, setRepairingSchedule] = useState(false);
   const [testingAutosave, setTestingAutosave] = useState(false);
+  const [testingCommunity, setTestingCommunity] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   // Auto-enable community when community day is reached
@@ -458,6 +459,67 @@ const WarmupInstanceDetail = () => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setTestingAutosave(false);
+    }
+  };
+
+  /* ── Test Community — forces next community_interaction job or creates a burst ── */
+  const handleTestCommunity = async () => {
+    if (!cycle?.id || !deviceId || !user) return;
+    setTestingCommunity(true);
+    try {
+      // Check for pending community jobs first
+      const { data: pendingComm, error: pendingErr } = await supabase
+        .from("warmup_jobs")
+        .select("id, payload, run_at")
+        .eq("cycle_id", cycle.id)
+        .eq("status", "pending")
+        .eq("job_type", "community_interaction")
+        .order("run_at", { ascending: true })
+        .limit(1);
+      if (pendingErr) throw pendingErr;
+
+      if (pendingComm && pendingComm.length > 0) {
+        const next = pendingComm[0];
+        const basePayload = (next.payload && typeof next.payload === "object"
+          ? (next.payload as Record<string, unknown>)
+          : {});
+        const forcedPayload = { ...basePayload, forced: true };
+        const { error: upErr } = await supabase
+          .from("warmup_jobs")
+          .update({ run_at: new Date().toISOString(), attempts: 0, last_error: null, payload: forcedPayload as any })
+          .eq("id", next.id)
+          .eq("status", "pending");
+        if (upErr) throw upErr;
+
+        await supabase.functions.invoke("warmup-tick", { body: {} });
+        await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+        await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+        toast({ title: "⚡ Comunitário forçado", description: "Executando próximo burst comunitário agora." });
+        return;
+      }
+
+      // No pending community jobs: create a single burst job
+      const { error: insertErr } = await supabase.from("warmup_jobs").insert({
+        user_id: user.id,
+        device_id: deviceId,
+        cycle_id: cycle.id,
+        job_type: "community_interaction" as any,
+        payload: { forced: true, burst_index: 0 },
+        run_at: new Date().toISOString(),
+        status: "pending" as any,
+      });
+      if (insertErr) throw insertErr;
+
+      await supabase.functions.invoke("warmup-tick", { body: {} });
+      await queryClient.invalidateQueries({ queryKey: ["warmup_jobs_scheduled", cycle.id] });
+      await queryClient.invalidateQueries({ queryKey: ["warmup_audit_logs", cycle.id] });
+
+      toast({ title: "🧪 Burst comunitário agendado!", description: "Um burst de mensagens comunitárias foi disparado." });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setTestingCommunity(false);
     }
   };
 
@@ -1061,6 +1123,19 @@ const WarmupInstanceDetail = () => {
                 >
                   {testingAutosave ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   🧪 Testar Auto Save
+                </Button>
+              )}
+
+              {/* Test Community button */}
+              {cycle.is_running && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm"
+                  onClick={handleTestCommunity}
+                  disabled={testingCommunity}
+                >
+                  {testingCommunity ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  🧪 Testar Comunitário
                 </Button>
               )}
             </div>
