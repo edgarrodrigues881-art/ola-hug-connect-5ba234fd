@@ -968,7 +968,7 @@ const Campaigns = () => {
     const isSent = previewMode === "sent";
 
     return (
-      <div className="rounded-[20px] overflow-hidden border-2 border-[hsl(210_10%_18%)] shadow-2xl shadow-black/40 h-full flex flex-col">
+      <div className="rounded-[20px] overflow-hidden border-2 border-[hsl(210_10%_18%)] shadow-2xl shadow-black/40 flex flex-col" style={{ maxHeight: '520px' }}>
         {/* ── WhatsApp Header ── */}
         <div className="bg-[#202C33] px-4 py-3 flex items-center gap-3 border-b border-[#313D45]">
           <div className="w-9 h-9 rounded-full bg-[#6B7B8D]/30 flex items-center justify-center">
