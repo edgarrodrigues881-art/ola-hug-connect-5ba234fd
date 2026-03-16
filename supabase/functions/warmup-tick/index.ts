@@ -1771,7 +1771,7 @@ async function handleTick(db: any) {
                 const grpName = norm(grpRef?.name || ig.group_name || "");
                 const igJid = String(ig.group_jid || "").toLowerCase().trim();
 
-                const nameMatch = poolName && liveNames.has(poolName);
+                const nameMatch = grpName && liveNames.has(grpName);
                 const jidMatch = igJid && liveJids.has(igJid);
 
                 // Also try to find JID from live groups
