@@ -501,6 +501,45 @@ const WarmupInstances = () => {
   const engine = useWarmupEngine();
   const qc = useQueryClient();
 
+  // Fetch user's custom groups
+  const { data: userCustomGroups = [], refetch: refetchCustomGroups } = useQuery({
+    queryKey: ["warmup_custom_groups", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warmup_groups" as any)
+        .select("id, name, link, is_custom, created_at")
+        .eq("is_custom", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!user,
+  });
+
+  const addCustomGroup = useCallback(async () => {
+    if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
+    const { error } = await supabase.from("warmup_groups" as any).insert({
+      user_id: user.id,
+      name: newGroupName.trim(),
+      link: newGroupLink.trim(),
+      is_custom: true,
+    });
+    if (error) {
+      toast({ title: "Erro ao adicionar grupo", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewGroupName("");
+    setNewGroupLink("");
+    refetchCustomGroups();
+    toast({ title: "Grupo adicionado" });
+  }, [newGroupName, newGroupLink, user, toast, refetchCustomGroups]);
+
+  const removeCustomGroup = useCallback(async (groupId: string) => {
+    await supabase.from("warmup_groups" as any).delete().eq("id", groupId);
+    refetchCustomGroups();
+    toast({ title: "Grupo removido" });
+  }, [refetchCustomGroups, toast]);
+
   const WARNING_DISMISS_KEY = "warmup_v2_warning_dismissed_v2";
   const [showWarning, setShowWarning] = useState(() =>
     localStorage.getItem(WARNING_DISMISS_KEY) !== "true"
