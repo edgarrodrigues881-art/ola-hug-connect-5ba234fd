@@ -175,12 +175,12 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
         // Small delay between text and audio to ensure order
         await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
       }
-      // Use /send/media with type "ptt" for voice note (recorded-style)
+      // UAZAPI GO: type "my_audio" = PTT voice note (appears as recorded)
       return await uazapiRequest(baseUrl, token, "/send/media", {
         number: phone,
         media: mediaUrl,
         file: mediaUrl,
-        type: "ptt",
+        type: "my_audio",
       });
     }
     const payload: any = { number: phone, file: mediaUrl, media: mediaUrl, type: mediaType };
