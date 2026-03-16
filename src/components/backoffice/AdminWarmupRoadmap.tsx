@@ -58,17 +58,17 @@ const ROADMAP_NOVO: DayPlan[] = [
     msgTarget: { min: 215, max: 515 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 5, phase: "community_light", title: "Comunidade inicial",
-    goals: ["Manter grupos (50-120) + AutoSave (25)", "Ativar conversas comunitárias: 2 pares", "Cada conversa: 4 bursts × 3-7 msgs (conversa real)"],
-    checklist: ["Grupos + AutoSave mantidos", "2 conversas comunitárias ativas", "~20-28 msgs comunitárias", "Mensagens parecem naturais (emojis, textos curtos)"],
-    tips: "As conversas comunitárias são entre instâncias da plataforma. Devem parecer orgânicas.",
-    msgTarget: { min: 95, max: 173 }, groupTarget: 8, recipientTarget: 7,
+    day: 5, phase: "autosave", title: "Auto Save consolidado",
+    goals: ["Manter volume de grupos (200-500)", "Auto Save: 5 números × 3 msgs = 15/dia", "Preparar para fase comunitária amanhã"],
+    checklist: ["Grupos + AutoSave estáveis por 3 dias", "Nenhum bloqueio ou warning", "15 msgs Auto Save", "Instância saudável"],
+    msgTarget: { min: 215, max: 515 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 6, phase: "community_light", title: "Comunidade consolidando",
-    goals: ["Continuar tudo: grupos + AutoSave + comunidade leve", "Verificar logs de erros", "2 pares mantidos"],
-    checklist: ["2 pares comunitários ativos", "Zero erros nos últimos 2 dias", "Volume estável < 200 msgs"],
-    msgTarget: { min: 95, max: 173 }, groupTarget: 8, recipientTarget: 7,
+    day: 6, phase: "community_light", title: "Comunidade inicial",
+    goals: ["Manter grupos (50-120) + AutoSave (25)", "Ativar conversas comunitárias: 2 pares", "Cada conversa: 4 bursts × 3-7 msgs (conversa real)"],
+    checklist: ["Grupos + AutoSave mantidos", "2 conversas comunitárias ativas", "~24-56 msgs comunitárias", "Mensagens parecem naturais (emojis, textos curtos)"],
+    tips: "As conversas comunitárias são entre instâncias da plataforma. Devem parecer orgânicas.",
+    msgTarget: { min: 99, max: 201 }, groupTarget: 8, recipientTarget: 7,
   },
   // Days 7-30: Community Full — progressão segura (< 350 msgs/dia)
   ...Array.from({ length: 24 }, (_, i) => {
@@ -162,24 +162,23 @@ const ROADMAP_BANIDO: DayPlan[] = [
     msgTarget: { min: 126, max: 256 }, groupTarget: 8, recipientTarget: 3,
   },
   {
-    day: 5, phase: "community_light", title: "Comunidade leve",
-    goals: ["Grupos: 120-250 msgs", "Auto Save: 5 números × 2 msgs = 10/dia", "Comunitário: 2-4 pares × 10-20 msgs"],
-    checklist: ["Grupos + AutoSave + Comunidade", "2-4 pares ativos", "10-20 msgs por conversa", "Sem problemas em 5 dias"],
-    tips: "Comunidade com MENOS volume que chip novo. 2-4 pares com 10-20 msgs.",
-    msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
+    day: 5, phase: "autosave", title: "AutoSave consolidando",
+    goals: ["Grupos: 120-250 msgs", "Auto Save: 4 números × 2 msgs = 8/dia", "Monitorar estabilidade"],
+    checklist: ["Grupos + AutoSave estáveis", "8 msgs Auto Save", "4 destinatários únicos", "Sem restrições"],
+    msgTarget: { min: 128, max: 258 }, groupTarget: 8, recipientTarget: 4,
   },
   {
-    day: 6, phase: "community_light", title: "Comunidade consolidando",
-    goals: ["Manter grupos (120-250) + AutoSave (10) + Comunidade leve", "Verificar logs de erros"],
-    checklist: ["2-4 pares comunitários", "Volume estável", "Sem restrições"],
-    msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
+    day: 6, phase: "autosave", title: "AutoSave maduro",
+    goals: ["Grupos: 120-250 msgs", "Auto Save: 5 números × 2 msgs = 10/dia", "Preparando para comunidade"],
+    checklist: ["Grupos + AutoSave estáveis por 3 dias", "10 msgs Auto Save", "Sem restrições", "Instância saudável"],
+    msgTarget: { min: 130, max: 260 }, groupTarget: 8, recipientTarget: 5,
   },
   {
-    day: 7, phase: "community_light", title: "Checkpoint: 1 semana ✅",
-    goals: ["Manter todas as funções ativas", "Health check completo", "Avaliar se pode prosseguir"],
-    checklist: ["1 semana sem bloqueio!", "Grupos + AutoSave + Comunidade OK", "Conta saudável"],
+    day: 7, phase: "community_light", title: "Comunidade leve + Checkpoint 1 semana ✅",
+    goals: ["Grupos: 50-120 msgs", "Auto Save: 5 números × 2 msgs = 10/dia", "Comunitário: 2 pares × 3 bursts (3-7 msgs)", "Health check completo"],
+    checklist: ["1 semana sem bloqueio!", "Grupos + AutoSave + Comunidade OK", "2 pares comunitários ativos", "~18-42 msgs comunitárias", "Conta saudável"],
     tips: "Uma semana sem ban! Bom sinal, mas mantenha a cautela. Chips banidos podem ter recaídas.",
-    msgTarget: { min: 150, max: 340 }, groupTarget: 8, recipientTarget: 9,
+    msgTarget: { min: 78, max: 172 }, groupTarget: 8, recipientTarget: 7,
   },
   // Days 8-30: Community Full (conservative) — progressão segura
   ...Array.from({ length: 23 }, (_, i) => {
@@ -244,7 +243,7 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     tips: "⚠️ Chip extremamente sensível. Apenas entre nos grupos, sem enviar nada.",
     msgTarget: { min: 0, max: 5 }, groupTarget: 8, recipientTarget: 0,
   },
-  ...Array.from({ length: 4 }, (_, i) => ({
+  ...Array.from({ length: 3 }, (_, i) => ({
     day: i + 2,
     phase: "groups_only",
     title: i === 0 ? "Primeiras msgs conservadoras" : `Dia ${i + 2} — Grupos apenas`,
@@ -254,26 +253,26 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     msgTarget: { min: 50, max: 120 }, groupTarget: 8, recipientTarget: 0,
   } as DayPlan)),
   {
-    day: 6, phase: "autosave", title: "Auto Save leve",
+    day: 5, phase: "autosave", title: "Auto Save leve",
     goals: ["Grupos: 120-200 msgs", "Ativar Auto Save: 3 números × 2 msgs = 6/dia"],
     checklist: ["120-200 msgs nos grupos", "6 msgs Auto Save", "3 destinatários", "Sem problemas"],
     tips: "Auto Save com volume mínimo: apenas 3 números com 2 msgs cada.",
     msgTarget: { min: 126, max: 206 }, groupTarget: 8, recipientTarget: 3,
   },
-  ...Array.from({ length: 4 }, (_, i) => ({
-    day: i + 7,
+  ...Array.from({ length: 3 }, (_, i) => ({
+    day: i + 6,
     phase: "autosave",
-    title: i === 0 ? "Checkpoint: 1 semana ✅" : `Dia ${i + 7} — Grupos + AutoSave`,
+    title: i === 1 ? "Checkpoint: 1 semana ✅" : `Dia ${i + 6} — Grupos + AutoSave`,
     goals: ["Grupos: 120-220 msgs", "Auto Save: 3-4 números × 2 msgs"],
     checklist: ["120-220 msgs grupos", "6-8 msgs Auto Save", "Sem restrições"],
-    tips: i === 0 ? "1 semana sem ban! Mas mantenha cautela — chip fraco pode recair." : undefined,
+    tips: i === 1 ? "1 semana sem ban! Mas mantenha cautela — chip fraco pode recair." : undefined,
     msgTarget: { min: 126, max: 228 }, groupTarget: 8, recipientTarget: 4,
   } as DayPlan)),
-  // Days 11-30: community_light — progressão ultra-conservadora
-  ...Array.from({ length: 20 }, (_, i) => {
-    const day = i + 11;
+  // Days 9-30: community_light — progressão ultra-conservadora (início Dia 9)
+  ...Array.from({ length: 22 }, (_, i) => {
+    const day = i + 9;
     const isCheckpoint = [14, 21, 30].includes(day);
-    const daysSinceCommunity = day - 11;
+    const daysSinceCommunity = day - 9;
 
     // Ultra-conservador: 1→2→2→3→3→4
     const communityPairs = daysSinceCommunity <= 2 ? 1 :
@@ -292,7 +291,7 @@ const ROADMAP_SENSIVEL: DayPlan[] = [
     return {
       day,
       phase: day >= 25 ? "consolidation" : "community_light",
-      title: day === 11 ? "Comunitário leve ativado" :
+      title: day === 9 ? "Comunitário leve ativado" :
              day === 14 ? "Checkpoint: 2 semanas ✅" :
              day === 21 ? "3 semanas de maturação 🛡️" :
              day === 25 ? "Consolidação final" :
