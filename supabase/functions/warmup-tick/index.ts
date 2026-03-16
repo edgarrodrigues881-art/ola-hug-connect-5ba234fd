@@ -1970,11 +1970,12 @@ async function handleTick(db: any) {
         const oldPhase = cycle.phase;
         const newPhase = getPhaseForDay(newDay, chipState);
 
-        // Cancel old interaction jobs and join_group jobs (join only on day 1)
+        // Cancel old interaction jobs and orphan enable_* jobs
+        // [BUG B FIX] Do NOT cancel join_group here — reschedule failed ones below
         await db.from("warmup_jobs")
           .update({ status: "cancelled", last_error: "Cancelado: reset diário" })
           .eq("cycle_id", cycle.id).eq("status", "pending")
-          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community", "join_group"]);
+          .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community"]);
 
         const resetAt = new Date().toISOString();
 
