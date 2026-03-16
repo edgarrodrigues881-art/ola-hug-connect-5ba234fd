@@ -1757,8 +1757,55 @@ async function handleTick(db: any) {
 
       // ── ENABLE COMMUNITY ──
       case "enable_community": {
+        // Auto-create up to 3 pairs with other eligible devices (cross-account)
+        const { data: eligible } = await db.from("warmup_community_membership")
+          .select("device_id, user_id")
+          .eq("is_enabled", true).eq("is_eligible", true)
+          .neq("user_id", job.user_id)
+          .limit(50);
+
+        // Close old pairs
+        await db.from("community_pairs")
+          .update({ status: "closed", closed_at: new Date().toISOString() })
+          .eq("cycle_id", cycle.id).eq("status", "active");
+
+        let pairsCreated = 0;
+        if (eligible?.length) {
+          // Shuffle and pick up to 3 unique partners from different users
+          const shuffled = eligible.sort(() => Math.random() - 0.5);
+          const usedUsers = new Set<string>();
+          const usedDevices = new Set<string>();
+
+          for (const e of shuffled) {
+            if (pairsCreated >= 3) break;
+            if (usedUsers.has(e.user_id) || usedDevices.has(e.device_id)) continue;
+
+            // Check if partner device is connected
+            const { data: partnerDev } = await db.from("devices")
+              .select("status, number").eq("id", e.device_id).single();
+            if (!partnerDev?.number || !CONNECTED_STATUSES.includes(partnerDev.status)) continue;
+
+            await db.from("community_pairs").insert({
+              cycle_id: cycle.id,
+              instance_id_a: job.device_id,
+              instance_id_b: e.device_id,
+              status: "active",
+              meta: { initiator: Math.random() < 0.5 ? "a" : "b" },
+            });
+
+            usedUsers.add(e.user_id);
+            usedDevices.add(e.device_id);
+            pairsCreated++;
+          }
+        }
+
         await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
-        bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "info", event_type: "community_enabled", message: "Comunidade ativada" });
+        bufferAudit({
+          user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+          level: "info", event_type: "community_enabled",
+          message: `Comunidade ativada: ${pairsCreated} pares criados de ${eligible?.length || 0} elegíveis`,
+          meta: { pairs_created: pairsCreated },
+        });
         break;
       }
 
