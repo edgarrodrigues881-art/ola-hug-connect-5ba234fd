@@ -481,7 +481,7 @@ const GroupCapture = () => {
                 </button>
               </div>
               <div className="max-h-40 overflow-y-auto rounded-xl border border-border/15 bg-muted/5 p-1.5 space-y-0.5">
-                {devices.map((d) => {
+                {[...devices].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map((d) => {
                   const online = ["Connected", "Ready", "authenticated"].includes(d.status);
                   const sel = selectedDevices.includes(d.id);
                   return (
