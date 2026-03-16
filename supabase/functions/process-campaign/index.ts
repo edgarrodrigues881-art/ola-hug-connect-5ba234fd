@@ -169,7 +169,12 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   if (mediaUrl) {
     const mediaType = detectMediaType(mediaUrl);
     if (mediaType === "audio") {
-      // UAZAPI expects 'file' field for audio, and dedicated endpoint
+      // Send text first, then audio as separate messages
+      if (body && body.trim()) {
+        await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
+        // Small delay between text and audio to ensure order
+        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+      }
       return await uazapiRequest(baseUrl, token, "/send/audio", {
         number: phone,
         file: mediaUrl,
