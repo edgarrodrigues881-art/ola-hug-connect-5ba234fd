@@ -233,7 +233,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           connected ? "ring-primary/40" : "ring-border/30"
         )}>
           {device.profile_picture ? (
-            <img src={device.profile_picture} className="w-[52px] h-[52px] rounded-full object-cover" alt="" />
+            <img src={device.profile_picture} className="w-[52px] h-[52px] rounded-full object-cover" alt="" onError={(e) => { const el = e.target as HTMLImageElement; el.style.display = "none"; el.parentElement!.querySelector('.pp-fallback')?.classList.remove('hidden'); }} />
           ) : (
             <div className={cn(
               "w-[52px] h-[52px] rounded-full flex items-center justify-center",
