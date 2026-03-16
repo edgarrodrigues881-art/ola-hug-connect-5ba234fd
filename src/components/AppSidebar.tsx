@@ -394,12 +394,8 @@ export function AppSidebar() {
             <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="px-2.5 space-y-[2px]">
-              {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
-            </SidebarMenu>
-
             {!collapsed && (
-              <div className="mx-3 mt-2 mb-1 rounded-xl border border-border/50 bg-sidebar-accent/30 p-3 flex flex-col items-center gap-2.5">
+              <div className="mx-3 mb-2 rounded-xl border border-border/50 bg-sidebar-accent/30 p-3 flex flex-col items-center gap-2.5">
                 <img
                   src={dgGroupAvatar}
                   alt="DG Contingência"
@@ -433,6 +429,10 @@ export function AppSidebar() {
                 </div>
               </div>
             )}
+
+            <SidebarMenu className="px-2.5 space-y-[2px]">
+              {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
