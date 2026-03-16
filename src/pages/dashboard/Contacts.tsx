@@ -22,6 +22,21 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGS = ["cliente", "lead", "vip", "novo"];
 const VAR_KEYS = ["var1","var2","var3","var4","var5","var6","var7","var8","var9","var10"] as const;
+const TAG_COLORS = [
+  { bg: "bg-emerald-500/15", text: "text-emerald-400", border: "border-emerald-500/30", dot: "bg-emerald-400" },
+  { bg: "bg-sky-500/15", text: "text-sky-400", border: "border-sky-500/30", dot: "bg-sky-400" },
+  { bg: "bg-amber-500/15", text: "text-amber-400", border: "border-amber-500/30", dot: "bg-amber-400" },
+  { bg: "bg-rose-500/15", text: "text-rose-400", border: "border-rose-500/30", dot: "bg-rose-400" },
+  { bg: "bg-violet-500/15", text: "text-violet-400", border: "border-violet-500/30", dot: "bg-violet-400" },
+  { bg: "bg-cyan-500/15", text: "text-cyan-400", border: "border-cyan-500/30", dot: "bg-cyan-400" },
+  { bg: "bg-orange-500/15", text: "text-orange-400", border: "border-orange-500/30", dot: "bg-orange-400" },
+  { bg: "bg-pink-500/15", text: "text-pink-400", border: "border-pink-500/30", dot: "bg-pink-400" },
+  { bg: "bg-lime-500/15", text: "text-lime-400", border: "border-lime-500/30", dot: "bg-lime-400" },
+  { bg: "bg-indigo-500/15", text: "text-indigo-400", border: "border-indigo-500/30", dot: "bg-indigo-400" },
+  { bg: "bg-teal-500/15", text: "text-teal-400", border: "border-teal-500/30", dot: "bg-teal-400" },
+  { bg: "bg-fuchsia-500/15", text: "text-fuchsia-400", border: "border-fuchsia-500/30", dot: "bg-fuchsia-400" },
+];
+const DEFAULT_TAG_COLORS: Record<string, number> = { cliente: 0, lead: 1, vip: 3, novo: 5 };
 // Fixed min-width ensures scrollbar on small screens, fits on large screens
 const TABLE_MIN_WIDTH = 500;
 const TABLE_GRID_COLS = "40px minmax(120px,1.5fr) minmax(120px,1.3fr) minmax(100px,1fr) 40px";
