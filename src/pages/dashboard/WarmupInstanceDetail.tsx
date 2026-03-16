@@ -945,7 +945,7 @@ const WarmupInstanceDetail = () => {
         <div className="relative z-10">
           {/* top bar */}
           <div className="flex items-center justify-between px-6 pt-5">
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate("/dashboard/warmup-v2")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate(fromFolder ? `/dashboard/warmup-v2?folder=${fromFolder}` : "/dashboard/warmup-v2")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div className="flex flex-col items-end gap-1.5">
