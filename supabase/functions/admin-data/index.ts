@@ -1500,11 +1500,18 @@ Deno.serve(async (req) => {
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
 
+      console.log(`[admin-data] fetch-uazapi-instances RESULT: provider=${providerInstances.length} dbOnly=${dbOnlyTokens.length} total=${enriched.length}`);
+
       return new Response(JSON.stringify({
         instances: enriched,
         total: enriched.length,
         connected: enriched.filter((i: any) => i.connected).length,
         disconnected: enriched.filter((i: any) => !i.connected).length,
+        _debug: {
+          provider_count: providerInstances.length,
+          db_fallback_count: dbOnlyTokens.length,
+          db_tokens_total: (dbTokens || []).length,
+        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
