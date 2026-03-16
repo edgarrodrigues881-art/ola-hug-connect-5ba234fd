@@ -1610,6 +1610,85 @@ const WarmupInstances = () => {
               )}
             </div>
 
+            {/* ── Group source selector ── */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Grupos de aquecimento</p>
+              <div className="grid grid-cols-2 gap-2.5">
+                {([
+                  { value: "system" as const, label: "Grupos do sistema", desc: "Usar nossos grupos padrão", icon: Shield },
+                  { value: "custom" as const, label: "Meus grupos", desc: "Usar seus próprios grupos", icon: Users },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setBulkGroupSource(opt.value)}
+                    className={cn(
+                      "relative text-left p-4 rounded-2xl border-2 transition-all duration-300 overflow-hidden",
+                      bulkGroupSource === opt.value
+                        ? "border-primary/50 shadow-lg shadow-primary/15"
+                        : "border-border/20 hover:border-border/40 bg-card/40 hover:bg-card/60"
+                    )}
+                  >
+                    {bulkGroupSource === opt.value && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-60 pointer-events-none" />
+                    )}
+                    <div className="relative">
+                      <opt.icon className={cn("w-4 h-4 transition-all", bulkGroupSource === opt.value ? "text-primary" : "text-muted-foreground/40")} />
+                      <p className="text-[13px] font-black text-foreground mt-2.5 leading-tight">{opt.label}</p>
+                      <p className="text-[9px] text-muted-foreground mt-1 leading-snug font-medium">{opt.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {bulkGroupSource === "custom" && (
+                <div className="space-y-3 mt-2">
+                  {userCustomGroups.length > 0 ? (
+                    <div className="rounded-xl border border-border/15 bg-card/20 p-2.5 max-h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin">
+                      {userCustomGroups.map((g: any) => (
+                        <div key={g.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors">
+                          <Users className="w-3.5 h-3.5 text-primary/50 shrink-0" />
+                          <span className="text-[12px] font-semibold text-foreground truncate flex-1">{g.name}</span>
+                          <button onClick={() => removeCustomGroup(g.id)} className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+                      <p className="text-[10px] text-amber-400 font-bold">Nenhum grupo próprio cadastrado</p>
+                      <p className="text-[9px] text-muted-foreground mt-1">Adicione seus grupos abaixo para usá-los no aquecimento.</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nome do grupo"
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        className="h-9 text-xs rounded-lg bg-card/40 border-border/20"
+                      />
+                      <Input
+                        placeholder="Link do grupo (chat.whatsapp.com/...)"
+                        value={newGroupLink}
+                        onChange={(e) => setNewGroupLink(e.target.value)}
+                        className="h-9 text-xs rounded-lg bg-card/40 border-border/20 flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 px-3 rounded-lg shrink-0"
+                        disabled={!newGroupName.trim() || !newGroupLink.trim()}
+                        onClick={addCustomGroup}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* ── Instance selector ── */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
