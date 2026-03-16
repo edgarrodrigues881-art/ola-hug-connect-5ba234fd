@@ -2492,6 +2492,10 @@ async function handleTick(db: any) {
               .select("status, number").eq("id", e.device_id).single();
             if (!partnerDev?.number || !CONNECTED_STATUSES.includes(partnerDev.status)) continue;
 
+            // Check if partner already has too many active pairs
+            const partnerPairCount = await getActivePairCount(db, e.device_id);
+            if (partnerPairCount >= MAX_ACTIVE_PAIRS_PER_DEVICE) continue;
+
             await db.from("community_pairs").insert({
               cycle_id: cycle.id,
               instance_id_a: job.device_id,
