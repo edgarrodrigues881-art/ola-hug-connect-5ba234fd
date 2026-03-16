@@ -1660,10 +1660,19 @@ async function handleTick(db: any) {
 
         const peerIndex = job.payload?.peer_index ?? 0;
 
-        // Find active pairs for this cycle
-        const { data: pairs } = await db.from("community_pairs")
+        // [BUG 4 FIX] Search pairs by device_id (either A or B), NOT by cycle_id.
+        // Pairs are only linked to the creator's cycle_id, so device B would never find them.
+        const { data: pairsAsA } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b")
-          .eq("cycle_id", cycle.id).eq("status", "active");
+          .eq("instance_id_a", job.device_id).eq("status", "active");
+        const { data: pairsAsB } = await db.from("community_pairs")
+          .select("id, instance_id_a, instance_id_b")
+          .eq("instance_id_b", job.device_id).eq("status", "active");
+
+        const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
+        // Deduplicate by pair id
+        const seenPairIds = new Set<string>();
+        const pairs = allPairs.filter(p => { if (seenPairIds.has(p.id)) return false; seenPairIds.add(p.id); return true; });
 
         let peerDeviceId: string | null = null;
 
@@ -1673,10 +1682,11 @@ async function handleTick(db: any) {
             ? selectedPair.instance_id_b
             : selectedPair.instance_id_a;
         } else {
+          // Fallback: find any running community device
           const { data: otherCycles } = await db.from("warmup_cycles")
             .select("device_id, user_id")
             .eq("is_running", true).neq("device_id", job.device_id)
-            .in("phase", ["autosave_enabled", "community_light", "community_enabled"])
+            .in("phase", ["autosave_enabled", "community_enabled"])
             .limit(10);
 
           if (otherCycles?.length) {
