@@ -1883,7 +1883,7 @@ async function handleTick(db: any) {
 
           for (const e of sorted) {
             if (pairsCreated >= newNeeded) break;
-            if (usedUsers.has(e.user_id) || usedDevices.has(e.device_id)) continue;
+            if (usedDevices.has(e.device_id)) continue;
 
             // Check if partner device is connected
             const { data: partnerDev } = await db.from("devices")
