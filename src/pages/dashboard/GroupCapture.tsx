@@ -53,38 +53,39 @@ function CampaignCard({ camp, onCancel, onDelete, showDelete }: {
   const st = statusMap[camp.status] || statusMap.done;
 
   return (
-    <div className="rounded-lg border border-border/30 bg-card/50 p-3 space-y-2">
+    <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl p-4 space-y-3 overflow-hidden group hover:border-border/30 transition-colors">
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
-          <span className="text-sm font-medium text-foreground truncate">
+          <span className="text-[13px] font-semibold text-foreground truncate">
             {camp.name || `Campanha ${formatDate(camp.created_at)}`}
           </span>
         </div>
-        <Badge variant="outline" className="text-[10px] shrink-0">{st.label}</Badge>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/20 text-muted-foreground/60 font-medium shrink-0">{st.label}</span>
       </div>
 
       <Progress value={progress} className="h-1" />
 
       <div className="grid grid-cols-4 gap-1 text-center text-[11px]">
-        <div><span className="text-muted-foreground">OK</span> <span className="font-semibold text-emerald-500 ml-0.5">{success}</span></div>
-        <div><span className="text-muted-foreground">Erro</span> <span className={`font-semibold ml-0.5 ${errors ? "text-destructive" : "text-foreground"}`}>{errors}</span></div>
-        <div><span className="text-muted-foreground">Pend.</span> <span className="font-semibold ml-0.5">{pending}</span></div>
-        <div><span className="text-muted-foreground">Total</span> <span className="font-semibold ml-0.5">{total}</span></div>
+        <div><span className="text-muted-foreground/50">OK</span> <span className="font-bold text-primary ml-0.5">{success}</span></div>
+        <div><span className="text-muted-foreground/50">Erro</span> <span className={`font-bold ml-0.5 ${errors ? "text-destructive" : "text-foreground/60"}`}>{errors}</span></div>
+        <div><span className="text-muted-foreground/50">Pend.</span> <span className="font-bold ml-0.5 text-foreground/60">{pending}</span></div>
+        <div><span className="text-muted-foreground/50">Total</span> <span className="font-bold ml-0.5 text-foreground/60">{total}</span></div>
       </div>
 
-      <div className="flex items-center justify-between pt-1 border-t border-border/15 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-between pt-2 border-t border-border/10 text-[10px] text-muted-foreground/40">
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(camp.created_at)}</span>
         <div className="flex gap-1">
           {camp.status === "running" && onCancel && (
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={onCancel}>
+            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive rounded-lg" onClick={onCancel}>
               <StopCircle className="w-3 h-3 mr-1" /> Parar
             </Button>
           )}
           {showDelete && camp.status !== "running" && onDelete && (
-            <Button variant="ghost" size="sm" className="h-6 px-1.5 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+            <button className="h-6 w-6 rounded-lg flex items-center justify-center hover:bg-destructive/10 text-muted-foreground/30 hover:text-destructive transition-colors" onClick={onDelete}>
               <XCircle className="w-3 h-3" />
-            </Button>
+            </button>
           )}
         </div>
       </div>
