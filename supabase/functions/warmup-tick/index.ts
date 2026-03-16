@@ -1794,7 +1794,7 @@ async function handleTick(db: any) {
                   bufferAudit({
                     user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
                     level: "info", event_type: "auto_sync_joined",
-                    message: `Auto-sync: grupo "${poolGroup?.name}" detectado no dispositivo → marcado como joined`,
+                    message: `Auto-sync: grupo "${grpRef?.name || ig.group_name}" detectado no dispositivo → marcado como joined`,
                   });
                 }
               }
