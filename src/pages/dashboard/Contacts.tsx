@@ -82,11 +82,6 @@ const ContactRow = memo(function ContactRow({ contact, index, selectMode, isSele
           </Badge>
         )) : <span className="text-[11px] text-muted-foreground">—</span>}
       </div>
-      {VAR_KEYS.map(k => (
-        <div key={k} className="p-2 text-xs text-muted-foreground truncate">
-          {contact[k]?.trim() || "—"}
-        </div>
-      ))}
       <div className="p-2 overflow-hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
