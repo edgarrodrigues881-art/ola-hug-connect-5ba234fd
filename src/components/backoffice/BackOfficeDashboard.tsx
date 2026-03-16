@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
-  AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles
+  AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
