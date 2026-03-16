@@ -1814,10 +1814,17 @@ async function handleTick(db: any) {
           .neq("device_id", job.device_id)
           .limit(100);
 
-        // Get existing active pairs to decide which to keep
-        const { data: existingPairs } = await db.from("community_pairs")
+        // Get existing active pairs by device_id (not cycle_id) to find pairs from either side
+        const { data: ecPairsA } = await db.from("community_pairs")
           .select("id, instance_id_a, instance_id_b, meta")
-          .eq("cycle_id", cycle.id).eq("status", "active");
+          .eq("instance_id_a", job.device_id).eq("status", "active");
+        const { data: ecPairsB } = await db.from("community_pairs")
+          .select("id, instance_id_a, instance_id_b, meta")
+          .eq("instance_id_b", job.device_id).eq("status", "active");
+        const ecDedupSet = new Set<string>();
+        const existingPairs = [...(ecPairsA || []), ...(ecPairsB || [])].filter(p => {
+          if (ecDedupSet.has(p.id)) return false; ecDedupSet.add(p.id); return true;
+        });
 
         // Strategy: keep ~40% of existing pairs (old contacts), fill rest with new
         const keepCount = Math.min(
