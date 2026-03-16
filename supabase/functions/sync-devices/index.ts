@@ -507,7 +507,9 @@ Deno.serve(async (req) => {
               const rwBase = rwDevice.uazapi_base_url.replace(/\/+$/, "");
               const nowBRT = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
               const chipName = newName || device.name;
-              const rPhone = isConnected ? (newPhone || "N/A") : (device.number || "N/A");
+              const rPhone = isConnected
+                ? (newPhone && newPhone.trim() ? newPhone : (device.number && device.number.trim() ? fmtPhone(device.number) : "N/A"))
+                : (device.number && device.number.trim() ? fmtPhone(device.number) : "N/A");
               const msg = isConnected
                 ? `✅ CONECTADA\n🔹 ${device.name}\n📱 ${chipName}\n📞 ${rPhone}\n🟢 Online ${nowBRT}`
                 : `⚠️ DESCONECTADA\n🖥 ${device.name}\n📞 ${rPhone}\n❌ Offline ${nowBRT}`;
