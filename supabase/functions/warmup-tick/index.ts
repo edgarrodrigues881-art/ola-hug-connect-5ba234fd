@@ -1985,6 +1985,96 @@ async function handleTick(db: any) {
           meta: { day: newDay, phase: newPhase },
         });
 
+        // Rotate community pairs on daily reset if in community phase
+        if (newPhase === "community_enabled") {
+          const targetPeers = getCommunityPeers(newDay, chipState);
+
+          // Get existing active pairs
+          const { data: existingPairs } = await db.from("community_pairs")
+            .select("id, instance_id_a, instance_id_b")
+            .eq("cycle_id", cycle.id).eq("status", "active");
+
+          // Keep ~40% of old pairs (familiar contacts), close rest
+          const keepCount = Math.min(
+            Math.floor(targetPeers * 0.4),
+            existingPairs?.length || 0
+          );
+          const keptDevices = new Set<string>();
+          const keptUsers = new Set<string>();
+
+          if (existingPairs?.length) {
+            const shuffledExisting = existingPairs.sort(() => Math.random() - 0.5);
+            const toKeep = shuffledExisting.slice(0, keepCount);
+            const toClose = shuffledExisting.slice(keepCount);
+
+            if (toClose.length > 0) {
+              await db.from("community_pairs")
+                .update({ status: "closed", closed_at: new Date().toISOString() })
+                .in("id", toClose.map((p: any) => p.id));
+            }
+
+            for (const p of toKeep) {
+              const peerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
+              keptDevices.add(peerId);
+            }
+          }
+
+          // Create new pairs to fill target
+          const newNeeded = targetPeers - keepCount;
+          if (newNeeded > 0) {
+            const { data: eligible } = await db.from("warmup_community_membership")
+              .select("device_id, user_id")
+              .eq("is_enabled", true).eq("is_eligible", true)
+              .neq("user_id", job.user_id)
+              .limit(100);
+
+            if (eligible?.length) {
+              const shuffled = eligible.sort(() => Math.random() - 0.5);
+              const usedDevices = new Set<string>(keptDevices);
+              const usedUsers = new Set<string>(keptUsers);
+
+              // Prefer non-new chips
+              const eligDevIds = shuffled.map((e: any) => e.device_id).slice(0, 50);
+              const { data: peerCycles } = await db.from("warmup_cycles")
+                .select("device_id, chip_state, day_index")
+                .in("device_id", eligDevIds).eq("is_running", true);
+              const pcMap: Record<string, any> = {};
+              peerCycles?.forEach((c: any) => { pcMap[c.device_id] = c; });
+
+              const sorted = shuffled.sort((a: any, b: any) => {
+                const ca = pcMap[a.device_id]; const cb = pcMap[b.device_id];
+                const aNew = ca?.chip_state === "new" && (ca?.day_index || 0) < 10 ? 1 : 0;
+                const bNew = cb?.chip_state === "new" && (cb?.day_index || 0) < 10 ? 1 : 0;
+                return aNew - bNew;
+              });
+
+              let created = 0;
+              for (const e of sorted) {
+                if (created >= newNeeded) break;
+                if (usedDevices.has(e.device_id) || usedUsers.has(e.user_id)) continue;
+
+                const { data: pd } = await db.from("devices")
+                  .select("status, number").eq("id", e.device_id).single();
+                if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
+
+                await db.from("community_pairs").insert({
+                  cycle_id: cycle.id, instance_id_a: job.device_id, instance_id_b: e.device_id,
+                  status: "active", meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
+                });
+                usedDevices.add(e.device_id); usedUsers.add(e.user_id);
+                created++;
+              }
+
+              bufferAudit({
+                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                level: "info", event_type: "community_pairs_rotated",
+                message: `Pares rotacionados: ${keepCount} mantidos + ${created} novos = ${keepCount + created}/${targetPeers}`,
+                meta: { kept: keepCount, new: created, target: targetPeers, day: newDay },
+              });
+            }
+          }
+        }
+
         // Schedule today's jobs
         await scheduleDayJobs(db, cycle.id, job.user_id, job.device_id, newDay, newPhase, chipState);
 
