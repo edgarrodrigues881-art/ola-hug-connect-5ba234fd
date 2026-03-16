@@ -1909,11 +1909,21 @@ const Campaigns = () => {
                         <p className="text-[10px] text-muted-foreground/50">{devices.length} disponível{devices.length !== 1 ? "is" : ""}</p>
                       </div>
                     </div>
-                    {selectedDevices.length > 0 && (
-                      <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                        {selectedDevices.length} ✓
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {devices.length > 0 && (
+                        <button
+                          onClick={() => setSelectedDevices(prev => prev.length === devices.length ? [] : devices.map(d => d.id))}
+                          className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+                        >
+                          {selectedDevices.length === devices.length ? "Desmarcar todas" : "Selecionar todas"}
+                        </button>
+                      )}
+                      {selectedDevices.length > 0 && (
+                        <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                          {selectedDevices.length} ✓
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   {devices.length === 0 ? (
