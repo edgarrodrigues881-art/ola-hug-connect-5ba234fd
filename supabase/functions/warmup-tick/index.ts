@@ -1993,8 +1993,8 @@ async function handleTick(db: any) {
             break;
           }
 
-          const lastTurnMs = pairMeta.last_turn_at ? new Date(pairMeta.last_turn_at).getTime() : 0;
-          if (lastTurnMs && !Number.isNaN(lastTurnMs) && (Date.now() - lastTurnMs) < 45 * 60 * 1000) {
+          const lastCompletedMs = pairMeta.last_completed_at ? new Date(pairMeta.last_completed_at).getTime() : 0;
+          if (lastCompletedMs && !Number.isNaN(lastCompletedMs) && (Date.now() - lastCompletedMs) < 5 * 60 * 1000) {
             bufferAudit({
               user_id: job.user_id,
               device_id: job.device_id,
