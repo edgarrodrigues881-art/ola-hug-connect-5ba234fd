@@ -1735,7 +1735,7 @@ async function handleTick(db: any) {
       }
 
       // ── COMMUNITY INTERACTION (burst conversation with media) ──
-      // Cada job = 1 burst de 3-7 mensagens seguidas (simula conversa real)
+      // Cada job = 1 burst de 2-4 mensagens seguidas (simula conversa real)
       case "community_interaction": {
         if (!baseUrl || !token) throw new Error("Credenciais UAZAPI não configuradas");
 
