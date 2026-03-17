@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 
 interface UazapiInstance {
+  provider_instance_id: string | null;
   name: string;
   token: string;
   token_full: string;
@@ -92,7 +93,12 @@ const AdminTokensGlobal = () => {
     if (selectedNames.size === 0) return;
     const selectedInstances = instances
       .filter(inst => selectedNames.has(inst.name))
-      .map(inst => ({ name: inst.name, token_full: inst.token_full, db_token_id: inst.db_token_id }));
+      .map(inst => ({
+        provider_instance_id: inst.provider_instance_id,
+        name: inst.name,
+        token_full: inst.token_full,
+        db_token_id: inst.db_token_id,
+      }));
 
     setDeleting(true);
     mutate(
@@ -119,7 +125,12 @@ const AdminTokensGlobal = () => {
       {
         action: "bulk-delete-uazapi-instances",
         body: {
-          instances: instance ? [{ name: instance.name, token_full: instance.token_full, db_token_id: instance.db_token_id }] : [],
+          instances: instance ? [{
+            provider_instance_id: instance.provider_instance_id,
+            name: instance.name,
+            token_full: instance.token_full,
+            db_token_id: instance.db_token_id,
+          }] : [],
           instance_names: [name],
         },
       },
