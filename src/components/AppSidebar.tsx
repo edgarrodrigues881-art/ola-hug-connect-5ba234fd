@@ -429,19 +429,6 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
-              <Settings className="w-4 h-4" strokeWidth={1.5} />
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/my-plan")} className="gap-2 cursor-pointer">
-              <CreditCard className="w-4 h-4" strokeWidth={1.5} />
-              Meu Plano
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/notifications")} className="gap-2 cursor-pointer">
-              <ScrollText className="w-4 h-4" strokeWidth={1.5} />
-              Logs
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4" strokeWidth={1.5} />
               Sair
