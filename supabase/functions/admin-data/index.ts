@@ -1177,6 +1177,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    const PROVIDER_DELETE_TIMEOUT_MS = 1200;
+    const PROVIDER_DELETE_BATCH_SIZE = 12;
+
     // ─── Helper: delete instance from UAZAPI by token/name/id ───
     const deleteInstanceFromProvider = async (
       tokenValue?: string | null,
@@ -1190,14 +1193,30 @@ Deno.serve(async (req) => {
       const trimmedToken = String(tokenValue || "").trim();
       const trimmedLabel = String(label || "").trim();
       const trimmedProviderId = String(providerInstanceId || "").trim();
-      const identifiers = [...new Set([trimmedToken, trimmedProviderId, trimmedLabel].filter(Boolean))];
+      const attempted = [...new Set([trimmedToken, trimmedProviderId, trimmedLabel].filter(Boolean))];
+
+      const tokenHeaderVariants = trimmedToken
+        ? [
+            { token: trimmedToken },
+            { Authorization: `Bearer ${trimmedToken}` },
+          ]
+        : [];
+
       const adminHeaderVariants = ADMIN_TOKEN
         ? [
             { admintoken: ADMIN_TOKEN },
             { token: ADMIN_TOKEN },
-            { Authorization: `Bearer ${ADMIN_TOKEN}` },
           ]
         : [];
+
+      const identifierBodies: Array<Record<string, string>> = [];
+      if (trimmedToken) identifierBodies.push({ token: trimmedToken });
+      if (trimmedProviderId) {
+        identifierBodies.push({ id: trimmedProviderId }, { instanceId: trimmedProviderId });
+      }
+      if (trimmedLabel) {
+        identifierBodies.push({ name: trimmedLabel }, { instanceName: trimmedLabel });
+      }
 
       const callProvider = async (
         endpoint: string,
@@ -1206,7 +1225,7 @@ Deno.serve(async (req) => {
         body?: Record<string, unknown>,
       ) => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3500);
+        const timeout = setTimeout(() => controller.abort(), PROVIDER_DELETE_TIMEOUT_MS);
 
         try {
           const requestHeaders: Record<string, string> = {
@@ -1227,75 +1246,112 @@ Deno.serve(async (req) => {
 
           const res = await fetch(`${BASE_URL}${endpoint}`, init);
           const text = await res.text().catch(() => "");
-          return { ok: res.ok, status: res.status, text };
+          return { ok: res.ok, status: res.status, text, endpoint, method, body };
         } catch (error) {
-          return { ok: false, status: 0, text: error instanceof Error ? error.message : String(error) };
+          return {
+            ok: false,
+            status: 0,
+            text: error instanceof Error ? error.message : String(error),
+            endpoint,
+            method,
+            body,
+          };
         } finally {
           clearTimeout(timeout);
         }
       };
 
-      const logFailure = (endpoint: string, method: "DELETE" | "POST", result: { status: number; text: string }) => {
-        if (![0, 401, 403, 404, 405].includes(result.status)) {
-          console.warn(`[admin-data] Delete attempt failed ${endpoint} ${method}: status=${result.status} body=${result.text.slice(0, 200)}`);
+      const runAttemptWave = async (
+        attempts: Array<{
+          endpoint: string;
+          method: "DELETE" | "POST";
+          headers: Record<string, string>;
+          body?: Record<string, unknown>;
+          mode: "instance-token" | "admin-route";
+        }>,
+      ) => {
+        if (attempts.length === 0) return null;
+
+        const deduped = Array.from(
+          new Map(
+            attempts.map((attempt) => [
+              JSON.stringify([attempt.endpoint, attempt.method, attempt.headers, attempt.body || null]),
+              attempt,
+            ])
+          ).values()
+        );
+
+        const results = await Promise.allSettled(
+          deduped.map(async (attempt) => ({
+            ...attempt,
+            result: await callProvider(attempt.endpoint, attempt.method, attempt.headers, attempt.body),
+          }))
+        );
+
+        for (const entry of results) {
+          if (entry.status === "fulfilled" && entry.value.result.ok) {
+            console.log(`[admin-data] UAZAPI delete success endpoint=${entry.value.endpoint} method=${entry.value.method} mode=${entry.value.mode}`);
+            return {
+              deleted: true,
+              endpoint: entry.value.endpoint,
+              method: entry.value.method,
+              mode: entry.value.mode,
+            };
+          }
         }
+
+        for (const entry of results) {
+          if (entry.status !== "fulfilled") continue;
+          const { result, endpoint, method } = entry.value;
+          if (![0, 401, 403, 404, 405].includes(result.status)) {
+            console.warn(`[admin-data] Delete attempt failed ${endpoint} ${method}: status=${result.status} body=${result.text.slice(0, 200)}`);
+          }
+        }
+
+        return null;
       };
 
-      if (trimmedToken) {
-        for (const tokenHeaders of [{ token: trimmedToken }, { Authorization: `Bearer ${trimmedToken}` }]) {
-          await callProvider("/instance/disconnect", "POST", tokenHeaders, undefined).catch(() => null);
+      const tokenWave = await runAttemptWave(
+        tokenHeaderVariants.flatMap((headers) =>
+          ["/instance/delete", "/instance/remove"].flatMap((endpoint) =>
+            ["POST", "DELETE"].map((method) => ({
+              endpoint,
+              method: method as "DELETE" | "POST",
+              headers,
+              mode: "instance-token" as const,
+            }))
+          )
+        )
+      );
+      if (tokenWave) return tokenWave;
 
-          for (const endpoint of ["/instance/delete", "/instance/remove"]) {
-            for (const method of ["DELETE", "POST"] as const) {
-              const result = await callProvider(endpoint, method, tokenHeaders, undefined);
-              if (result.ok) {
-                console.log(`[admin-data] UAZAPI delete success endpoint=${endpoint} method=${method} mode=instance-token`);
-                return { deleted: true, endpoint, method, mode: "instance-token" };
-              }
-              logFailure(endpoint, method, result);
-              if (result.status === 401 || result.status === 403) break;
-              if (result.status === 405) continue;
-            }
-          }
-        }
-      }
-
-      const identifierBodies = identifiers.flatMap((identifier) => [
-        { token: identifier },
-        { name: identifier },
-        { id: identifier },
-        { instanceId: identifier },
-        { instance_id: identifier },
-      ]);
-
-      for (const headers of adminHeaderVariants) {
-        for (const body of identifierBodies) {
-          await callProvider("/instance/disconnect", "POST", headers, body).catch(() => null);
-
-          for (const endpoint of ["/instance/delete", "/instance/remove", "/admin/instance/delete", "/admin/instance/remove"]) {
-            for (const method of ["DELETE", "POST"] as const) {
-              const result = await callProvider(endpoint, method, headers, body);
-              if (result.ok) {
-                console.log(`[admin-data] UAZAPI delete success endpoint=${endpoint} method=${method} mode=admin-route`);
-                return { deleted: true, endpoint, method, mode: "admin-route", body_keys: Object.keys(body) };
-              }
-              logFailure(endpoint, method, result);
-              if (result.status === 401 || result.status === 403) break;
-            }
-          }
-        }
-      }
+      const adminWave = await runAttemptWave(
+        adminHeaderVariants.flatMap((headers) =>
+          ["/instance/delete", "/instance/remove"].flatMap((endpoint) =>
+            ["POST", "DELETE"].flatMap((method) =>
+              identifierBodies.map((body) => ({
+                endpoint,
+                method: method as "DELETE" | "POST",
+                headers,
+                body,
+                mode: "admin-route" as const,
+              }))
+            )
+          )
+        )
+      );
+      if (adminWave) return adminWave;
 
       console.warn(`[admin-data] Failed to delete instance from provider`, {
         providerInstanceId: trimmedProviderId || null,
         label: trimmedLabel || null,
         hasToken: !!trimmedToken,
-        attempted: identifiers,
+        attempted,
       });
       return {
         deleted: false,
         reason: "api_failed",
-        attempted: identifiers,
+        attempted,
         providerInstanceId: trimmedProviderId || null,
         label: trimmedLabel || null,
         hasToken: !!trimmedToken,
