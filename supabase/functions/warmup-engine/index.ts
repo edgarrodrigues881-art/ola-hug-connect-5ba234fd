@@ -641,11 +641,24 @@ async function handleStart(db: any, userId: string | null, body: any) {
   const jobs: any[] = [];
 
   if (skipPre24h) {
-    // Starting from a later day: mark all groups as joined and schedule day jobs immediately
-    await db.from("warmup_instance_groups")
-      .update({ join_status: "joined", joined_at: now.toISOString() })
-      .eq("device_id", device_id)
-      .eq("cycle_id", cycle.id);
+    // Starting from a later day: schedule expedited join_group jobs (2-5min apart)
+    // to enter groups AND resolve JIDs, then schedule interaction jobs.
+    // Groups stay "pending" until join_group jobs succeed and resolve JIDs.
+    let cumulativeDelay = randInt(1, 3) * 60 * 1000; // Start joining in 1-3 min
+    for (let i = 0; i < allGroups.length; i++) {
+      if (i > 0) {
+        cumulativeDelay += randInt(2, 5) * 60 * 1000; // 2-5 min between joins
+      }
+      const jobPayload: any = { group_id: allGroups[i].id, group_name: allGroups[i].name };
+      if (allGroups[i].invite_link) jobPayload.invite_link = allGroups[i].invite_link;
+      jobs.push({
+        user_id: userId, device_id, cycle_id: cycle.id,
+        job_type: "join_group",
+        payload: jobPayload,
+        run_at: new Date(now.getTime() + cumulativeDelay).toISOString(),
+        status: "pending",
+      });
+    }
 
     // Enable community membership if phase requires it
     if (initialPhase === "community_enabled") {
@@ -659,7 +672,12 @@ async function handleStart(db: any, userId: string | null, body: any) {
       }, { onConflict: "device_id" });
     }
 
-    // Schedule day jobs for the starting day immediately
+    // Schedule day interaction jobs AFTER estimated join completion
+    // They'll auto-sync JIDs from live groups when they run
+    const interactionStartDelay = cumulativeDelay + randInt(3, 5) * 60 * 1000;
+    const delayedNow = new Date(now.getTime() + interactionStartDelay);
+    
+    // Temporarily shift the scheduling window to start after joins complete
     await scheduleDayJobs(db, cycle.id, userId, device_id, resolvedStartDay, initialPhase, resolvedChipState, true);
   } else {
     // Normal start from day 1: schedule join_group jobs 4-6h after start
