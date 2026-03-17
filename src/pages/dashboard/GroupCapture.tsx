@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
-  UsersRound, Copy, Check, LogIn, Timer,
+  UsersRound, Copy, Check, LogIn, Timer, Search,
   Loader2, Shield, StopCircle, XCircle, Clock, Users, Plus, Trash2, Link2, UserPlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
