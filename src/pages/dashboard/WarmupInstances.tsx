@@ -516,6 +516,33 @@ const WarmupInstances = () => {
     enabled: !!user,
   });
 
+  // Fetch joined groups per device for advanced start validation
+  const selectedDeviceIds = useMemo(() => Array.from(bulkSelected), [bulkSelected]);
+  const isAdvancedStart = Number(bulkStartDay) > 1;
+  const { data: deviceGroupCounts = {} } = useQuery({
+    queryKey: ["device_joined_groups", selectedDeviceIds],
+    queryFn: async () => {
+      if (selectedDeviceIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("warmup_instance_groups")
+        .select("device_id, join_status")
+        .in("device_id", selectedDeviceIds)
+        .eq("join_status", "joined");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        counts[row.device_id] = (counts[row.device_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: isAdvancedStart && selectedDeviceIds.length > 0 && bulkOpen,
+  });
+
+  const devicesWithoutGroups = useMemo(() => {
+    if (!isAdvancedStart) return [];
+    return selectedDeviceIds.filter(id => !(deviceGroupCounts as Record<string, number>)[id]);
+  }, [isAdvancedStart, selectedDeviceIds, deviceGroupCounts]);
+
   const addCustomGroup = useCallback(async () => {
     if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
     const { error } = await supabase.from("warmup_groups" as any).insert({
