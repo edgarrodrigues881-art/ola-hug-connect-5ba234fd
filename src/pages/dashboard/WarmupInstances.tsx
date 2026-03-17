@@ -591,7 +591,7 @@ const WarmupInstances = () => {
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
-    queryKey: ["devices-warmup-list", user?.id],
+    queryKey: ["devices", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at").eq("user_id", user!.id).order("created_at", { ascending: true });
       if (error) throw error;
@@ -606,6 +606,7 @@ const WarmupInstances = () => {
       });
     },
     enabled: !!user,
+    refetchInterval: 15_000,
   });
 
   const { data: cycles = [], isLoading: cyclesLoading } = useWarmupCycles();
@@ -721,14 +722,14 @@ const WarmupInstances = () => {
           setPollingInterval(null);
           setConnectError(result.error);
           setQrCodeBase64("");
-          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+          qc.invalidateQueries({ queryKey: ["devices"] });
           return;
         }
         if (result?.status === "authenticated") {
           clearInterval(interval);
           setPollingInterval(null);
           setConnectStep("done");
-          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+          qc.invalidateQueries({ queryKey: ["devices"] });
           toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
           try {
             const { data: { session: s } } = await supabase.auth.getSession();
@@ -736,7 +737,7 @@ const WarmupInstances = () => {
               await supabase.functions.invoke("sync-devices", {
                 headers: { Authorization: `Bearer ${s.access_token}` },
               });
-              qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+              qc.invalidateQueries({ queryKey: ["devices"] });
             }
           } catch {}
         }
@@ -757,7 +758,7 @@ const WarmupInstances = () => {
               callApi({ action: "refreshQr", deviceId: connectingDevice.id }).then(result => {
                 if (result?.alreadyConnected) {
                   setConnectStep("done");
-                  qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                  qc.invalidateQueries({ queryKey: ["devices"] });
                   return;
                 }
                 const b64 = result?.base64 || result?.qr;
@@ -840,13 +841,13 @@ const WarmupInstances = () => {
         if (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE") {
           setConnectStep("proxy");
         }
-        qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+        qc.invalidateQueries({ queryKey: ["devices"] });
         toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
         return;
       }
 
       if (connectResult.alreadyConnected) {
-        qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+        qc.invalidateQueries({ queryKey: ["devices"] });
         setConnectStep("done");
         toast({ title: "Já conectado!" });
         return;
@@ -1200,13 +1201,13 @@ const WarmupInstances = () => {
                         if (result?.status === "authenticated") {
                           stopPolling();
                           setConnectStep("done");
-                          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                          qc.invalidateQueries({ queryKey: ["devices"] });
                           toast({ title: "Conectado!" });
                           try {
                             const { data: { session: s } } = await supabase.auth.getSession();
                             if (s) {
                               await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
-                              qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                              qc.invalidateQueries({ queryKey: ["devices"] });
                             }
                           } catch {}
                         } else {
