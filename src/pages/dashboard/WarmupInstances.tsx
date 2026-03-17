@@ -847,7 +847,7 @@ const WarmupInstances = () => {
       }
 
       if (connectResult.alreadyConnected) {
-        qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+        qc.invalidateQueries({ queryKey: ["devices"] });
         setConnectStep("done");
         toast({ title: "Já conectado!" });
         return;
