@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 
 interface UazapiInstance {
+  provider_instance_id: string | null;
   name: string;
   token: string;
   token_full: string;
