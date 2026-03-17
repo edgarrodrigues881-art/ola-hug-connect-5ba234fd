@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   ChevronUp,
+  Crown,
   
   ChevronRight,
   CreditCard,
