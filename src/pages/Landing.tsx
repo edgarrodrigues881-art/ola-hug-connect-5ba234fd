@@ -124,8 +124,7 @@ const DashboardPreview = () => (
   <Section>
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={fadeUp} className="relative max-w-5xl mx-auto">
       {/* Glow behind */}
-      <div className="absolute -inset-6 bg-gradient-to-b from-amber-500/15 via-amber-400/5 to-transparent rounded-3xl blur-[60px] pointer-events-none" />
-      <div className="absolute -inset-10 bg-gradient-to-tr from-amber-500/8 via-transparent to-amber-400/6 rounded-3xl blur-[80px] pointer-events-none" />
+      <div className="absolute -inset-4 bg-gradient-to-b from-[hsl(var(--primary))]/10 via-[hsl(var(--primary))]/5 to-transparent rounded-3xl blur-[40px] pointer-events-none" />
       {/* Frame */}
       <div className="relative rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/40">
         <div className="bg-white/[0.03] px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
