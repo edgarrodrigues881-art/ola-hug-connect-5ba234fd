@@ -1177,38 +1177,78 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── Helper: delete instance from UAZAPI by token ───
+    // ─── Helper: delete instance from UAZAPI by token/name ───
     const deleteInstanceFromProvider = async (tokenValue: string, label?: string | null) => {
       const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
       const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
       if (!BASE_URL || !ADMIN_TOKEN) return { deleted: false, reason: "no_config" };
 
-      // Try to delete by instance name (label) first, then by token
-      const identifiers = [label, tokenValue].filter(Boolean);
-      for (const instanceName of identifiers) {
-        try {
-          // Try disconnect first
-          await fetch(`${BASE_URL}/instance/disconnect`, {
-            method: "POST",
-            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ name: instanceName }),
-          }).catch(() => {});
+      const headerVariants = [
+        { admintoken: ADMIN_TOKEN },
+        { token: ADMIN_TOKEN },
+        { Authorization: `Bearer ${ADMIN_TOKEN}` },
+      ];
 
-          // Then delete
-          const res = await fetch(`${BASE_URL}/instance/delete`, {
-            method: "DELETE",
-            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ name: instanceName }),
-          });
-          if (res.ok) {
-            console.log(`[admin-data] UAZAPI instance deleted: ${instanceName}`);
-            return { deleted: true, name: instanceName };
+      const identifiers = [...new Set([label, tokenValue].filter((value): value is string => Boolean(value && String(value).trim())))];
+      const buildPayloads = (identifier: string) => ([
+        { name: identifier },
+        { token: identifier },
+        { instance: identifier },
+        { instanceName: identifier },
+      ]);
+
+      for (const identifier of identifiers) {
+        try {
+          for (const authHeaders of headerVariants) {
+            for (const disconnectPayload of buildPayloads(identifier)) {
+              try {
+                const disconnectRes = await fetch(`${BASE_URL}/instance/disconnect`, {
+                  method: "POST",
+                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+                  body: JSON.stringify(disconnectPayload),
+                });
+                await disconnectRes.text().catch(() => "");
+                if (disconnectRes.status === 401 || disconnectRes.status === 403) break;
+              } catch {
+                // ignore disconnect failures before delete
+              }
+            }
+          }
+
+          for (const endpoint of ["/instance/delete", "/instance/remove"]) {
+            for (const method of ["DELETE", "POST"] as const) {
+              for (const authHeaders of headerVariants) {
+                for (const payload of buildPayloads(identifier)) {
+                  try {
+                    const res = await fetch(`${BASE_URL}${endpoint}`, {
+                      method,
+                      headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
+                    });
+                    const responseText = await res.text().catch(() => "");
+
+                    if (res.ok) {
+                      console.log(`[admin-data] UAZAPI instance deleted via ${endpoint} ${method}: ${identifier}`);
+                      return { deleted: true, name: identifier, endpoint, method };
+                    }
+
+                    if (res.status === 401 || res.status === 403) break;
+                    if (res.status !== 404 && res.status !== 405) {
+                      console.warn(`[admin-data] Delete attempt failed ${endpoint} ${method} for ${identifier}: status=${res.status} body=${responseText.slice(0, 200)}`);
+                    }
+                  } catch (e) {
+                    console.warn(`[admin-data] Failed delete call ${endpoint} ${method} for ${identifier}:`, e instanceof Error ? e.message : String(e));
+                  }
+                }
+              }
+            }
           }
         } catch (e) {
-          console.warn(`[admin-data] Failed to delete UAZAPI instance ${instanceName}:`, e);
+          console.warn(`[admin-data] Failed to delete UAZAPI instance ${identifier}:`, e instanceof Error ? e.message : String(e));
         }
       }
-      return { deleted: false, reason: "api_failed" };
+
+      return { deleted: false, reason: "api_failed", attempted: identifiers };
     };
 
     // ─── DELETE TOKEN ───
