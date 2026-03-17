@@ -1209,14 +1209,19 @@ Deno.serve(async (req) => {
           ]
         : [];
 
-      const identifierBodies: Array<Record<string, string>> = [];
-      if (trimmedToken) identifierBodies.push({ token: trimmedToken });
-      if (trimmedProviderId) {
-        identifierBodies.push({ id: trimmedProviderId }, { instanceId: trimmedProviderId });
-      }
-      if (trimmedLabel) {
-        identifierBodies.push({ name: trimmedLabel }, { instanceName: trimmedLabel });
-      }
+      const adminAttemptsByName = trimmedLabel
+        ? [
+            { name: trimmedLabel },
+            { instanceName: trimmedLabel },
+          ]
+        : [];
+
+      const adminAttemptsById = trimmedProviderId
+        ? [
+            { id: trimmedProviderId },
+            { instanceId: trimmedProviderId },
+          ]
+        : [];
 
       const callProvider = async (
         endpoint: string,
@@ -1312,33 +1317,60 @@ Deno.serve(async (req) => {
       };
 
       const tokenWave = await runAttemptWave(
-        tokenHeaderVariants.flatMap((headers) =>
-          ["/instance/delete", "/instance/remove"].flatMap((endpoint) =>
-            ["POST", "DELETE"].map((method) => ({
-              endpoint,
-              method: method as "DELETE" | "POST",
-              headers,
-              mode: "instance-token" as const,
-            }))
-          )
-        )
+        tokenHeaderVariants.flatMap((headers) => [
+          {
+            endpoint: "/instance",
+            method: "DELETE" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
+          {
+            endpoint: "/instance/delete",
+            method: "DELETE" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
+          {
+            endpoint: "/instance/remove",
+            method: "DELETE" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
+        ])
       );
       if (tokenWave) return tokenWave;
 
       const adminWave = await runAttemptWave(
-        adminHeaderVariants.flatMap((headers) =>
-          ["/instance/delete", "/instance/remove"].flatMap((endpoint) =>
-            ["POST", "DELETE"].flatMap((method) =>
-              identifierBodies.map((body) => ({
-                endpoint,
-                method: method as "DELETE" | "POST",
-                headers,
-                body,
-                mode: "admin-route" as const,
-              }))
-            )
-          )
-        )
+        adminHeaderVariants.flatMap((headers) => [
+          ...adminAttemptsByName.map((body) => ({
+            endpoint: "/instance/delete",
+            method: "POST" as const,
+            headers,
+            body,
+            mode: "admin-route" as const,
+          })),
+          ...adminAttemptsByName.map((body) => ({
+            endpoint: "/instance/remove",
+            method: "POST" as const,
+            headers,
+            body,
+            mode: "admin-route" as const,
+          })),
+          ...adminAttemptsById.map((body) => ({
+            endpoint: "/instance/delete",
+            method: "POST" as const,
+            headers,
+            body,
+            mode: "admin-route" as const,
+          })),
+          ...adminAttemptsById.map((body) => ({
+            endpoint: "/instance/remove",
+            method: "POST" as const,
+            headers,
+            body,
+            mode: "admin-route" as const,
+          })),
+        ])
       );
       if (adminWave) return adminWave;
 
