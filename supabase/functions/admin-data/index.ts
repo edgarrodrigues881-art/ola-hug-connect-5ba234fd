@@ -1694,20 +1694,22 @@ Deno.serve(async (req) => {
 
       const normalizedInstances = [
         ...rawInstances.map((item: any) => ({
+          provider_instance_id: String(item?.provider_instance_id || "").trim(),
           name: String(item?.name || "").trim(),
           token_full: String(item?.token_full || "").trim(),
           db_token_id: String(item?.db_token_id || "").trim(),
         })),
         ...fallbackNames.map((name: string) => ({
+          provider_instance_id: "",
           name: String(name || "").trim(),
           token_full: "",
           db_token_id: "",
         })),
-      ].filter((item: any) => item.name || item.token_full || item.db_token_id);
+      ].filter((item: any) => item.provider_instance_id || item.name || item.token_full || item.db_token_id);
 
       const uniqueInstances = Array.from(
         new Map(
-          normalizedInstances.map((item: any) => [item.db_token_id || item.token_full || item.name, item])
+          normalizedInstances.map((item: any) => [item.provider_instance_id || item.db_token_id || item.token_full || item.name, item])
         ).values()
       );
 
@@ -1722,7 +1724,7 @@ Deno.serve(async (req) => {
       for (let i = 0; i < uniqueInstances.length; i += batchSize) {
         const batch = uniqueInstances.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-          batch.map((item: any) => deleteInstanceFromProvider(item.token_full || "", item.name || null))
+          batch.map((item: any) => deleteInstanceFromProvider(item.token_full || "", item.name || null, item.provider_instance_id || null))
         );
         deleted += results.filter((r) => r.status === "fulfilled" && (r.value as any).deleted).length;
       }
