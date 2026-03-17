@@ -1610,6 +1610,7 @@ Deno.serve(async (req) => {
       const providerInstances = instances.map((inst: any) => {
         const name = inst.name || inst.instance_name || inst.instanceName || inst.instance || "";
         const token = inst.token || inst.apiToken || inst.api_token || inst.auth?.jwt || inst.auth?.token || "";
+        const providerInstanceId = String(inst.id || inst.instanceId || inst.instance_id || "").trim() || null;
         const rawStatus = inst.status || inst.connectionStatus || inst.state || inst.connection?.status || "unknown";
         const dbMatch = tokenMap[token] || labelMap[name] || null;
         const device = dbMatch?.device_id ? deviceMap[dbMatch.device_id] : null;
@@ -1621,6 +1622,7 @@ Deno.serve(async (req) => {
         const profileName = inst.profileName || inst.pushname || inst.profile_picture || inst.profilePictureUrl || device?.profile_name || "";
 
         return {
+          provider_instance_id: providerInstanceId,
           name,
           token: token ? `${token.substring(0, 12)}...` : "—",
           token_full: token,
@@ -1643,6 +1645,7 @@ Deno.serve(async (req) => {
           const fallbackName = t.label || device?.name || `token-${String(t.token || "").substring(0, 8)}`;
 
           return {
+            provider_instance_id: null,
             name: fallbackName,
             token: t.token ? `${t.token.substring(0, 12)}...` : "—",
             token_full: t.token || "",
