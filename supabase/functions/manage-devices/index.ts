@@ -86,147 +86,24 @@ Deno.serve(async (req) => {
         throw new Error(`Limite de instâncias atingido (${currentCount} de ${maxAllowed}).`);
       }
 
-      // 2. Find available token — or generate one on-demand
-      let available: { id: string; token: string } | null = null;
+      // 2. Create device record WITHOUT token — token will be generated on-demand at connect/QR time
+      const { data: newDevice, error: insertErr } = await admin
+        .from("devices")
+        .insert({
+          name: name.trim(),
+          login_type,
+          user_id: user.id,
+        })
+        .select("id, name, status, login_type, number, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
+        .single();
+      if (insertErr) throw insertErr;
 
-      // Try available first, then blocked (as fallback)
-      for (const st of ["available", "blocked"]) {
-        const { data } = await admin
-          .from("user_api_tokens")
-          .select("id, token")
-          .eq("user_id", user.id)
-          .eq("status", st)
-          .is("device_id", null)
-          .limit(1)
-          .maybeSingle();
-        if (data) {
-          available = data;
-          break;
-        }
-      }
+      await oplog(admin, user.id, "instance_created", `Instância "${newDevice.name}" criada (token será gerado ao conectar)`, newDevice.id);
 
-      // No token in pool — generate one on-demand via API
-      if (!available) {
-        const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-        const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
-        if (!BASE_URL || !ADMIN_TOKEN) {
-          throw new Error("Configuração do provedor incompleta. Contate o administrador.");
-        }
-
-        // Get client name for label
-        const { data: prof } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-        const clientLabel = (prof?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
-
-        // Count existing tokens to build sequential label
-        const { count: tokenCount } = await admin.from("user_api_tokens")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id);
-        const instanceName = `${clientLabel}_${(tokenCount ?? 0) + 1}`;
-
-        // Create instance on provider
-        const headerVariants = [
-          { admintoken: ADMIN_TOKEN },
-          { token: ADMIN_TOKEN },
-          { Authorization: `Bearer ${ADMIN_TOKEN}` },
-        ];
-
-        let newToken: string | null = null;
-        for (const authHeaders of headerVariants) {
-          try {
-            const res = await fetch(`${BASE_URL}/instance/init`, {
-              method: "POST",
-              headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
-              body: JSON.stringify({ name: instanceName }),
-            });
-            if (res.status === 401) continue;
-            const resData = await res.json().catch(() => ({}));
-            if (res.ok) {
-              newToken = resData.token || resData.instance?.token || resData.data?.token;
-              break;
-            }
-          } catch { /* try next auth method */ }
-        }
-
-        if (!newToken) {
-          throw new Error("Falha ao gerar token no provedor. Tente novamente ou contate o administrador.");
-        }
-
-        // Idempotency check
-        const { data: dup } = await admin.from("user_api_tokens")
-          .select("id").eq("token", newToken).maybeSingle();
-        if (dup) {
-          // Token already exists — reuse it
-          available = { id: dup.id, token: newToken };
-          await admin.from("user_api_tokens").update({ status: "available", device_id: null }).eq("id", dup.id);
-        } else {
-          // Insert new token
-          const { data: inserted, error: insErr } = await admin.from("user_api_tokens").insert({
-            user_id: user.id, token: newToken, admin_id: user.id,
-            status: "available", healthy: true, label: instanceName,
-            last_checked_at: new Date().toISOString(),
-          }).select("id, token").single();
-
-          if (insErr || !inserted) throw new Error("Falha ao salvar token gerado.");
-          available = inserted;
-        }
-
-        console.log(`[manage-devices] on-demand token created: ${instanceName}`);
-        await oplog(admin, user.id, "token_on_demand", `Token gerado sob demanda: ${instanceName}`, null, { label: instanceName });
-      }
-
-      // 3. Reserve token
-      const { error: reserveErr } = await admin
-        .from("user_api_tokens")
-        .update({ status: "reserved" })
-        .eq("id", available.id)
-        .eq("status", "available");
-      if (reserveErr) throw new Error("Falha ao reservar token.");
-
-      try {
-        // 4. Create device record (with token — server-side only)
-        const { data: newDevice, error: insertErr } = await admin
-          .from("devices")
-          .insert({
-            name: name.trim(),
-            login_type,
-            user_id: user.id,
-            uazapi_token: available.token,
-          })
-          .select("id, name, status, login_type, number, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type")
-          .single();
-        if (insertErr) throw insertErr;
-
-        // 5. Token already provisioned from pool — no need to create instance on provider
-        // The token was created via /instance/init during plan provisioning in admin-data
-
-        // 6. Set base URL on device (needed for connect/QR later)
-        const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-        if (BASE_URL) {
-          await admin.from("devices").update({ uazapi_base_url: BASE_URL }).eq("id", newDevice.id);
-        }
-
-        // 7. Mark token as in_use
-        await admin.from("user_api_tokens").update({
-          status: "in_use",
-          device_id: newDevice.id,
-          assigned_at: new Date().toISOString(),
-        }).eq("id", available.id);
-
-        await oplog(admin, user.id, "instance_created", `Instância "${newDevice.name}" criada`, newDevice.id, { token_assigned: true });
-
-        return new Response(
-          JSON.stringify({ device: { ...newDevice, has_api_config: true } }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } catch (err) {
-        // Rollback token
-        await admin.from("user_api_tokens").update({
-          status: "available",
-          device_id: null,
-          assigned_at: null,
-        }).eq("id", available.id);
-        throw err;
-      }
+      return new Response(
+        JSON.stringify({ device: { ...newDevice, has_api_config: false } }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ─── BULK CREATE DEVICES ───────────────────────────────────
