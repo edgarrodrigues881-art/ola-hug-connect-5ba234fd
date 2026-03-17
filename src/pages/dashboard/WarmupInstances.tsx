@@ -542,10 +542,12 @@ const WarmupInstances = () => {
   }, [selectedDeviceIds, userHasGroups]);
 
   const addCustomGroup = useCallback(async () => {
-    if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
+    if (!newGroupLink.trim() || !user) return;
+    // Extrai nome automático do link
+    const autoName = newGroupLink.trim().split("/").pop()?.slice(0, 20) || "Grupo";
     const { error } = await supabase.from("warmup_groups" as any).insert({
       user_id: user.id,
-      name: newGroupName.trim(),
+      name: newGroupName.trim() || autoName,
       link: newGroupLink.trim(),
       is_custom: true,
     });
