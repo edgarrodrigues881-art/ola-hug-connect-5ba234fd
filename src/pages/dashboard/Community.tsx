@@ -185,7 +185,7 @@ const Community = () => {
         {/* CTA Buttons */}
         <div className="flex flex-col gap-3 w-full">
           <a
-            href="https://chat.whatsapp.com/KpkJQCdw7i10ICftI1tpBf"
+            href="https://chat.whatsapp.com/F9Xw6819N8J97Am6T8yC8D?mode=gi_t"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2.5 w-full h-14 rounded-2xl bg-gradient-to-r from-[#b8860b] via-[#d4af37] to-[#b8860b] text-white text-[15px] font-bold tracking-wide transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:shadow-[0_0_35px_rgba(212,175,55,0.4)] hover:scale-[1.01]"
