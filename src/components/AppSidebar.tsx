@@ -396,6 +396,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
+              {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
+              {renderNavItem({ title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard })}
+              {renderNavItem({ title: "Logs", url: "/dashboard/notifications", icon: ScrollText })}
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
           </SidebarGroupContent>
