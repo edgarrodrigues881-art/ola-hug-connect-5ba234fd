@@ -227,10 +227,10 @@ const Features = () => (
 
 // ─── 5. Planos ───
 const plans = [
-  { name: "Start", instances: 10, price: "149,90", popular: false, whatsappReports: false },
-  { name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false },
-  { name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true },
-  { name: "Elite", instances: 100, price: "899,90", popular: false, whatsappReports: true },
+  { name: "Start", instances: 10, price: "149,90", popular: false, whatsappReports: false, warmup: 65 },
+  { name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false, warmup: 87 },
+  { name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true, warmup: 94 },
+  { name: "Elite", instances: 100, price: "899,90", popular: false, whatsappReports: true, warmup: 99 },
 ];
 
 const Plans = () => {
