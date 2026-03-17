@@ -412,15 +412,15 @@ export function AppSidebar() {
                     )}
                     activeClassName=""
                   >
-                    {/* Animated gold border via CSS */}
+                    {/* Animated sliding gold border */}
                     <span className="absolute inset-0 rounded-[10px] pointer-events-none" style={{
-                      padding: '1px',
-                      background: 'conic-gradient(from var(--angle), transparent 0%, #fbbf24 20%, #f59e0b 40%, transparent 50%, transparent 80%, #fbbf24 95%, transparent 100%)',
+                      padding: '1.5px',
+                      background: 'linear-gradient(var(--border-angle), #fbbf24, #f59e0b, transparent 40%, transparent 60%, #fbbf24, #f59e0b)',
                       mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                       maskComposite: 'exclude',
                       WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                       WebkitMaskComposite: 'xor',
-                      animation: 'gold-border-spin 4s linear infinite',
+                      animation: 'gold-border-spin 3s linear infinite',
                     }} />
                     {isActive("/dashboard/my-plan") && !collapsed && (
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-amber-400 z-10" />
