@@ -1393,12 +1393,11 @@ Deno.serve(async (req) => {
         .select("id, token, label")
         .eq("user_id", target_user_id);
 
-      // Delete all from UAZAPI in parallel (max 10 concurrent)
+      // Delete all from UAZAPI in parallel with bounded waves
       let providerDeleted = 0;
       if (allTokens && allTokens.length > 0) {
-        const batchSize = 10;
-        for (let i = 0; i < allTokens.length; i += batchSize) {
-          const batch = allTokens.slice(i, i + batchSize);
+        for (let i = 0; i < allTokens.length; i += PROVIDER_DELETE_BATCH_SIZE) {
+          const batch = allTokens.slice(i, i + PROVIDER_DELETE_BATCH_SIZE);
           const results = await Promise.allSettled(
             batch.map(t => deleteInstanceFromProvider(t.token, t.label))
           );
