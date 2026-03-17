@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-new.png";
+import dashboardPreview from "@/assets/dashboard-preview-landing.png";
 
 // Prefetch
 const prefetchRoutes = () => {
@@ -116,6 +117,26 @@ const Hero = () => {
     </section>
   );
 };
+
+// ─── Dashboard Preview ───
+const DashboardPreview = () => (
+  <Section>
+    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} variants={fadeUp} className="relative max-w-5xl mx-auto">
+      {/* Glow behind */}
+      <div className="absolute -inset-4 bg-gradient-to-b from-[hsl(var(--primary))]/10 via-[hsl(var(--primary))]/5 to-transparent rounded-3xl blur-[40px] pointer-events-none" />
+      {/* Frame */}
+      <div className="relative rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/40">
+        <div className="bg-white/[0.03] px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-red-500/60" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/60" />
+          <span className="w-3 h-3 rounded-full bg-green-500/60" />
+          <span className="ml-3 text-[11px] text-white/25 font-medium">DG Contingência PRO — Painel</span>
+        </div>
+        <img src={dashboardPreview} alt="Painel DG Contingência PRO" className="w-full h-auto" loading="lazy" />
+      </div>
+    </motion.div>
+  </Section>
+);
 
 // ─── 2. Benefícios ───
 const benefits = [
@@ -443,6 +464,7 @@ const Landing = () => {
       <div className="relative z-10">
         <Navbar />
         <Hero />
+        <DashboardPreview />
         <Benefits />
         <HowItWorks />
         <Features />
