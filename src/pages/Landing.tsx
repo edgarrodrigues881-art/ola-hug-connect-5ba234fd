@@ -47,7 +47,7 @@ const Navbar = () => {
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-7">
-          {[["beneficios", "Benefícios"], ["como-funciona", "Como funciona"], ["recursos", "Recursos"], ["planos", "Planos"], ["faq", "FAQ"]].map(([id, label]) => (
+          {[["beneficios", "Benefícios"], ["como-funciona", "Como funciona"], ["recursos", "Recursos"], ["planos", "Planos"], ["comunidade", "Comunidade"]].map(([id, label]) => (
             <button key={id} onClick={() => scroll(id)} className="text-[13px] font-medium text-white/45 hover:text-white transition-colors">{label}</button>
           ))}
         </nav>
@@ -331,7 +331,7 @@ const communityBenefits = [
 ];
 
 const CommunitySection = () => (
-  <Section>
+  <Section id="comunidade">
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="max-w-3xl mx-auto text-center">
       {/* Logo with gold frame */}
       <motion.div variants={fadeUp} className="flex justify-center mb-8">
