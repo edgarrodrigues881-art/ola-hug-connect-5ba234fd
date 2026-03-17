@@ -422,6 +422,13 @@ async function ensureJoinGroupJobs(
 
   if (!pendingGroups || pendingGroups.length === 0) return 0;
 
+  // Filter out ghost rows without invite_link — they can never join
+  const validGroups = pendingGroups.filter((g: any) => g.invite_link && g.invite_link.trim() !== "");
+  if (validGroups.length === 0) {
+    console.log(`[ensureJoinGroupJobs] ${pendingGroups.length} pending groups but none have invite_link — skipping`);
+    return 0;
+  }
+
   const shuffled = shuffleArray(pendingGroups);
   const nowMs = Date.now();
   const joinJobs: any[] = [];
