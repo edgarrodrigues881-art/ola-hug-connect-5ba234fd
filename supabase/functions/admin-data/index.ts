@@ -1776,7 +1776,10 @@ Deno.serve(async (req) => {
       const idsToDelete = [...new Set(enrichedInstances.map((item: any) => item.db_token_id).filter(Boolean))];
       if (idsToDelete.length > 0) {
         for (let i = 0; i < idsToDelete.length; i += 200) {
-          await adminClient.from("user_api_tokens").delete().in("id", idsToDelete.slice(i, i + 200));
+          await adminClient
+            .from("user_api_tokens")
+            .update({ status: "deleted", device_id: null, assigned_at: null })
+            .in("id", idsToDelete.slice(i, i + 200));
         }
       }
 
