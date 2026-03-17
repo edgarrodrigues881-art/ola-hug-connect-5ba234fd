@@ -464,6 +464,7 @@ const Landing = () => {
       <div className="relative z-10">
         <Navbar />
         <Hero />
+        <DashboardPreview />
         <Benefits />
         <HowItWorks />
         <Features />
