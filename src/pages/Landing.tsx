@@ -404,7 +404,7 @@ const CommunitySection = () => (
 
       <motion.div variants={fadeUp} className="space-y-3">
         <a
-          href="https://chat.whatsapp.com/SEU_LINK_COMUNIDADE"
+          href="https://chat.whatsapp.com/F9Xw6819N8J97Am6T8yC8D?mode=gi_t"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2.5 w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold text-sm hover:from-amber-400 hover:to-yellow-400 transition-all shadow-[0_0_30px_-6px_rgba(245,158,11,0.4)]"
