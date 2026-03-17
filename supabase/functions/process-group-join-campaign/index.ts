@@ -78,19 +78,42 @@ Deno.serve(async (req) => {
 
     if (!isInternalCall) {
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
+      if (authHeader) {
+        try {
+          const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+          const anonClient = createClient(supabaseUrl, anonKey, {
+            global: { headers: { Authorization: authHeader } },
+          });
+          const { data: { user }, error } = await anonClient.auth.getUser();
+          if (!error && user) {
+            userId = user.id;
+            console.log(`[process-group-join] authenticated user=${user.id.substring(0, 8)}`);
+          } else {
+            console.warn(`[process-group-join] auth failed: ${error?.message || "no user"}`);
+          }
+        } catch (e) {
+          console.warn(`[process-group-join] auth error: ${e.message}`);
+        }
+      }
+
+      // Fallback: if we have a campaign_id, get user_id from the campaign itself
+      if (!userId && campaignId) {
+        const { data: camp } = await supabase
+          .from("group_join_campaigns")
+          .select("user_id")
+          .eq("id", campaignId)
+          .maybeSingle();
+        if (camp?.user_id) {
+          userId = camp.user_id;
+          console.log(`[process-group-join] resolved user from campaign: ${userId.substring(0, 8)}`);
+        }
+      }
+
+      if (!userId && !campaignId) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
-      const { data: { user }, error } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
-      if (error || !user) {
-        return new Response(JSON.stringify({ error: "Não autorizado" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      userId = user.id;
     }
 
     // Find running campaigns to process
@@ -108,7 +131,8 @@ Deno.serve(async (req) => {
       campaignsQuery = campaignsQuery.eq("id", campaignId);
     }
 
-    const { data: campaigns } = await campaignsQuery;
+    const { data: campaigns, error: campErr } = await campaignsQuery;
+    console.log(`[process-group-join] found ${campaigns?.length || 0} campaigns, error=${campErr?.message || "none"}`);
     if (!campaigns?.length) {
       return new Response(JSON.stringify({ processed: 0, message: "No running campaigns" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
