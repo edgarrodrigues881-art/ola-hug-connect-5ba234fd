@@ -722,7 +722,7 @@ const WarmupInstances = () => {
           setPollingInterval(null);
           setConnectError(result.error);
           setQrCodeBase64("");
-          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+          qc.invalidateQueries({ queryKey: ["devices"] });
           return;
         }
         if (result?.status === "authenticated") {
