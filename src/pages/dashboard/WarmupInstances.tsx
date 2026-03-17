@@ -476,6 +476,7 @@ const WarmupInstances = () => {
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkInstanceSearch, setBulkInstanceSearch] = useState("");
   const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
   const [bulkStartDay, setBulkStartDay] = useState("1");
