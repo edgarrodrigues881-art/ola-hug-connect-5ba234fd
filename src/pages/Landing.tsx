@@ -301,6 +301,81 @@ const FAQ = () => (
 );
 
 
+// ─── Community ───
+const communityBenefits = [
+  { icon: Megaphone, title: "Atualizações", desc: "Fique por dentro de novas funcionalidades assim que forem lançadas." },
+  { icon: Star, title: "Melhorias", desc: "Receba avisos sobre otimizações e correções da ferramenta." },
+  { icon: ShieldCheck, title: "Dicas de Segurança", desc: "Boas práticas para manter seus chips e operações seguras." },
+  { icon: MessageCircle, title: "Comunidade", desc: "Tire dúvidas, compartilhe experiências e evolua junto com outros usuários." },
+];
+
+const CommunitySection = () => (
+  <Section>
+    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="max-w-3xl mx-auto text-center">
+      {/* Logo with gold frame */}
+      <motion.div variants={fadeUp} className="flex justify-center mb-8">
+        <div className="relative w-[180px] h-[180px] rounded-2xl overflow-hidden" style={{
+          padding: '2px',
+          background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #fbbf24)',
+        }}>
+          <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#0f1419] flex items-center justify-center">
+            <img src={logo} alt="DG Contingência PRO" className="w-[140px] h-[140px] object-contain" />
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div variants={fadeUp}>
+        <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400/80 mb-4">Comunidade Exclusiva</span>
+        <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-white tracking-tight mb-4 leading-tight">
+          DG Contingência <span className="text-amber-400">PRO</span>
+        </h2>
+        <p className="text-sm md:text-base text-white/45 max-w-xl mx-auto leading-relaxed font-medium mb-10">
+          Receba atualizações, melhorias, correções e avisos importantes da ferramenta em primeira mão.
+        </p>
+      </motion.div>
+
+      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+        {communityBenefits.map((b) => (
+          <motion.div key={b.title} variants={fadeUp} className="rounded-2xl border border-amber-500/10 bg-amber-500/[0.04] p-6 text-left flex items-start gap-4 hover:border-amber-500/20 hover:bg-amber-500/[0.06] transition-all duration-300">
+            <div className="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+              <b.icon className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-bold text-white mb-1">{b.title}</h3>
+              <p className="text-[13px] text-white/40 leading-relaxed">{b.desc}</p>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      <motion.div variants={fadeUp} className="space-y-3">
+        <a
+          href="https://chat.whatsapp.com/SEU_LINK_COMUNIDADE"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2.5 w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold text-sm hover:from-amber-400 hover:to-yellow-400 transition-all shadow-[0_0_30px_-6px_rgba(245,158,11,0.4)]"
+        >
+          <UsersRound className="w-5 h-5" />
+          Entrar na Comunidade
+        </a>
+        <a
+          href="https://wa.me/5562994192500?text=Ol%C3%A1%2C%20vim%20do%20site%20da%20DG%20Conting%C3%AAncia%20PRO%20e%20preciso%20de%20suporte."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2.5 w-full py-4 rounded-xl border border-white/10 bg-white/[0.04] text-white/70 font-semibold text-sm hover:bg-white/[0.08] transition-all"
+        >
+          <MessageCircle className="w-5 h-5" />
+          Falar com Suporte
+        </a>
+      </motion.div>
+
+      <p className="text-[11px] text-white/25 mt-6">
+        Ao entrar, você concorda em receber comunicados oficiais da DG Contingência PRO.
+      </p>
+    </motion.div>
+  </Section>
+);
+
 // ─── Footer ───
 const FooterSection = () => (
   <footer className="py-12 px-5 border-t border-white/[0.04]">
