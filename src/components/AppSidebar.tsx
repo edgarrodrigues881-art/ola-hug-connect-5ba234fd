@@ -396,6 +396,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
+              {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
+              {renderNavItem({ title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard })}
+              {renderNavItem({ title: "Logs", url: "/dashboard/notifications", icon: ScrollText })}
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -426,19 +429,6 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
-              <Settings className="w-4 h-4" strokeWidth={1.5} />
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/my-plan")} className="gap-2 cursor-pointer">
-              <CreditCard className="w-4 h-4" strokeWidth={1.5} />
-              Meu Plano
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/notifications")} className="gap-2 cursor-pointer">
-              <ScrollText className="w-4 h-4" strokeWidth={1.5} />
-              Logs
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4" strokeWidth={1.5} />
               Sair
