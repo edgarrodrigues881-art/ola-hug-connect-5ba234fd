@@ -672,12 +672,8 @@ async function handleStart(db: any, userId: string | null, body: any) {
       }, { onConflict: "device_id" });
     }
 
-    // Schedule day interaction jobs AFTER estimated join completion
-    // They'll auto-sync JIDs from live groups when they run
-    const interactionStartDelay = cumulativeDelay + randInt(3, 5) * 60 * 1000;
-    const delayedNow = new Date(now.getTime() + interactionStartDelay);
-    
-    // Temporarily shift the scheduling window to start after joins complete
+    // Schedule day interaction jobs — they'll auto-sync JIDs from live groups when they run
+    // The tick's group_interaction handler has built-in auto-sync for groups without JIDs
     await scheduleDayJobs(db, cycle.id, userId, device_id, resolvedStartDay, initialPhase, resolvedChipState, true);
   } else {
     // Normal start from day 1: schedule join_group jobs 4-6h after start
