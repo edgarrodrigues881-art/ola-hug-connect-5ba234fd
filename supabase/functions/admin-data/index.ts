@@ -192,10 +192,10 @@ Deno.serve(async (req) => {
       const logs = logsRes.data;
       const payments = paymentsRes.data;
       const cycles = cyclesRes.data;
-      const apiTokens = apiTokensRes.data;
+      const apiTokens = (apiTokensRes.data || []).filter((t: any) => t.status !== "deleted");
 
       // Enrich tokens with device name
-      const enrichedTokens = (apiTokens || []).map((t: any) => {
+      const enrichedTokens = apiTokens.map((t: any) => {
         const dev = (devices || []).find((d: any) => d.id === t.device_id);
         return { ...t, device_name: dev?.name || null };
       });
