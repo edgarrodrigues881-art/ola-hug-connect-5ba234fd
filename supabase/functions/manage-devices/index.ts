@@ -97,7 +97,6 @@ Deno.serve(async (req) => {
           .eq("user_id", user.id)
           .eq("status", st)
           .is("device_id", null)
-          .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle();
         if (data) {
