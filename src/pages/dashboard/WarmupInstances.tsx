@@ -1799,13 +1799,11 @@ const WarmupInstances = () => {
                           {isAdvancedStart && bulkSelected.has(d.id) && (
                             <span className={cn(
                               "text-[9px] font-semibold px-1.5 py-0.5 rounded",
-                              (deviceGroupCounts as Record<string, number>)[d.id]
+                              userHasGroups
                                 ? "bg-primary/10 text-primary"
                                 : "bg-destructive/10 text-destructive"
                             )}>
-                              {(deviceGroupCounts as Record<string, number>)[d.id]
-                                ? `${(deviceGroupCounts as Record<string, number>)[d.id]} grupo(s)`
-                                : "Sem grupos"}
+                              {userHasGroups ? "✓ Grupos ok" : "Sem grupos"}
                             </span>
                           )}
                         </div>
