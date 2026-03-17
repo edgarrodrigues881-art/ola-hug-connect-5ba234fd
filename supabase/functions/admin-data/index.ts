@@ -1576,29 +1576,14 @@ Deno.serve(async (req) => {
         });
       }
 
-      const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-      const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
+      const uniqueInstanceNames = [...new Set((instance_names || []).map((name: string) => String(name || "").trim()).filter(Boolean))];
 
       let deleted = 0;
       const batchSize = 10;
-      for (let i = 0; i < instance_names.length; i += batchSize) {
-        const batch = instance_names.slice(i, i + batchSize);
-        const results = await Promise.allSettled(batch.map(async (name: string) => {
-          // Disconnect first
-          await fetch(`${BASE_URL}/instance/disconnect`, {
-            method: "POST",
-            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
-          }).catch(() => {});
-          // Delete
-          const res = await fetch(`${BASE_URL}/instance/delete`, {
-            method: "DELETE",
-            headers: { admintoken: ADMIN_TOKEN, Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
-          });
-          return res.ok;
-        }));
-        deleted += results.filter(r => r.status === "fulfilled" && r.value).length;
+      for (let i = 0; i < uniqueInstanceNames.length; i += batchSize) {
+        const batch = uniqueInstanceNames.slice(i, i + batchSize);
+        const results = await Promise.allSettled(batch.map((name: string) => deleteInstanceFromProvider(name, name)));
+        deleted += results.filter((r) => r.status === "fulfilled" && (r.value as any).deleted).length;
       }
 
       // Also clean matching DB tokens
