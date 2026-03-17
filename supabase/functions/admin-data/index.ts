@@ -1751,9 +1751,8 @@ Deno.serve(async (req) => {
       });
 
       let deleted = 0;
-      const batchSize = 4;
-      for (let i = 0; i < enrichedInstances.length; i += batchSize) {
-        const batch = enrichedInstances.slice(i, i + batchSize);
+      for (let i = 0; i < enrichedInstances.length; i += PROVIDER_DELETE_BATCH_SIZE) {
+        const batch = enrichedInstances.slice(i, i + PROVIDER_DELETE_BATCH_SIZE);
         const results = await Promise.allSettled(
           batch.map((item: any) => deleteInstanceFromProvider(item.token_full || "", item.name || null, item.provider_instance_id || null))
         );
