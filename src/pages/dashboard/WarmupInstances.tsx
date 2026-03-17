@@ -518,61 +518,29 @@ const WarmupInstances = () => {
     enabled: !!user,
   });
 
-  // Fetch joined groups per device for advanced start validation
-  // Check group_join_logs for actual successful joins (GroupCapture feature)
-  // AND warmup_instance_groups for groups from previous warmup cycles
+  // Fast validation: if user has warmup_groups, all devices are valid
+  // (the engine links groups automatically on start)
   const selectedDeviceIds = useMemo(() => Array.from(bulkSelected), [bulkSelected]);
   const isAdvancedStart = Number(bulkStartDay) > 1;
   const { data: deviceGroupCounts = {} } = useQuery({
-    queryKey: ["device_joined_groups_validation", selectedDeviceIds],
+    queryKey: ["device_groups_fast_check"],
     queryFn: async () => {
-      if (selectedDeviceIds.length === 0) return {};
-      const counts: Record<string, number> = {};
-
-      // 1. Check group_join_logs for successful joins via GroupCapture
-      const { data: joinLogs } = await supabase
-        .from("group_join_logs")
-        .select("device_id")
-        .in("device_id", selectedDeviceIds)
-        .eq("result", "success");
-      (joinLogs || []).forEach((row: any) => {
-        counts[row.device_id] = (counts[row.device_id] || 0) + 1;
-      });
-
-      // 2. Also check warmup_instance_groups (previous cycles)
-      const { data: instanceGroups } = await supabase
-        .from("warmup_instance_groups")
-        .select("device_id")
-        .in("device_id", selectedDeviceIds)
-        .eq("join_status", "joined");
-      (instanceGroups || []).forEach((row: any) => {
-        counts[row.device_id] = (counts[row.device_id] || 0) + 1;
-      });
-
-      // 3. Also check if user has warmup_groups at all (the engine will link them)
-      // If user has custom groups, any connected device can use them
-      const { data: userGroups } = await supabase
+      const { count } = await supabase
         .from("warmup_groups")
-        .select("id")
-        .eq("is_custom", true)
-        .limit(1);
-      
-      if (userGroups && userGroups.length > 0) {
-        // User has groups defined — all selected devices get credit
-        selectedDeviceIds.forEach(id => {
-          counts[id] = Math.max(counts[id] || 0, 1);
-        });
-      }
-
-      return counts;
+        .select("id", { count: "exact", head: true })
+        .eq("is_custom", true);
+      return { _hasGroups: (count || 0) > 0 };
     },
-    enabled: isAdvancedStart && selectedDeviceIds.length > 0 && bulkOpen,
+    enabled: isAdvancedStart && bulkOpen,
+    staleTime: 30_000,
   });
 
+  const userHasGroups = (deviceGroupCounts as any)?._hasGroups === true;
+
   const devicesWithoutGroups = useMemo(() => {
-    if (!isAdvancedStart) return [];
-    return selectedDeviceIds.filter(id => !(deviceGroupCounts as Record<string, number>)[id]);
-  }, [isAdvancedStart, selectedDeviceIds, deviceGroupCounts]);
+    if (!isAdvancedStart || userHasGroups) return [];
+    return selectedDeviceIds;
+  }, [isAdvancedStart, selectedDeviceIds, userHasGroups]);
 
   const addCustomGroup = useCallback(async () => {
     if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
