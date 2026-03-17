@@ -360,18 +360,20 @@ const AdminTokensGlobal = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((inst, idx) => (
+                filtered.map((inst, idx) => {
+                  const instanceKey = getInstanceKey(inst);
+                  return (
                   <tr
-                    key={inst.name}
+                    key={instanceKey}
                     className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${
                       !inst.connected ? "bg-destructive/[0.02]" : ""
-                    } ${selectedNames.has(inst.name) ? "bg-primary/5" : ""}`}
+                    } ${selectedNames.has(instanceKey) ? "bg-primary/5" : ""}`}
                   >
                     <td className="px-3 py-2">
                       <input
                         type="checkbox"
-                        checked={selectedNames.has(inst.name)}
-                        onChange={() => toggleSelect(inst.name)}
+                        checked={selectedNames.has(instanceKey)}
+                        onChange={() => toggleSelect(inst)}
                         className="rounded border-border"
                       />
                     </td>
