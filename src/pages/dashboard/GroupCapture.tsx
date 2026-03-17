@@ -494,7 +494,13 @@ const GroupCapture = () => {
               </div>
               <div className="max-h-40 overflow-y-auto rounded-xl border border-border/15 bg-muted/5 p-1.5 space-y-0.5">
                 {(() => {
-                  const sorted = [...devices].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+                  const sorted = [...devices].sort((a, b) => {
+                    const onlineStatuses = ["Connected", "Ready", "authenticated"];
+                    const aOn = onlineStatuses.includes(a.status) ? 0 : 1;
+                    const bOn = onlineStatuses.includes(b.status) ? 0 : 1;
+                    if (aOn !== bOn) return aOn - bOn;
+                    return a.name.localeCompare(b.name, undefined, { numeric: true });
+                  });
                   const filtered = deviceSearch.trim()
                     ? sorted.filter((d) => d.name.toLowerCase().includes(deviceSearch.toLowerCase()) || (d.number || "").includes(deviceSearch))
                     : sorted;

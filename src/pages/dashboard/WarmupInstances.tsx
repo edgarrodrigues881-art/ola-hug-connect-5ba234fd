@@ -595,6 +595,10 @@ const WarmupInstances = () => {
       const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at").eq("user_id", user!.id).order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []).sort((a, b) => {
+        const onlineStatuses = ["Connected", "Ready", "authenticated"];
+        const aOnline = onlineStatuses.includes(a.status) ? 0 : 1;
+        const bOnline = onlineStatuses.includes(b.status) ? 0 : 1;
+        if (aOnline !== bOnline) return aOnline - bOnline;
         const tA = new Date(a.created_at).getTime();
         const tB = new Date(b.created_at).getTime();
         if (tA !== tB) return tA - tB;
