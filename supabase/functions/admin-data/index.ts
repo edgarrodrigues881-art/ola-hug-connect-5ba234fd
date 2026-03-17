@@ -1789,11 +1789,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Delete from UAZAPI in smaller batches to avoid request timeout
+      // Delete from UAZAPI in bounded waves to keep the function responsive
       let providerDeleted = 0;
-      const batchSize = 4;
-      for (let i = 0; i < idleTokens.length; i += batchSize) {
-        const batch = idleTokens.slice(i, i + batchSize);
+      for (let i = 0; i < idleTokens.length; i += PROVIDER_DELETE_BATCH_SIZE) {
+        const batch = idleTokens.slice(i, i + PROVIDER_DELETE_BATCH_SIZE);
         const results = await Promise.allSettled(
           batch.map(t => deleteInstanceFromProvider(t.token, t.label))
         );
