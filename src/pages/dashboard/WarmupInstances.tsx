@@ -1741,6 +1741,18 @@ const WarmupInstances = () => {
                   {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
               </div>
+
+              {/* Search bar */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 pointer-events-none" />
+                <Input
+                  value={bulkInstanceSearch}
+                  onChange={(e) => setBulkInstanceSearch(e.target.value)}
+                  placeholder="Buscar instância por nome ou número..."
+                  className="h-9 pl-9 text-xs bg-card/30 backdrop-blur-sm border-border/20 focus-visible:border-primary/40 rounded-xl"
+                />
+              </div>
+
                <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
                 {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status)).length === 0 ? (
                   <div className="flex flex-col items-center py-8 gap-2">
