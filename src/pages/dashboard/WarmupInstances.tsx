@@ -518,8 +518,7 @@ const WarmupInstances = () => {
     enabled: !!user,
   });
 
-  // Fast validation: if user has warmup_groups, all devices are valid
-  // (the engine links groups automatically on start)
+  // Always validate: user must have warmup_groups to start warmup (any day)
   const selectedDeviceIds = useMemo(() => Array.from(bulkSelected), [bulkSelected]);
   const isAdvancedStart = Number(bulkStartDay) > 1;
   const { data: deviceGroupCounts = {} } = useQuery({
@@ -531,16 +530,16 @@ const WarmupInstances = () => {
         .eq("is_custom", true);
       return { _hasGroups: (count || 0) > 0 };
     },
-    enabled: isAdvancedStart && bulkOpen,
+    enabled: bulkOpen,
     staleTime: 30_000,
   });
 
   const userHasGroups = (deviceGroupCounts as any)?._hasGroups === true;
 
   const devicesWithoutGroups = useMemo(() => {
-    if (!isAdvancedStart || userHasGroups) return [];
+    if (userHasGroups) return [];
     return selectedDeviceIds;
-  }, [isAdvancedStart, selectedDeviceIds, userHasGroups]);
+  }, [selectedDeviceIds, userHasGroups]);
 
   const addCustomGroup = useCallback(async () => {
     if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
@@ -1797,7 +1796,7 @@ const WarmupInstances = () => {
                         <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide">{formatPhone(d.number)}</p>}
-                          {isAdvancedStart && bulkSelected.has(d.id) && (
+                          {bulkSelected.has(d.id) && (
                             <span className={cn(
                               "text-[9px] font-semibold px-1.5 py-0.5 rounded",
                               userHasGroups
