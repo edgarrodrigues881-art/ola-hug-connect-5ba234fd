@@ -97,7 +97,7 @@ const AdminTokensGlobal = () => {
   const handleBulkDelete = () => {
     if (selectedNames.size === 0) return;
     const selectedInstances = instances
-      .filter(inst => selectedNames.has(inst.name))
+      .filter(inst => selectedNames.has(getInstanceKey(inst)))
       .map(inst => ({
         provider_instance_id: inst.provider_instance_id,
         name: inst.name,

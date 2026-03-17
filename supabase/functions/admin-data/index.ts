@@ -1671,10 +1671,11 @@ Deno.serve(async (req) => {
       });
 
       const matchedDbTokenIds = new Set<string>();
+      const seenProviderKeys = new Set<string>();
 
       const providerInstances = instances.reduce((acc: any[], inst: any) => {
-        const name = inst.name || inst.instance_name || inst.instanceName || inst.instance || "";
-        const token = inst.token || inst.apiToken || inst.api_token || inst.auth?.jwt || inst.auth?.token || "";
+        const name = String(inst.name || inst.instance_name || inst.instanceName || inst.instance || "").trim();
+        const token = String(inst.token || inst.apiToken || inst.api_token || inst.auth?.jwt || inst.auth?.token || "").trim();
 
         if ((token && deletedTokenSet.has(token)) || (name && deletedLabelSet.has(name))) {
           return acc;
@@ -1688,8 +1689,14 @@ Deno.serve(async (req) => {
         if (dbMatch?.id) matchedDbTokenIds.add(dbMatch.id);
 
         const status = rawStatus || dbMatch?.status || device?.status || "unknown";
-        const phone = inst.phone || inst.number || inst.owner || inst.ownerJid || device?.number || "";
-        const profileName = inst.profileName || inst.pushname || inst.profile_picture || inst.profilePictureUrl || device?.profile_name || "";
+        const phone = String(inst.phone || inst.number || inst.owner || inst.ownerJid || device?.number || "").trim();
+        const profileName = String(inst.profileName || inst.pushname || inst.profile_picture || inst.profilePictureUrl || device?.profile_name || "").trim();
+
+        const dedupeKey = [providerInstanceId || "-", token || "-", name || "-", phone || "-"].join("::");
+        if (seenProviderKeys.has(dedupeKey)) {
+          return acc;
+        }
+        seenProviderKeys.add(dedupeKey);
 
         acc.push({
           provider_instance_id: providerInstanceId,
@@ -1734,14 +1741,13 @@ Deno.serve(async (req) => {
 
       const enriched = [...providerInstances, ...dbOnlyTokens];
 
-      // Sort: disconnected first, then linked tokens first
       enriched.sort((a: any, b: any) => {
         if (a.connected !== b.connected) return a.connected ? 1 : -1;
         if (!!a.db_token_id !== !!b.db_token_id) return a.db_token_id ? -1 : 1;
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
 
-      console.log(`[admin-data] fetch-uazapi-instances RESULT: provider=${providerInstances.length} dbOnly=${dbOnlyTokens.length} hidden_deleted=${deletedTokens.length} total=${enriched.length}`);
+      console.log(`[admin-data] fetch-uazapi-instances RESULT: raw=${instances.length} provider=${providerInstances.length} dbOnly=${dbOnlyTokens.length} hidden_deleted=${deletedTokens.length} total=${enriched.length}`);
 
       return new Response(JSON.stringify({
         instances: enriched,
