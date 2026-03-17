@@ -429,7 +429,7 @@ async function ensureJoinGroupJobs(
     return 0;
   }
 
-  const shuffled = shuffleArray(pendingGroups);
+  const shuffled = shuffleArray(validGroups);
   const nowMs = Date.now();
   const joinJobs: any[] = [];
 

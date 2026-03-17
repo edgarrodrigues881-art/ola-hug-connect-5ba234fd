@@ -354,7 +354,14 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
     .eq("join_status", "pending");
   if (!pending?.length) return 0;
 
-  const shuffled = pending.sort(() => Math.random() - 0.5);
+  // Filter out ghost rows without invite_link
+  const validPending = pending.filter((g: any) => g.invite_link && g.invite_link.trim() !== "");
+  if (!validPending.length) {
+    console.log(`[ensureJoinGroupJobs] ${pending.length} pending but none have invite_link — skipping`);
+    return 0;
+  }
+
+  const shuffled = validPending.sort(() => Math.random() - 0.5);
   const nowMs = Date.now();
   const joinJobs: any[] = [];
   let cumMs = randInt(5, 15) * 60000;
