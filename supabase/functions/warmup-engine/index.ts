@@ -246,13 +246,28 @@ async function scheduleDayJobs(
     return 0;
   }
 
-  const { effectiveStart, effectiveEnd, isEmergency } = window;
-  const windowMs = effectiveEnd - effectiveStart;
+  let { effectiveStart, effectiveEnd, isEmergency } = window;
   const FULL_WINDOW_MS = 12 * 60 * 60 * 1000; // 07:00-19:00 = 12h
   const MIN_SPACING_MS = 3 * 60 * 1000; // Mínimo 3 min entre mensagens
 
+  const { data: pendingJoinJobs } = await db
+    .from("warmup_jobs")
+    .select("run_at")
+    .eq("cycle_id", cycleId)
+    .eq("job_type", "join_group")
+    .in("status", ["pending", "running"]);
+
+  if (pendingJoinJobs?.length) {
+    const latestJoinMs = pendingJoinJobs
+      .map((job: any) => new Date(job.run_at).getTime())
+      .filter((value: number) => Number.isFinite(value))
+      .reduce((max: number, value: number) => Math.max(max, value), effectiveStart);
+    effectiveStart = Math.max(effectiveStart, latestJoinMs + 2 * 60 * 1000);
+  }
+
+  const windowMs = effectiveEnd - effectiveStart;
   if (windowMs < 30 * 60 * 1000) {
-    console.log(`[scheduleDayJobs] Window too small (${Math.round(windowMs / 60000)}min)`);
+    console.log(`[scheduleDayJobs] Window too small after join wait (${Math.round(windowMs / 60000)}min)`);
     return 0;
   }
 
@@ -266,7 +281,7 @@ async function scheduleDayJobs(
 
   // Scale group messages proportionally — never flood
   const scaledGroupMsgs = Math.max(1, Math.floor(volumes.groupMsgs * windowRatio));
-  
+
   // Ensure minimum spacing is respected: max msgs = window / MIN_SPACING
   const maxBySpacing = Math.floor(windowMs / MIN_SPACING_MS);
   const safeGroupMsgs = Math.min(scaledGroupMsgs, maxBySpacing);
@@ -397,10 +412,11 @@ async function ensureJoinGroupJobs(
 
   if (existingJoinJobs && existingJoinJobs.length > 0) return 0;
 
-  // Find groups that haven't been joined yet (by device_id, not cycle)
+  // Find groups that haven't been joined yet for the CURRENT cycle only
   const { data: pendingGroups } = await db
     .from("warmup_instance_groups")
     .select("group_id, group_name, invite_link")
+    .eq("cycle_id", cycleId)
     .eq("device_id", deviceId)
     .eq("join_status", "pending");
 
@@ -972,8 +988,8 @@ async function handleScheduleDay(db: any, userId: string | null, body: any) {
   const resolvedPhase = phase || "groups_only";
   let joinScheduled = 0;
 
-  // Join groups only on day 1 (pre_24h phase)
-  if (resolvedPhase === "groups_only" && (day_index || 1) <= 1) {
+  // Sempre garante entradas pendentes antes de reagendar interações
+  if (!["completed", "paused", "error"].includes(resolvedPhase)) {
     joinScheduled = await ensureJoinGroupJobs(db, cycle_id, userId, device_id);
   }
 
