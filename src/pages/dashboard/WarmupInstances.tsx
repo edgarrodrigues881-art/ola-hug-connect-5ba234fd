@@ -841,7 +841,7 @@ const WarmupInstances = () => {
         if (connectResult?.code === "PROXY_FAILED" || connectResult?.code === "DUPLICATE_PHONE") {
           setConnectStep("proxy");
         }
-        qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+        qc.invalidateQueries({ queryKey: ["devices"] });
         toast({ title: "Erro de conexão", description: connectResult.error, variant: "destructive" });
         return;
       }
