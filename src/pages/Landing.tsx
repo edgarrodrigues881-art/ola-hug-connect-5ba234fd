@@ -256,6 +256,11 @@ const Plans = () => {
                 Mais escolhido
               </span>
             )}
+            {/* Warmup badge */}
+            <div className="absolute top-4 right-4 flex items-center gap-1 bg-orange-500/10 border border-orange-500/25 rounded-full px-2.5 py-1">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-[11px] font-bold text-orange-400">{p.warmup}%</span>
+            </div>
             <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
             <p className="text-[13px] text-white/40 font-medium mb-4">até {p.instances} instâncias</p>
             <div className="flex items-baseline gap-1 mb-6">
