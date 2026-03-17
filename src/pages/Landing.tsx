@@ -340,28 +340,18 @@ const CommunitySection = () => (
           {/* Glow effect behind */}
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500/30 via-yellow-500/20 to-amber-600/30 blur-[40px] scale-110" />
           <div className="absolute inset-0 rounded-2xl bg-amber-500/15 blur-[60px] scale-125" />
-          {/* Gold particles */}
+          {/* Gold particles – CSS-only for performance */}
           <div className="absolute -inset-12 pointer-events-none overflow-hidden">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <motion.span
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span
                 key={i}
-                className="absolute w-1 h-1 rounded-full bg-amber-400"
+                className="absolute w-1 h-1 rounded-full bg-amber-400 animate-[float_4s_ease-in-out_infinite]"
                 style={{
-                  left: `${10 + Math.random() * 80}%`,
-                  top: `${10 + Math.random() * 80}%`,
-                  opacity: 0.15 + Math.random() * 0.4,
-                }}
-                animate={{
-                  y: [0, -20 - Math.random() * 30, 0],
-                  x: [0, (Math.random() - 0.5) * 20, 0],
-                  opacity: [0.1, 0.5 + Math.random() * 0.3, 0.1],
-                  scale: [0.5, 1 + Math.random() * 0.5, 0.5],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 3,
-                  repeat: Infinity,
-                  delay: Math.random() * 4,
-                  ease: "easeInOut",
+                  left: `${15 + (i * 6) % 70}%`,
+                  top: `${15 + (i * 7) % 70}%`,
+                  animationDelay: `${i * 0.4}s`,
+                  animationDuration: `${3 + (i % 3)}s`,
+                  opacity: 0.2 + (i % 4) * 0.1,
                 }}
               />
             ))}
