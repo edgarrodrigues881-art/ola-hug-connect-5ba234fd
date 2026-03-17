@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Zap, Shield, BarChart3, Smartphone, Settings, Globe,
   ArrowRight, CheckCircle2, MessageSquare, Users, Layers,
-  ChevronDown, Star, Rocket, Clock, Lock
+  ChevronDown, Star, Rocket, Clock, Lock, UsersRound, MessageCircle, ShieldCheck, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-new.png";
