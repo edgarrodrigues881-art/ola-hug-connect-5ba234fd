@@ -192,10 +192,10 @@ Deno.serve(async (req) => {
       const logs = logsRes.data;
       const payments = paymentsRes.data;
       const cycles = cyclesRes.data;
-      const apiTokens = apiTokensRes.data;
+      const apiTokens = (apiTokensRes.data || []).filter((t: any) => t.status !== "deleted");
 
       // Enrich tokens with device name
-      const enrichedTokens = (apiTokens || []).map((t: any) => {
+      const enrichedTokens = apiTokens.map((t: any) => {
         const dev = (devices || []).find((d: any) => d.id === t.device_id);
         return { ...t, device_name: dev?.name || null };
       });
@@ -1427,8 +1427,10 @@ Deno.serve(async (req) => {
         .limit(2000);
       if (tokErr) throw tokErr;
 
+      const visibleTokens = (allTokens || []).filter((t: any) => t.status !== "deleted");
+
       // Get profile names for all unique user_ids
-      const userIds = [...new Set((allTokens || []).map((t: any) => t.user_id))];
+      const userIds = [...new Set(visibleTokens.map((t: any) => t.user_id))];
       const { data: profiles } = await adminClient
         .from("profiles")
         .select("id, full_name")
@@ -1438,14 +1440,14 @@ Deno.serve(async (req) => {
       (profiles || []).forEach((p: any) => { profileMap[p.id] = p.full_name || "Sem nome"; });
 
       // Get device names for tokens in use
-      const deviceIds = (allTokens || []).map((t: any) => t.device_id).filter(Boolean);
+      const deviceIds = visibleTokens.map((t: any) => t.device_id).filter(Boolean);
       const { data: devices } = deviceIds.length > 0
         ? await adminClient.from("devices").select("id, name").in("id", deviceIds)
         : { data: [] };
       const deviceMap: Record<string, string> = {};
       (devices || []).forEach((d: any) => { deviceMap[d.id] = d.name; });
 
-      const enriched = (allTokens || []).map((t: any) => ({
+      const enriched = visibleTokens.map((t: any) => ({
         ...t,
         client_name: profileMap[t.user_id] || "Desconhecido",
         device_name: t.device_id ? (deviceMap[t.device_id] || "—") : null,
@@ -1588,18 +1590,28 @@ Deno.serve(async (req) => {
         deviceMap[d.id] = d;
       });
 
+      const deletedTokens = (dbTokens || []).filter((t: any) => t.status === "deleted");
+      const visibleDbTokens = (dbTokens || []).filter((t: any) => t.status !== "deleted");
+      const deletedTokenSet = new Set(deletedTokens.map((t: any) => t.token).filter(Boolean));
+      const deletedLabelSet = new Set(deletedTokens.map((t: any) => t.label).filter(Boolean));
+
       const tokenMap: Record<string, any> = {};
       const labelMap: Record<string, any> = {};
-      (dbTokens || []).forEach((t: any) => {
+      visibleDbTokens.forEach((t: any) => {
         tokenMap[t.token] = t;
         if (t.label) labelMap[t.label] = t;
       });
 
       const matchedDbTokenIds = new Set<string>();
 
-      const providerInstances = instances.map((inst: any) => {
+      const providerInstances = instances.reduce((acc: any[], inst: any) => {
         const name = inst.name || inst.instance_name || inst.instanceName || inst.instance || "";
         const token = inst.token || inst.apiToken || inst.api_token || inst.auth?.jwt || inst.auth?.token || "";
+
+        if ((token && deletedTokenSet.has(token)) || (name && deletedLabelSet.has(name))) {
+          return acc;
+        }
+
         const providerInstanceId = String(inst.id || inst.instanceId || inst.instance_id || "").trim() || null;
         const rawStatus = inst.status || inst.connectionStatus || inst.state || inst.connection?.status || "unknown";
         const dbMatch = tokenMap[token] || labelMap[name] || null;
@@ -1611,7 +1623,7 @@ Deno.serve(async (req) => {
         const phone = inst.phone || inst.number || inst.owner || inst.ownerJid || device?.number || "";
         const profileName = inst.profileName || inst.pushname || inst.profile_picture || inst.profilePictureUrl || device?.profile_name || "";
 
-        return {
+        acc.push({
           provider_instance_id: providerInstanceId,
           name,
           token: token ? `${token.substring(0, 12)}...` : "—",
@@ -1624,10 +1636,12 @@ Deno.serve(async (req) => {
           db_user_id: dbMatch?.user_id || null,
           db_status: dbMatch?.status || null,
           client_name: dbMatch ? (profileMap[dbMatch.user_id] || "Desconhecido") : "Sem vínculo",
-        };
-      });
+        });
 
-      const dbOnlyTokens = (dbTokens || [])
+        return acc;
+      }, []);
+
+      const dbOnlyTokens = visibleDbTokens
         .filter((t: any) => !matchedDbTokenIds.has(t.id))
         .map((t: any) => {
           const device = t.device_id ? deviceMap[t.device_id] : null;
@@ -1659,7 +1673,7 @@ Deno.serve(async (req) => {
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
 
-      console.log(`[admin-data] fetch-uazapi-instances RESULT: provider=${providerInstances.length} dbOnly=${dbOnlyTokens.length} total=${enriched.length}`);
+      console.log(`[admin-data] fetch-uazapi-instances RESULT: provider=${providerInstances.length} dbOnly=${dbOnlyTokens.length} hidden_deleted=${deletedTokens.length} total=${enriched.length}`);
 
       return new Response(JSON.stringify({
         instances: enriched,
@@ -1762,7 +1776,10 @@ Deno.serve(async (req) => {
       const idsToDelete = [...new Set(enrichedInstances.map((item: any) => item.db_token_id).filter(Boolean))];
       if (idsToDelete.length > 0) {
         for (let i = 0; i < idsToDelete.length; i += 200) {
-          await adminClient.from("user_api_tokens").delete().in("id", idsToDelete.slice(i, i + 200));
+          await adminClient
+            .from("user_api_tokens")
+            .update({ status: "deleted", device_id: null, assigned_at: null })
+            .in("id", idsToDelete.slice(i, i + 200));
         }
       }
 
