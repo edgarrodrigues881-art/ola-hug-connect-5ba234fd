@@ -1796,7 +1796,7 @@ const WarmupInstances = () => {
                         <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide">{formatPhone(d.number)}</p>}
-                          {isAdvancedStart && bulkSelected.has(d.id) && (
+                          {bulkSelected.has(d.id) && (
                             <span className={cn(
                               "text-[9px] font-semibold px-1.5 py-0.5 rounded",
                               userHasGroups
