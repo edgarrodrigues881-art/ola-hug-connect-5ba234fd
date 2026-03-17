@@ -140,10 +140,13 @@ async function adminCreateInstance(
     { Authorization: `Bearer ${adminToken}` },
   ];
 
+  const errors: string[] = [];
   for (const authHeaders of headerVariants) {
     try {
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), 10000);
+      const authType = Object.keys(authHeaders)[0];
+      console.log(`[adminCreateInstance] trying auth=${authType} for name=${name}`);
       const res = await fetch(`${baseUrl}/instance/init`, {
         method: "POST",
         headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
@@ -152,18 +155,25 @@ async function adminCreateInstance(
       });
       clearTimeout(tid);
 
-      if (res.status === 401) continue;
+      if (res.status === 401) {
+        errors.push(`${authType}: 401`);
+        continue;
+      }
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         const instanceToken = data.token || data.instance?.token;
+        console.log(`[adminCreateInstance] success with auth=${authType}, hasToken=${!!instanceToken}`);
         return { ok: true, token: instanceToken };
       }
-      return { ok: false, error: `UaZapi [${res.status}]: ${JSON.stringify(data).substring(0, 200)}` };
+      const errMsg = `UaZapi [${res.status}]: ${JSON.stringify(data).substring(0, 200)}`;
+      errors.push(errMsg);
+      return { ok: false, error: errMsg };
     } catch (e: any) {
+      errors.push(`${Object.keys(authHeaders)[0]}: ${e?.message || String(e)}`);
       if (e?.name === "AbortError") continue;
     }
   }
-  return { ok: false, error: "All auth methods failed" };
+  return { ok: false, error: `All auth methods failed: ${errors.join('; ')}` };
 }
 
 // ── Proxy connectivity test ──────────────────────────────────────────────
@@ -475,6 +485,7 @@ Deno.serve(async (req) => {
 
       // Auto-create instance on provider if no pool token available
       if (!instanceToken) {
+        console.log(`[evolution-connect] no pool token for device=${deviceId.substring(0, 8)}, attempting on-demand creation. BASE_URL=${BASE_URL ? 'set' : 'MISSING'}, ADMIN_TOKEN=${ADMIN_TOKEN ? 'set' : 'MISSING'}`);
         if (BASE_URL && ADMIN_TOKEN) {
           // Get client name for label
           const { data: prof } = await svc.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
@@ -483,7 +494,9 @@ Deno.serve(async (req) => {
             .select("id", { count: "exact", head: true }).eq("user_id", user.id);
           const instName = `${clientLabel}_${(tokenCount ?? 0) + 1}`;
 
+          console.log(`[evolution-connect] creating instance: ${instName} at ${BASE_URL}`);
           const createResult = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, instName);
+          console.log(`[evolution-connect] createResult ok=${createResult.ok} hasToken=${!!createResult.token} error=${createResult.error || 'none'}`);
           if (createResult.ok && createResult.token) {
             // Check idempotency
             const { data: dup } = await svc.from("user_api_tokens")
@@ -515,11 +528,17 @@ Deno.serve(async (req) => {
             autoAssignedTokenId = newTokenId;
             console.log(`[evolution-connect] on-demand token created: ${instName} for ${deviceId.substring(0, 8)}`);
             await oplog(svc, user.id, "token_on_demand", `Token gerado sob demanda: ${instName}`, deviceId, { label: instName });
+          } else {
+            console.log(`[evolution-connect] on-demand creation FAILED: ${createResult.error}`);
+            await oplog(svc, user.id, "token_on_demand_failed", `Falha ao criar token sob demanda: ${createResult.error}`, deviceId);
           }
+        } else {
+          console.log(`[evolution-connect] cannot create on-demand: BASE_URL=${BASE_URL ? 'set' : 'MISSING'} ADMIN_TOKEN=${ADMIN_TOKEN ? 'set' : 'MISSING'}`);
         }
       }
 
       if (!instanceToken) {
+        console.log(`[evolution-connect] NO TOKEN AVAILABLE for device=${deviceId.substring(0, 8)} user=${user.id.substring(0, 8)}`);
         return json({ error: "Nenhum token disponível. Solicite ao administrador.", code: "NO_TOKEN" }, 400);
       }
 
