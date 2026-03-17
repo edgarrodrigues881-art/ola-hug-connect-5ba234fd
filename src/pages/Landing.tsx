@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-new.png";
+import dashboardPreview from "@/assets/dashboard-preview-landing.png";
 
 // Prefetch
 const prefetchRoutes = () => {
