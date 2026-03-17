@@ -90,9 +90,13 @@ const AdminTokensGlobal = () => {
 
   const handleBulkDelete = () => {
     if (selectedNames.size === 0) return;
+    const selectedInstances = instances
+      .filter(inst => selectedNames.has(inst.name))
+      .map(inst => ({ name: inst.name, token_full: inst.token_full, db_token_id: inst.db_token_id }));
+
     setDeleting(true);
     mutate(
-      { action: "bulk-delete-uazapi-instances", body: { instance_names: [...selectedNames] } },
+      { action: "bulk-delete-uazapi-instances", body: { instances: selectedInstances, instance_names: [...selectedNames] } },
       {
         onSuccess: (d: any) => {
           toast({ title: `${d?.deleted ?? 0} instância(s) deletada(s) da UAZAPI | ${d?.db_cleaned ?? 0} tokens limpos do DB` });
@@ -109,12 +113,19 @@ const AdminTokensGlobal = () => {
   };
 
   const handleDeleteOne = (name: string) => {
+    const instance = instances.find(inst => inst.name === name);
     setDeleting(true);
     mutate(
-      { action: "bulk-delete-uazapi-instances", body: { instance_names: [name] } },
       {
-        onSuccess: () => {
-          toast({ title: `Instância "${name}" deletada da UAZAPI` });
+        action: "bulk-delete-uazapi-instances",
+        body: {
+          instances: instance ? [{ name: instance.name, token_full: instance.token_full, db_token_id: instance.db_token_id }] : [],
+          instance_names: [name],
+        },
+      },
+      {
+        onSuccess: (d: any) => {
+          toast({ title: `Instância "${name}" deletada da UAZAPI (${d?.db_cleaned ?? 0} token(s) limpos no DB)` });
           setDeleting(false);
           refetch();
         },

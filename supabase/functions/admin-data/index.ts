@@ -1620,37 +1620,70 @@ Deno.serve(async (req) => {
 
     // ─── BULK DELETE UAZAPI INSTANCES ───
     if (action === "bulk-delete-uazapi-instances" && req.method === "POST") {
-      const { instance_names } = await req.json();
-      if (!instance_names || instance_names.length === 0) {
-        return new Response(JSON.stringify({ success: true, deleted: 0 }), {
+      const body = await req.json();
+      const rawInstances = Array.isArray(body?.instances) ? body.instances : [];
+      const fallbackNames = Array.isArray(body?.instance_names) ? body.instance_names : [];
+
+      const normalizedInstances = [
+        ...rawInstances.map((item: any) => ({
+          name: String(item?.name || "").trim(),
+          token_full: String(item?.token_full || "").trim(),
+          db_token_id: String(item?.db_token_id || "").trim(),
+        })),
+        ...fallbackNames.map((name: string) => ({
+          name: String(name || "").trim(),
+          token_full: "",
+          db_token_id: "",
+        })),
+      ].filter((item: any) => item.name || item.token_full || item.db_token_id);
+
+      const uniqueInstances = Array.from(
+        new Map(
+          normalizedInstances.map((item: any) => [item.db_token_id || item.token_full || item.name, item])
+        ).values()
+      );
+
+      if (uniqueInstances.length === 0) {
+        return new Response(JSON.stringify({ success: true, deleted: 0, db_cleaned: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const uniqueInstanceNames = [...new Set((instance_names || []).map((name: string) => String(name || "").trim()).filter(Boolean))];
-
       let deleted = 0;
       const batchSize = 10;
-      for (let i = 0; i < uniqueInstanceNames.length; i += batchSize) {
-        const batch = uniqueInstanceNames.slice(i, i + batchSize);
-        const results = await Promise.allSettled(batch.map((name: string) => deleteInstanceFromProvider(name, name)));
+      for (let i = 0; i < uniqueInstances.length; i += batchSize) {
+        const batch = uniqueInstances.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map((item: any) => deleteInstanceFromProvider(item.token_full || "", item.name || null))
+        );
         deleted += results.filter((r) => r.status === "fulfilled" && (r.value as any).deleted).length;
       }
 
-      // Also clean matching DB tokens
-      const { data: matchingTokens } = await adminClient
-        .from("user_api_tokens")
-        .select("id, label")
-        .in("label", instance_names);
-      if (matchingTokens && matchingTokens.length > 0) {
-        const ids = matchingTokens.map((t: any) => t.id);
-        for (let i = 0; i < ids.length; i += 200) {
-          await adminClient.from("user_api_tokens").delete().in("id", ids.slice(i, i + 200));
+      const candidateIds = new Set<string>(uniqueInstances.map((item: any) => item.db_token_id).filter(Boolean));
+      const candidateNames = [...new Set(uniqueInstances.map((item: any) => item.name).filter(Boolean))];
+      const candidateTokens = [...new Set(uniqueInstances.map((item: any) => item.token_full).filter(Boolean))];
+
+      const tokenLookups = await Promise.all([
+        candidateNames.length > 0
+          ? adminClient.from("user_api_tokens").select("id").in("label", candidateNames)
+          : Promise.resolve({ data: [] as any[] }),
+        candidateTokens.length > 0
+          ? adminClient.from("user_api_tokens").select("id").in("token", candidateTokens)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      (tokenLookups[0].data || []).forEach((row: any) => candidateIds.add(row.id));
+      (tokenLookups[1].data || []).forEach((row: any) => candidateIds.add(row.id));
+
+      const idsToDelete = [...candidateIds];
+      if (idsToDelete.length > 0) {
+        for (let i = 0; i < idsToDelete.length; i += 200) {
+          await adminClient.from("user_api_tokens").delete().in("id", idsToDelete.slice(i, i + 200));
         }
       }
 
-      await logAction(adminClient, user.id, null, "bulk-delete-uazapi-instances", `${deleted} instância(s) deletada(s) da UAZAPI | ${matchingTokens?.length || 0} tokens removidos do DB`);
-      return new Response(JSON.stringify({ success: true, deleted, db_cleaned: matchingTokens?.length || 0 }), {
+      await logAction(adminClient, user.id, null, "bulk-delete-uazapi-instances", `${deleted} instância(s) deletada(s) da UAZAPI | ${idsToDelete.length} tokens removidos do DB`);
+      return new Response(JSON.stringify({ success: true, deleted, db_cleaned: idsToDelete.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
