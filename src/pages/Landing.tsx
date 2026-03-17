@@ -331,7 +331,7 @@ const communityBenefits = [
 ];
 
 const CommunitySection = () => (
-  <Section>
+  <Section id="comunidade">
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="max-w-3xl mx-auto text-center">
       {/* Logo with gold frame */}
       <motion.div variants={fadeUp} className="flex justify-center mb-8">
