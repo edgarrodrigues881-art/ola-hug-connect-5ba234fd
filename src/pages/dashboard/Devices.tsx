@@ -1566,7 +1566,24 @@ const Devices = () => {
         return;
       }
 
-      const b64 = connectResult.base64 || connectResult.qr;
+      let b64 = connectResult.base64 || connectResult.qr;
+
+      // Auto-retry: se o QR não veio na primeira resposta, tenta buscar via status até 4x
+      if (!b64) {
+        for (let retry = 0; retry < 4 && !b64; retry++) {
+          await new Promise(r => setTimeout(r, 1200));
+          const statusResult = await callApi({ action: "status", deviceId: connectingDevice.id });
+          if (statusResult?.alreadyConnected || statusResult?.status === "authenticated" || statusResult?.status === "connected") {
+            queryClient.invalidateQueries({ queryKey: ["devices"] });
+            setConnectStep("done");
+            toast({ title: "Já conectado!", description: "Instância autenticada." });
+            setConnectOpen(false); resumeKeepAlive();
+            return;
+          }
+          b64 = statusResult?.qrcode || statusResult?.base64 || statusResult?.qr;
+        }
+      }
+
       if (b64) {
         setQrCodeBase64(b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`);
       } else {
