@@ -61,7 +61,7 @@ const PlansSection = () => {
               <div
                 className={`relative flex flex-col rounded-2xl card-hover-lift ${
                   plan.popular
-                    ? "border border-emerald-600/25"
+                    ? "border border-amber-500/30"
                     : "border border-white/[0.06]"
                 }`}
               >
@@ -71,8 +71,8 @@ const PlansSection = () => {
                 }`}
               >
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-semibold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap">
-                    Recomendado
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-bold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap shadow-[0_0_20px_-4px_rgba(245,158,11,0.5)]">
+                    ⭐ Mais Escolhido
                   </span>
                 )}
 
@@ -80,7 +80,7 @@ const PlansSection = () => {
                 <p className="text-sm text-white/30 mb-1">{plan.instances} instâncias</p>
                 <p className="text-xs text-white/20 mb-1 leading-relaxed">{plan.subtitle}</p>
                 {plan.extraCopy && (
-                  <p className="text-xs text-emerald-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
+                  <p className="text-xs text-amber-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
                 )}
                 {!plan.extraCopy && <div className="mb-3" />}
 
@@ -104,7 +104,7 @@ const PlansSection = () => {
                   onClick={handleContratarPlano}
                   className={`w-full py-3.5 rounded-lg font-medium text-base flex items-center justify-center gap-2 btn-press ${
                     plan.popular
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold hover:from-amber-400 hover:to-yellow-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
                       : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
                   }`}
                 >
