@@ -1201,7 +1201,7 @@ const WarmupInstances = () => {
                         if (result?.status === "authenticated") {
                           stopPolling();
                           setConnectStep("done");
-                          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                          qc.invalidateQueries({ queryKey: ["devices"] });
                           toast({ title: "Conectado!" });
                           try {
                             const { data: { session: s } } = await supabase.auth.getSession();
