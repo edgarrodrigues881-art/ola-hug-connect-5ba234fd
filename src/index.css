@@ -1,5 +1,15 @@
 /* scroll-behavior: smooth removed — causes jank on some devices */
 
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes gold-border-spin {
+  to { --angle: 360deg; }
+}
+
 #lovable-badge {
   display: none !important;
 }
