@@ -131,7 +131,8 @@ Deno.serve(async (req) => {
       campaignsQuery = campaignsQuery.eq("id", campaignId);
     }
 
-    const { data: campaigns } = await campaignsQuery;
+    const { data: campaigns, error: campErr } = await campaignsQuery;
+    console.log(`[process-group-join] found ${campaigns?.length || 0} campaigns, error=${campErr?.message || "none"}`);
     if (!campaigns?.length) {
       return new Response(JSON.stringify({ processed: 0, message: "No running campaigns" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
