@@ -318,6 +318,32 @@ const CommunitySection = () => (
           {/* Glow effect behind */}
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500/30 via-yellow-500/20 to-amber-600/30 blur-[40px] scale-110" />
           <div className="absolute inset-0 rounded-2xl bg-amber-500/15 blur-[60px] scale-125" />
+          {/* Gold particles */}
+          <div className="absolute -inset-12 pointer-events-none overflow-hidden">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <motion.span
+                key={i}
+                className="absolute w-1 h-1 rounded-full bg-amber-400"
+                style={{
+                  left: `${10 + Math.random() * 80}%`,
+                  top: `${10 + Math.random() * 80}%`,
+                  opacity: 0.15 + Math.random() * 0.4,
+                }}
+                animate={{
+                  y: [0, -20 - Math.random() * 30, 0],
+                  x: [0, (Math.random() - 0.5) * 20, 0],
+                  opacity: [0.1, 0.5 + Math.random() * 0.3, 0.1],
+                  scale: [0.5, 1 + Math.random() * 0.5, 0.5],
+                }}
+                transition={{
+                  duration: 3 + Math.random() * 3,
+                  repeat: Infinity,
+                  delay: Math.random() * 4,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </div>
           {/* Gold frame */}
           <div className="relative w-[180px] h-[180px] rounded-2xl overflow-hidden" style={{
             padding: '2px',
