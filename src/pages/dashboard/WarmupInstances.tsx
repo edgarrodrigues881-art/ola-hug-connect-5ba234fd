@@ -542,10 +542,12 @@ const WarmupInstances = () => {
   }, [selectedDeviceIds, userHasGroups]);
 
   const addCustomGroup = useCallback(async () => {
-    if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
+    if (!newGroupLink.trim() || !user) return;
+    // Extrai nome automático do link
+    const autoName = newGroupLink.trim().split("/").pop()?.slice(0, 20) || "Grupo";
     const { error } = await supabase.from("warmup_groups" as any).insert({
       user_id: user.id,
-      name: newGroupName.trim(),
+      name: newGroupName.trim() || autoName,
       link: newGroupLink.trim(),
       is_custom: true,
     });
@@ -1704,12 +1706,6 @@ const WarmupInstances = () => {
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nome do grupo"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    className="h-9 text-xs rounded-lg bg-card/40 border-border/20"
-                  />
-                  <Input
                     placeholder="Link do grupo (chat.whatsapp.com/...)"
                     value={newGroupLink}
                     onChange={(e) => setNewGroupLink(e.target.value)}
@@ -1718,7 +1714,7 @@ const WarmupInstances = () => {
                   <Button
                     size="sm"
                     className="h-9 px-3 rounded-lg shrink-0"
-                    disabled={!newGroupName.trim() || !newGroupLink.trim()}
+                    disabled={!newGroupLink.trim()}
                     onClick={addCustomGroup}
                   >
                     <Plus className="w-3.5 h-3.5" />
