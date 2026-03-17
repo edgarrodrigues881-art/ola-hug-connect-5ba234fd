@@ -140,10 +140,13 @@ async function adminCreateInstance(
     { Authorization: `Bearer ${adminToken}` },
   ];
 
+  const errors: string[] = [];
   for (const authHeaders of headerVariants) {
     try {
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), 10000);
+      const authType = Object.keys(authHeaders)[0];
+      console.log(`[adminCreateInstance] trying auth=${authType} for name=${name}`);
       const res = await fetch(`${baseUrl}/instance/init`, {
         method: "POST",
         headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
@@ -152,18 +155,25 @@ async function adminCreateInstance(
       });
       clearTimeout(tid);
 
-      if (res.status === 401) continue;
+      if (res.status === 401) {
+        errors.push(`${authType}: 401`);
+        continue;
+      }
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         const instanceToken = data.token || data.instance?.token;
+        console.log(`[adminCreateInstance] success with auth=${authType}, hasToken=${!!instanceToken}`);
         return { ok: true, token: instanceToken };
       }
-      return { ok: false, error: `UaZapi [${res.status}]: ${JSON.stringify(data).substring(0, 200)}` };
+      const errMsg = `UaZapi [${res.status}]: ${JSON.stringify(data).substring(0, 200)}`;
+      errors.push(errMsg);
+      return { ok: false, error: errMsg };
     } catch (e: any) {
+      errors.push(`${Object.keys(authHeaders)[0]}: ${e?.message || String(e)}`);
       if (e?.name === "AbortError") continue;
     }
   }
-  return { ok: false, error: "All auth methods failed" };
+  return { ok: false, error: `All auth methods failed: ${errors.join('; ')}` };
 }
 
 // ── Proxy connectivity test ──────────────────────────────────────────────
