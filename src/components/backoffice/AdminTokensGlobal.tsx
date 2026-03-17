@@ -418,7 +418,7 @@ const AdminTokensGlobal = () => {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteOne(inst.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => handleDeleteOne(inst)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                               Apagar
                             </AlertDialogAction>
                           </AlertDialogFooter>
