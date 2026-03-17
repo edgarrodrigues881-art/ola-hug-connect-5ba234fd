@@ -729,7 +729,7 @@ const WarmupInstances = () => {
           clearInterval(interval);
           setPollingInterval(null);
           setConnectStep("done");
-          qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+          qc.invalidateQueries({ queryKey: ["devices"] });
           toast({ title: "Conectado!", description: "Instância conectada com sucesso!" });
           try {
             const { data: { session: s } } = await supabase.auth.getSession();
