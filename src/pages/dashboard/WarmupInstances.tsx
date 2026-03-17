@@ -1779,7 +1779,21 @@ const WarmupInstances = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
-                        {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide mt-0.5">{formatPhone(d.number)}</p>}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide">{formatPhone(d.number)}</p>}
+                          {isAdvancedStart && bulkSelected.has(d.id) && (
+                            <span className={cn(
+                              "text-[9px] font-semibold px-1.5 py-0.5 rounded",
+                              (deviceGroupCounts as Record<string, number>)[d.id]
+                                ? "bg-primary/10 text-primary"
+                                : "bg-destructive/10 text-destructive"
+                            )}>
+                              {(deviceGroupCounts as Record<string, number>)[d.id]
+                                ? `${(deviceGroupCounts as Record<string, number>)[d.id]} grupo(s)`
+                                : "Sem grupos"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {isWarming ? (
                         <Flame className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
