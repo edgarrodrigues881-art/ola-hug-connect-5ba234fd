@@ -629,18 +629,22 @@ Deno.serve(async (req) => {
 
       let qr = connInst.qrcode || connectRes.data?.qrcode;
 
-      // Single quick poll if no QR (max 800ms)
+      // Poll for QR if not returned immediately (up to 3 attempts, ~3s total)
       if (!qr) {
-        await new Promise(r => setTimeout(r, 400));
-        const poll = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET", undefined, { timeoutMs: 4000, retries: 0 });
-        const pi = poll.data?.instance || poll.data || {};
-        qr = pi.qrcode || poll.data?.qrcode;
-        const st = pi.status || poll.data?.status;
-        if (st === "connected") {
-          const phone = pi.owner || pi.phone || "";
-          const pName = pi.profileName || pi.pushname || "";
-          const resp = await handleAlreadyConnected(svc, user.id, deviceId, deviceName, phone, pName, device?.login_type || "", instanceUrl, instanceToken);
-          if (resp) return resp;
+        for (let attempt = 0; attempt < 3 && !qr; attempt++) {
+          await new Promise(r => setTimeout(r, 800));
+          const poll = await uazapi(instanceUrl, "/instance/status", instanceToken, "GET", undefined, { timeoutMs: 4000, retries: 0 });
+          const pi = poll.data?.instance || poll.data || {};
+          qr = pi.qrcode || poll.data?.qrcode;
+          const st = pi.status || poll.data?.status;
+          if (st === "connected") {
+            const phone = pi.owner || pi.phone || "";
+            const pName = pi.profileName || pi.pushname || "";
+            const resp = await handleAlreadyConnected(svc, user.id, deviceId, deviceName, phone, pName, device?.login_type || "", instanceUrl, instanceToken);
+            if (resp) return resp;
+            break;
+          }
+          if (qr) break;
         }
       }
 
