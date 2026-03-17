@@ -69,10 +69,15 @@ const AdminTokensGlobal = () => {
     return result;
   }, [instances, search, statusFilter]);
 
-  const toggleSelect = (name: string) => {
+  const getInstanceKey = (instance: Pick<UazapiInstance, "provider_instance_id" | "db_token_id" | "token_full" | "name">) => (
+    instance.db_token_id || instance.provider_instance_id || instance.token_full || instance.name
+  );
+
+  const toggleSelect = (instance: UazapiInstance) => {
+    const key = getInstanceKey(instance);
     setSelectedNames(prev => {
       const n = new Set(prev);
-      n.has(name) ? n.delete(name) : n.add(name);
+      n.has(key) ? n.delete(key) : n.add(key);
       return n;
     });
   };
@@ -81,18 +86,18 @@ const AdminTokensGlobal = () => {
     if (selectedNames.size === filtered.length) {
       setSelectedNames(new Set());
     } else {
-      setSelectedNames(new Set(filtered.map(i => i.name)));
+      setSelectedNames(new Set(filtered.map(getInstanceKey)));
     }
   };
 
   const selectDisconnected = () => {
-    setSelectedNames(new Set(instances.filter(i => !i.connected).map(i => i.name)));
+    setSelectedNames(new Set(instances.filter(i => !i.connected).map(getInstanceKey)));
   };
 
   const handleBulkDelete = () => {
     if (selectedNames.size === 0) return;
     const selectedInstances = instances
-      .filter(inst => selectedNames.has(inst.name))
+      .filter(inst => selectedNames.has(getInstanceKey(inst)))
       .map(inst => ({
         provider_instance_id: inst.provider_instance_id,
         name: inst.name,
@@ -125,20 +130,19 @@ const AdminTokensGlobal = () => {
     );
   };
 
-  const handleDeleteOne = (name: string) => {
-    const instance = instances.find(inst => inst.name === name);
+  const handleDeleteOne = (instance: UazapiInstance) => {
     setDeleting(true);
     mutate(
       {
         action: "bulk-delete-uazapi-instances",
         body: {
-          instances: instance ? [{
+          instances: [{
             provider_instance_id: instance.provider_instance_id,
             name: instance.name,
             token_full: instance.token_full,
             db_token_id: instance.db_token_id,
-          }] : [],
-          instance_names: [name],
+          }],
+          instance_names: [instance.name],
         },
       },
       {
@@ -146,10 +150,10 @@ const AdminTokensGlobal = () => {
           const deleted = d?.deleted ?? 0;
           const dbCleaned = d?.db_cleaned ?? 0;
           const title = deleted > 0
-            ? `Instância "${name}" deletada da UAZAPI`
+            ? `Instância "${instance.name}" deletada da UAZAPI`
             : dbCleaned > 0
-              ? `Instância "${name}" ocultada no sistema`
-              : `A instância "${name}" não foi deletada`;
+              ? `Instância "${instance.name}" ocultada no sistema`
+              : `A instância "${instance.name}" não foi deletada`;
           const description = dbCleaned > 0 ? `${dbCleaned} token(s) limpos no DB` : undefined;
           toast({ title, description });
           setDeleting(false);
@@ -355,18 +359,20 @@ const AdminTokensGlobal = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((inst, idx) => (
+                filtered.map((inst, idx) => {
+                  const instanceKey = getInstanceKey(inst);
+                  return (
                   <tr
-                    key={inst.name}
+                    key={instanceKey}
                     className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${
                       !inst.connected ? "bg-destructive/[0.02]" : ""
-                    } ${selectedNames.has(inst.name) ? "bg-primary/5" : ""}`}
+                    } ${selectedNames.has(instanceKey) ? "bg-primary/5" : ""}`}
                   >
                     <td className="px-3 py-2">
                       <input
                         type="checkbox"
-                        checked={selectedNames.has(inst.name)}
-                        onChange={() => toggleSelect(inst.name)}
+                        checked={selectedNames.has(instanceKey)}
+                        onChange={() => toggleSelect(inst)}
                         className="rounded border-border"
                       />
                     </td>
@@ -412,7 +418,7 @@ const AdminTokensGlobal = () => {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteOne(inst.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => handleDeleteOne(inst)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                               Apagar
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -420,7 +426,8 @@ const AdminTokensGlobal = () => {
                       </AlertDialog>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
