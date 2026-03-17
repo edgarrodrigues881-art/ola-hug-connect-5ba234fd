@@ -475,6 +475,7 @@ Deno.serve(async (req) => {
 
       // Auto-create instance on provider if no pool token available
       if (!instanceToken) {
+        console.log(`[evolution-connect] no pool token for device=${deviceId.substring(0, 8)}, attempting on-demand creation. BASE_URL=${BASE_URL ? 'set' : 'MISSING'}, ADMIN_TOKEN=${ADMIN_TOKEN ? 'set' : 'MISSING'}`);
         if (BASE_URL && ADMIN_TOKEN) {
           // Get client name for label
           const { data: prof } = await svc.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
@@ -483,7 +484,9 @@ Deno.serve(async (req) => {
             .select("id", { count: "exact", head: true }).eq("user_id", user.id);
           const instName = `${clientLabel}_${(tokenCount ?? 0) + 1}`;
 
+          console.log(`[evolution-connect] creating instance: ${instName} at ${BASE_URL}`);
           const createResult = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, instName);
+          console.log(`[evolution-connect] createResult ok=${createResult.ok} hasToken=${!!createResult.token} error=${createResult.error || 'none'}`);
           if (createResult.ok && createResult.token) {
             // Check idempotency
             const { data: dup } = await svc.from("user_api_tokens")
