@@ -415,7 +415,7 @@ export function AppSidebar() {
                     {/* Animated gold border via CSS */}
                     <span className="absolute inset-0 rounded-[10px] pointer-events-none" style={{
                       padding: '1px',
-                      background: 'conic-gradient(from var(--angle, 0deg), transparent 0%, #fbbf24 20%, #f59e0b 40%, transparent 50%, transparent 80%, #fbbf24 95%, transparent 100%)',
+                      background: 'conic-gradient(from var(--angle), transparent 0%, #fbbf24 20%, #f59e0b 40%, transparent 50%, transparent 80%, #fbbf24 95%, transparent 100%)',
                       mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                       maskComposite: 'exclude',
                       WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
