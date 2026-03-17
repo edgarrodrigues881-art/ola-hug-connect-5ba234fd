@@ -988,8 +988,8 @@ async function handleScheduleDay(db: any, userId: string | null, body: any) {
   const resolvedPhase = phase || "groups_only";
   let joinScheduled = 0;
 
-  // Join groups only on day 1 (pre_24h phase)
-  if (resolvedPhase === "groups_only" && (day_index || 1) <= 1) {
+  // Sempre garante entradas pendentes antes de reagendar interações
+  if (!["completed", "paused", "error"].includes(resolvedPhase)) {
     joinScheduled = await ensureJoinGroupJobs(db, cycle_id, userId, device_id);
   }
 

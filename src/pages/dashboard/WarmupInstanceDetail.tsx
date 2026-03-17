@@ -763,35 +763,7 @@ const WarmupInstanceDetail = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Backfill: se a instância não tem vínculo local com grupos, cria vínculos do pool para destravar contagem
-  useEffect(() => {
-    if (!user?.id || !deviceId || !cycle?.id || poolGroups.length === 0) return;
-
-    const existingGroupIds = new Set(instanceGroups.map((g) => g.group_id));
-    const missingPoolGroups = poolGroups.filter((g) => !existingGroupIds.has(g.id));
-    if (missingPoolGroups.length === 0) return;
-
-    const seedMissingGroups = async () => {
-      const { error } = await supabase
-        .from("warmup_instance_groups")
-        .upsert(
-          missingPoolGroups.map((g) => ({
-            user_id: user.id,
-            device_id: deviceId,
-            cycle_id: cycle.id,
-            group_id: g.id,
-            join_status: "pending" as const,
-          })),
-          { onConflict: "device_id,group_id", ignoreDuplicates: true }
-        );
-
-      if (!error) {
-        queryClient.invalidateQueries({ queryKey: ["warmup_instance_groups", deviceId] });
-      }
-    };
-
-    void seedMissingGroups();
-  }, [user?.id, deviceId, cycle?.id, poolGroups, instanceGroups, queryClient]);
+  // Removido backfill legado do pool global para não criar grupos pendentes sem nome/link no ciclo atual.
 
   // Auto-reconhece grupos já ingressados e sincroniza status local
   useEffect(() => {

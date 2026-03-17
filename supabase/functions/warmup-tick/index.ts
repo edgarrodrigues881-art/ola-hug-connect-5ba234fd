@@ -3016,8 +3016,8 @@ async function handleScheduleDay(db: any, body: any) {
 
   let jobsCreated = 0;
 
-  // For pre_24h or groups_only: ensure join_group jobs
-  if (["pre_24h", "groups_only"].includes(phase)) {
+  // Sempre garante entradas pendentes antes de reagendar interações
+  if (!["completed", "paused", "error"].includes(phase)) {
     const created = await ensureJoinGroupJobs(db, cycle_id, cycle.user_id, device_id || cycle.device_id);
     jobsCreated += created;
   }
