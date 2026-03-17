@@ -427,7 +427,8 @@ const AdminTokensGlobal = () => {
                       </AlertDialog>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
