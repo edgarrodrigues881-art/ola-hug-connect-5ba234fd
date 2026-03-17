@@ -516,6 +516,33 @@ const WarmupInstances = () => {
     enabled: !!user,
   });
 
+  // Fetch joined groups per device for advanced start validation
+  const selectedDeviceIds = useMemo(() => Array.from(bulkSelected), [bulkSelected]);
+  const isAdvancedStart = Number(bulkStartDay) > 1;
+  const { data: deviceGroupCounts = {} } = useQuery({
+    queryKey: ["device_joined_groups", selectedDeviceIds],
+    queryFn: async () => {
+      if (selectedDeviceIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("warmup_instance_groups")
+        .select("device_id, join_status")
+        .in("device_id", selectedDeviceIds)
+        .eq("join_status", "joined");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        counts[row.device_id] = (counts[row.device_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: isAdvancedStart && selectedDeviceIds.length > 0 && bulkOpen,
+  });
+
+  const devicesWithoutGroups = useMemo(() => {
+    if (!isAdvancedStart) return [];
+    return selectedDeviceIds.filter(id => !(deviceGroupCounts as Record<string, number>)[id]);
+  }, [isAdvancedStart, selectedDeviceIds, deviceGroupCounts]);
+
   const addCustomGroup = useCallback(async () => {
     if (!newGroupName.trim() || !newGroupLink.trim() || !user) return;
     const { error } = await supabase.from("warmup_groups" as any).insert({
@@ -1602,10 +1629,47 @@ const WarmupInstances = () => {
                   </Select>
                 </div>
               </div>
-              {Number(bulkStartDay) > 1 && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 mt-2">
+              {isAdvancedStart && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 mt-2 space-y-2">
                   <p className="text-[10px] text-amber-400 font-bold">⚡ Início avançado — Dia {bulkStartDay}</p>
                   <p className="text-[9px] text-muted-foreground mt-1">O ciclo vai pular as fases anteriores e iniciar direto na fase correspondente ao dia {bulkStartDay}. Os grupos serão marcados como já ingressados.</p>
+                  <div className="flex items-start gap-2 mt-2 p-2.5 rounded-lg bg-amber-500/[0.08] border border-amber-500/15">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-amber-300 font-bold">Pré-requisito importante</p>
+                      <p className="text-[9px] text-muted-foreground">As instâncias selecionadas devem <strong>já ter entrado nos grupos</strong> (via "Entrar em grupo" ou manualmente) antes de iniciar o aquecimento avançado. O sistema vai detectar os grupos reais do dispositivo automaticamente.</p>
+                    </div>
+                  </div>
+                  {bulkSelected.size > 0 && devicesWithoutGroups.length > 0 && (
+                    <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 space-y-1.5">
+                      <p className="text-[10px] text-destructive font-bold flex items-center gap-1.5">
+                        <XCircle className="w-3.5 h-3.5" />
+                        {devicesWithoutGroups.length} instância(s) sem grupos detectados
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">
+                        Estas instâncias não possuem histórico de grupos no sistema. O aquecimento poderá funcionar se elas já estiverem em grupos no WhatsApp (detecção automática), mas recomendamos entrar nos grupos antes.
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {devicesWithoutGroups.slice(0, 5).map(id => {
+                          const dev = (activeFolder ? displayed : filteredDevices).find((d: any) => d.id === id);
+                          return dev ? (
+                            <span key={id} className="text-[9px] px-2 py-0.5 rounded-md bg-destructive/10 text-destructive font-medium">{dev.name}</span>
+                          ) : null;
+                        })}
+                        {devicesWithoutGroups.length > 5 && (
+                          <span className="text-[9px] px-2 py-0.5 rounded-md bg-muted/20 text-muted-foreground font-medium">+{devicesWithoutGroups.length - 5} mais</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {bulkSelected.size > 0 && devicesWithoutGroups.length === 0 && selectedDeviceIds.length > 0 && (
+                    <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+                      <p className="text-[10px] text-primary font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Todas as instâncias possuem grupos registrados ✓
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1715,7 +1779,21 @@ const WarmupInstances = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
-                        {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide mt-0.5">{formatPhone(d.number)}</p>}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide">{formatPhone(d.number)}</p>}
+                          {isAdvancedStart && bulkSelected.has(d.id) && (
+                            <span className={cn(
+                              "text-[9px] font-semibold px-1.5 py-0.5 rounded",
+                              (deviceGroupCounts as Record<string, number>)[d.id]
+                                ? "bg-primary/10 text-primary"
+                                : "bg-destructive/10 text-destructive"
+                            )}>
+                              {(deviceGroupCounts as Record<string, number>)[d.id]
+                                ? `${(deviceGroupCounts as Record<string, number>)[d.id]} grupo(s)`
+                                : "Sem grupos"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {isWarming ? (
                         <Flame className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
