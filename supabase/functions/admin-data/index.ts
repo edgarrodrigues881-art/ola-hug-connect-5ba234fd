@@ -1627,60 +1627,85 @@ Deno.serve(async (req) => {
       const rawInstances = Array.isArray(body?.instances) ? body.instances : [];
       const fallbackNames = Array.isArray(body?.instance_names) ? body.instance_names : [];
 
-      const normalizedInstances = [
-        ...rawInstances.map((item: any) => ({
+      const normalizedMap = new Map<string, any>();
+      const upsertInstance = (item: any) => {
+        const normalized = {
           provider_instance_id: String(item?.provider_instance_id || "").trim(),
           name: String(item?.name || "").trim(),
           token_full: String(item?.token_full || "").trim(),
           db_token_id: String(item?.db_token_id || "").trim(),
-        })),
-        ...fallbackNames.map((name: string) => ({
-          provider_instance_id: "",
-          name: String(name || "").trim(),
-          token_full: "",
-          db_token_id: "",
-        })),
-      ].filter((item: any) => item.provider_instance_id || item.name || item.token_full || item.db_token_id);
+        };
 
-      const uniqueInstances = Array.from(
-        new Map(
-          normalizedInstances.map((item: any) => [item.provider_instance_id || item.db_token_id || item.token_full || item.name, item])
-        ).values()
-      );
+        if (!normalized.provider_instance_id && !normalized.name && !normalized.token_full && !normalized.db_token_id) return;
 
+        const key = normalized.db_token_id || normalized.name || normalized.token_full || normalized.provider_instance_id;
+        const previous = normalizedMap.get(key) || {};
+        normalizedMap.set(key, {
+          provider_instance_id: normalized.provider_instance_id || previous.provider_instance_id || "",
+          name: normalized.name || previous.name || "",
+          token_full: normalized.token_full || previous.token_full || "",
+          db_token_id: normalized.db_token_id || previous.db_token_id || "",
+        });
+      };
+
+      rawInstances.forEach(upsertInstance);
+      fallbackNames.forEach((name: string) => upsertInstance({ name }));
+
+      const uniqueInstances = Array.from(normalizedMap.values());
       if (uniqueInstances.length === 0) {
         return new Response(JSON.stringify({ success: true, deleted: 0, db_cleaned: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      const candidateIds = [...new Set(uniqueInstances.map((item: any) => item.db_token_id).filter(Boolean))];
+      const candidateNames = [...new Set(uniqueInstances.map((item: any) => item.name).filter(Boolean))];
+      const candidateTokens = [...new Set(uniqueInstances.map((item: any) => item.token_full).filter(Boolean))];
+
+      const lookupFilters = await Promise.all([
+        candidateIds.length > 0
+          ? adminClient.from("user_api_tokens").select("id, token, label").in("id", candidateIds)
+          : Promise.resolve({ data: [] as any[] }),
+        candidateNames.length > 0
+          ? adminClient.from("user_api_tokens").select("id, token, label").in("label", candidateNames)
+          : Promise.resolve({ data: [] as any[] }),
+        candidateTokens.length > 0
+          ? adminClient.from("user_api_tokens").select("id, token, label").in("token", candidateTokens)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const tokenById = new Map<string, any>();
+      const tokenByLabel = new Map<string, any>();
+      const tokenByToken = new Map<string, any>();
+      for (const lookup of lookupFilters) {
+        for (const row of lookup.data || []) {
+          if (row?.id) tokenById.set(row.id, row);
+          if (row?.label) tokenByLabel.set(row.label, row);
+          if (row?.token) tokenByToken.set(row.token, row);
+        }
+      }
+
+      const enrichedInstances = uniqueInstances.map((item: any) => {
+        const dbRow = tokenById.get(item.db_token_id) || tokenByLabel.get(item.name) || tokenByToken.get(item.token_full) || null;
+        return {
+          ...item,
+          db_token_id: item.db_token_id || dbRow?.id || "",
+          token_full: item.token_full || dbRow?.token || "",
+          name: item.name || dbRow?.label || "",
+        };
+      });
+
       let deleted = 0;
-      const batchSize = 10;
-      for (let i = 0; i < uniqueInstances.length; i += batchSize) {
-        const batch = uniqueInstances.slice(i, i + batchSize);
+      const batchSize = 4;
+      for (let i = 0; i < enrichedInstances.length; i += batchSize) {
+        const batch = enrichedInstances.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map((item: any) => deleteInstanceFromProvider(item.token_full || "", item.name || null, item.provider_instance_id || null))
         );
         deleted += results.filter((r) => r.status === "fulfilled" && (r.value as any).deleted).length;
       }
 
-      const candidateIds = new Set<string>(uniqueInstances.map((item: any) => item.db_token_id).filter(Boolean));
-      const candidateNames = [...new Set(uniqueInstances.map((item: any) => item.name).filter(Boolean))];
-      const candidateTokens = [...new Set(uniqueInstances.map((item: any) => item.token_full).filter(Boolean))];
-
-      const tokenLookups = await Promise.all([
-        candidateNames.length > 0
-          ? adminClient.from("user_api_tokens").select("id").in("label", candidateNames)
-          : Promise.resolve({ data: [] as any[] }),
-        candidateTokens.length > 0
-          ? adminClient.from("user_api_tokens").select("id").in("token", candidateTokens)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-
-      (tokenLookups[0].data || []).forEach((row: any) => candidateIds.add(row.id));
-      (tokenLookups[1].data || []).forEach((row: any) => candidateIds.add(row.id));
-
-      const idsToDelete = [...candidateIds];
+      const idsToDelete = [...new Set(enrichedInstances.map((item: any) => item.db_token_id).filter(Boolean))];
       if (idsToDelete.length > 0) {
         for (let i = 0; i < idsToDelete.length; i += 200) {
           await adminClient.from("user_api_tokens").delete().in("id", idsToDelete.slice(i, i + 200));
