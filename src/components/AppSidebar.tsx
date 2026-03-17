@@ -398,7 +398,7 @@ export function AppSidebar() {
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
               {renderNavItem({ title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard })}
-              {renderNavItem({ title: "Logs", url: "/dashboard/notifications", icon: ScrollText })}
+              
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
           </SidebarGroupContent>
