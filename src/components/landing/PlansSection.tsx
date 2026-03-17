@@ -61,7 +61,7 @@ const PlansSection = () => {
               <div
                 className={`relative flex flex-col rounded-2xl card-hover-lift ${
                   plan.popular
-                    ? "border border-emerald-600/25"
+                    ? "border border-amber-500/30"
                     : "border border-white/[0.06]"
                 }`}
               >
