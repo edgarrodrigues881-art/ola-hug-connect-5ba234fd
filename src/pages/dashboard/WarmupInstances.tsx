@@ -591,7 +591,7 @@ const WarmupInstances = () => {
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
-    queryKey: ["devices-warmup-list", user?.id],
+    queryKey: ["devices", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at").eq("user_id", user!.id).order("created_at", { ascending: true });
       if (error) throw error;
@@ -606,6 +606,7 @@ const WarmupInstances = () => {
       });
     },
     enabled: !!user,
+    refetchInterval: 15_000,
   });
 
   const { data: cycles = [], isLoading: cyclesLoading } = useWarmupCycles();
