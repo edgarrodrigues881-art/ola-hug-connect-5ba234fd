@@ -314,12 +314,18 @@ const CommunitySection = () => (
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="max-w-3xl mx-auto text-center">
       {/* Logo with gold frame */}
       <motion.div variants={fadeUp} className="flex justify-center mb-8">
-        <div className="relative w-[180px] h-[180px] rounded-2xl overflow-hidden" style={{
-          padding: '2px',
-          background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #fbbf24)',
-        }}>
-          <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#0f1419] flex items-center justify-center">
-            <img src={logo} alt="DG Contingência PRO" className="w-[140px] h-[140px] object-contain" />
+        <div className="relative">
+          {/* Glow effect behind */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500/30 via-yellow-500/20 to-amber-600/30 blur-[40px] scale-110" />
+          <div className="absolute inset-0 rounded-2xl bg-amber-500/15 blur-[60px] scale-125" />
+          {/* Gold frame */}
+          <div className="relative w-[180px] h-[180px] rounded-2xl overflow-hidden" style={{
+            padding: '2px',
+            background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #fbbf24)',
+          }}>
+            <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#0f1419]">
+              <img src={logo} alt="DG Contingência PRO" className="w-full h-full object-cover" />
+            </div>
           </div>
         </div>
       </motion.div>
