@@ -80,7 +80,7 @@ const PlansSection = () => {
                 <p className="text-sm text-white/30 mb-1">{plan.instances} instâncias</p>
                 <p className="text-xs text-white/20 mb-1 leading-relaxed">{plan.subtitle}</p>
                 {plan.extraCopy && (
-                  <p className="text-xs text-emerald-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
+                  <p className="text-xs text-amber-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
                 )}
                 {!plan.extraCopy && <div className="mb-3" />}
 
