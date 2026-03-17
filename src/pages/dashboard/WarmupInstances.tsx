@@ -489,6 +489,7 @@ const WarmupInstances = () => {
 
   const openBulkWarmupDialog = useCallback(() => {
     setBulkSelected(new Set());
+    setBulkInstanceSearch("");
     setBulkChipState("new");
     setBulkStartDay("1");
     setBulkDaysTotal("14");
