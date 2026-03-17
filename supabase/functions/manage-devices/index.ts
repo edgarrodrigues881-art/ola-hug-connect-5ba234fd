@@ -142,103 +142,28 @@ Deno.serve(async (req) => {
         throw new Error(`Limite excedido. Disponível: ${maxAllowed - (currentCount ?? 0)}.`);
       }
 
-      // Get available tokens (pool + blocked fallback)
-      const { data: poolTokens } = await admin
-        .from("user_api_tokens")
-        .select("id, token")
-        .eq("user_id", user.id)
-        .in("status", ["available", "blocked"])
-        .is("device_id", null)
-        .order("created_at", { ascending: true })
-        .limit(totalCount);
-
-      const tokens = [...(poolTokens || [])];
-
-      // Generate missing tokens on-demand
-      const missing = totalCount - tokens.length;
-      if (missing > 0) {
-        const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
-        const ADMIN_TOKEN_VAL = Deno.env.get("UAZAPI_TOKEN") || "";
-        if (BASE_URL && ADMIN_TOKEN_VAL) {
-          const { data: prof } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-          const clientLabel = (prof?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
-          const { count: existingTokenCount } = await admin.from("user_api_tokens")
-            .select("id", { count: "exact", head: true }).eq("user_id", user.id);
-
-          for (let i = 0; i < missing; i++) {
-            const instName = `${clientLabel}_${(existingTokenCount ?? 0) + tokens.length + i + 1}`;
-            const headerVariants = [
-              { admintoken: ADMIN_TOKEN_VAL },
-              { token: ADMIN_TOKEN_VAL },
-              { Authorization: `Bearer ${ADMIN_TOKEN_VAL}` },
-            ];
-            let newToken: string | null = null;
-            for (const authHeaders of headerVariants) {
-              try {
-                const res = await fetch(`${BASE_URL}/instance/init`, {
-                  method: "POST",
-                  headers: { ...authHeaders, Accept: "application/json", "Content-Type": "application/json" },
-                  body: JSON.stringify({ name: instName }),
-                });
-                if (res.status === 401) continue;
-                const resData = await res.json().catch(() => ({}));
-                if (res.ok) {
-                  newToken = resData.token || resData.instance?.token || resData.data?.token;
-                  break;
-                }
-              } catch { /* try next */ }
-            }
-            if (newToken) {
-              const { data: dup } = await admin.from("user_api_tokens")
-                .select("id").eq("token", newToken).maybeSingle();
-              if (!dup) {
-                const { data: ins } = await admin.from("user_api_tokens").insert({
-                  user_id: user.id, token: newToken, admin_id: user.id,
-                  status: "available", healthy: true, label: instName,
-                  last_checked_at: new Date().toISOString(),
-                }).select("id, token").single();
-                if (ins) tokens.push(ins);
-              }
-            }
-          }
-        }
-      }
-
-      // Build inserts
+      // Build inserts WITHOUT tokens — tokens will be generated on-demand at connect/QR time
       const inserts: any[] = [];
-      let tokenIdx = 0;
       let idx = startIndex;
 
       for (const proxyId of (proxyIds || [])) {
-        const token = tokens?.[tokenIdx];
         inserts.push({
           name: `${prefix} ${idx}`,
           login_type: "qr",
           user_id: user.id,
           proxy_id: proxyId,
-          uazapi_token: token?.token || null,
         });
-        if (token) tokenIdx++;
         idx++;
       }
 
       for (let i = 0; i < noProxyCount; i++) {
-        const token = tokens?.[tokenIdx];
         inserts.push({
           name: `${prefix} ${idx}`,
           login_type: "qr",
           user_id: user.id,
           proxy_id: null,
-          uazapi_token: token?.token || null,
         });
-        if (token) tokenIdx++;
         idx++;
-      }
-
-      // Reserve tokens
-      const usedTokenIds = (tokens || []).slice(0, tokenIdx).map((t: any) => t.id);
-      if (usedTokenIds.length > 0) {
-        await admin.from("user_api_tokens").update({ status: "reserved" }).in("id", usedTokenIds);
       }
 
       const { data: newDevices, error: bulkErr } = await admin
@@ -246,56 +171,28 @@ Deno.serve(async (req) => {
         .insert(inserts)
         .select("id, name, status, login_type, number, proxy_id, profile_picture, profile_name, created_at, updated_at, instance_type");
 
-      if (bulkErr) {
-        if (usedTokenIds.length > 0) {
-          await admin.from("user_api_tokens").update({ status: "available" }).in("id", usedTokenIds);
-        }
-        throw bulkErr;
-      }
+      if (bulkErr) throw bulkErr;
 
-      // Set uazapi_base_url + mark tokens as in_use + mark proxies as USANDO — all in parallel
-      const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+      // Mark assigned proxies as USANDO in parallel
       const parallelOps: Promise<any>[] = [];
-
-      // Set base URL on all new devices
-      if (BASE_URL && newDevices) {
-        const deviceIds = newDevices.map((d: any) => d.id);
-        parallelOps.push(admin.from("devices").update({ uazapi_base_url: BASE_URL }).in("id", deviceIds));
-      }
-
-      // Mark tokens as in_use (batch update instead of sequential)
-      if (newDevices && tokens) {
-        for (let i = 0; i < Math.min(newDevices.length, tokens.length); i++) {
-          parallelOps.push(admin.from("user_api_tokens").update({
-            status: "in_use",
-            device_id: newDevices[i].id,
-            assigned_at: new Date().toISOString(),
-          }).eq("id", tokens[i].id));
-        }
-      }
-
-      // Mark assigned proxies as USANDO
       const assignedProxyIds = (newDevices || [])
         .map((d: any) => d.proxy_id)
         .filter(Boolean);
       if (assignedProxyIds.length > 0) {
         parallelOps.push(admin.from("proxies").update({ status: "USANDO" }).in("id", assignedProxyIds));
       }
-
-      // Run all in parallel
       await Promise.allSettled(parallelOps);
 
-      // Log bulk creation in background (don't block response)
+      // Log bulk creation in background
       Promise.allSettled((newDevices || []).map((d: any) => {
-        const ops = [oplog(admin, user.id, "instance_created", `Instância "${d.name}" criada (bulk)`, d.id, { proxy_id: d.proxy_id, has_token: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token })];
+        const ops = [oplog(admin, user.id, "instance_created", `Instância "${d.name}" criada (bulk, token lazy)`, d.id, { proxy_id: d.proxy_id })];
         if (d.proxy_id) ops.push(oplog(admin, user.id, "proxy_assigned", `Proxy atribuída → USANDO`, d.id, { proxy_id: d.proxy_id }));
         return Promise.all(ops);
       })).catch(() => {});
 
-      // Return devices without token fields
       const safeDevices = (newDevices || []).map((d: any) => ({
         ...d,
-        has_api_config: !!inserts.find((ins: any) => ins.name === d.name)?.uazapi_token,
+        has_api_config: false,
       }));
 
       return new Response(
