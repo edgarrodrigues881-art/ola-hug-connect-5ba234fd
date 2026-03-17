@@ -1190,8 +1190,7 @@ Deno.serve(async (req) => {
       const trimmedToken = String(tokenValue || "").trim();
       const trimmedLabel = String(label || "").trim();
       const trimmedProviderId = String(providerInstanceId || "").trim();
-      const identifiers = [...new Set([trimmedProviderId, trimmedLabel, trimmedToken].filter(Boolean))];
-      const pathIdentifiers = [...new Set([trimmedProviderId, trimmedLabel].filter(Boolean))];
+      const identifiers = [...new Set([trimmedToken, trimmedProviderId, trimmedLabel].filter(Boolean))];
       const adminHeaderVariants = ADMIN_TOKEN
         ? [
             { admintoken: ADMIN_TOKEN },
@@ -1205,17 +1204,11 @@ Deno.serve(async (req) => {
         method: "DELETE" | "POST",
         headers: Record<string, string>,
         body?: Record<string, unknown>,
-        query?: Record<string, string>,
       ) => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+        const timeout = setTimeout(() => controller.abort(), 3500);
 
         try {
-          const url = new URL(`${BASE_URL}${endpoint}`);
-          Object.entries(query || {}).forEach(([key, value]) => {
-            if (value) url.searchParams.set(key, value);
-          });
-
           const requestHeaders: Record<string, string> = {
             ...headers,
             Accept: "application/json",
@@ -1232,7 +1225,7 @@ Deno.serve(async (req) => {
             init.body = JSON.stringify(body);
           }
 
-          const res = await fetch(url.toString(), init);
+          const res = await fetch(`${BASE_URL}${endpoint}`, init);
           const text = await res.text().catch(() => "");
           return { ok: res.ok, status: res.status, text };
         } catch (error) {
@@ -1242,114 +1235,56 @@ Deno.serve(async (req) => {
         }
       };
 
-      const tryProviderCall = async (
-        endpoint: string,
-        method: "DELETE" | "POST",
-        headers: Record<string, string>,
-        body: Record<string, unknown> | undefined,
-        query: Record<string, string> | undefined,
-        context: Record<string, unknown>,
-      ) => {
-        const result = await callProvider(endpoint, method, headers, body, query);
-
-        if (result.ok) {
-          console.log(`[admin-data] UAZAPI delete success endpoint=${endpoint} method=${method} status=${result.status}`);
-          return { deleted: true, endpoint, method, status: result.status, ...context };
-        }
-
-        if (![0, 404, 405].includes(result.status) && ![401, 403].includes(result.status)) {
+      const logFailure = (endpoint: string, method: "DELETE" | "POST", result: { status: number; text: string }) => {
+        if (![0, 401, 403, 404, 405].includes(result.status)) {
           console.warn(`[admin-data] Delete attempt failed ${endpoint} ${method}: status=${result.status} body=${result.text.slice(0, 200)}`);
         }
-
-        return null;
-      };
-
-      const buildBodies = (identifier: string) => [
-        undefined,
-        {},
-        { name: identifier },
-        { instance: identifier },
-        { instanceName: identifier },
-        { id: identifier },
-        { instance_id: identifier },
-        { instanceId: identifier },
-        { token: identifier },
-      ] as Array<Record<string, unknown> | undefined>;
-
-      const buildQuery = (identifier: string) => ({
-        name: identifier,
-        instance: identifier,
-        instanceName: identifier,
-        id: identifier,
-        instance_id: identifier,
-        instanceId: identifier,
-        token: identifier,
-      });
-
-      const pathVariants = (endpoint: string, identifier: string) => {
-        const encoded = encodeURIComponent(identifier);
-        return [`${endpoint}/${encoded}`, `${endpoint}/${encoded}/`];
-      };
-
-      const tryDeleteWithHeaders = async (
-        headerVariants: Record<string, string>[],
-        mode: "instance-token" | "admin-route",
-      ) => {
-        for (const authHeaders of headerVariants) {
-          for (const identifier of identifiers) {
-            for (const endpoint of ["/instance/logout", "/instance/disconnect"]) {
-              for (const body of buildBodies(identifier)) {
-                const logoutResult = await callProvider(endpoint, "POST", authHeaders, body, undefined);
-                if (logoutResult.status === 401 || logoutResult.status === 403) break;
-              }
-            }
-          }
-
-          for (const identifier of pathIdentifiers) {
-            for (const baseEndpoint of ["/instance/delete", "/instance/remove", "/admin/instance/delete", "/admin/instance/remove"]) {
-              for (const endpoint of pathVariants(baseEndpoint, identifier)) {
-                for (const method of ["DELETE", "POST"] as const) {
-                  const result = await tryProviderCall(endpoint, method, authHeaders, undefined, undefined, {
-                    mode,
-                    identifier,
-                    path: true,
-                  });
-                  if (result) return result;
-                }
-              }
-            }
-          }
-
-          for (const identifier of identifiers) {
-            for (const endpoint of ["/instance/delete", "/instance/remove", "/admin/instance/delete", "/admin/instance/remove"]) {
-              for (const method of ["DELETE", "POST"] as const) {
-                for (const body of buildBodies(identifier)) {
-                  const result = await tryProviderCall(endpoint, method, authHeaders, body, buildQuery(identifier), {
-                    mode,
-                    identifier,
-                    path: false,
-                  });
-                  if (result) return result;
-                }
-              }
-            }
-          }
-        }
-
-        return null;
       };
 
       if (trimmedToken) {
-        const instanceHeaderVariants = [
-          { token: trimmedToken },
-          { Authorization: `Bearer ${trimmedToken}` },
-        ];
-        const instanceResult = await tryDeleteWithHeaders(instanceHeaderVariants, "instance-token");
-        if (instanceResult) return instanceResult;
+        for (const tokenHeaders of [{ token: trimmedToken }, { Authorization: `Bearer ${trimmedToken}` }]) {
+          await callProvider("/instance/disconnect", "POST", tokenHeaders, undefined).catch(() => null);
+
+          for (const endpoint of ["/instance/delete", "/instance/remove"]) {
+            for (const method of ["DELETE", "POST"] as const) {
+              const result = await callProvider(endpoint, method, tokenHeaders, undefined);
+              if (result.ok) {
+                console.log(`[admin-data] UAZAPI delete success endpoint=${endpoint} method=${method} mode=instance-token`);
+                return { deleted: true, endpoint, method, mode: "instance-token" };
+              }
+              logFailure(endpoint, method, result);
+              if (result.status === 401 || result.status === 403) break;
+              if (result.status === 405) continue;
+            }
+          }
+        }
       }
 
-      const adminResult = await tryDeleteWithHeaders(adminHeaderVariants, "admin-route");
-      if (adminResult) return adminResult;
+      const identifierBodies = identifiers.flatMap((identifier) => [
+        { token: identifier },
+        { name: identifier },
+        { id: identifier },
+        { instanceId: identifier },
+        { instance_id: identifier },
+      ]);
+
+      for (const headers of adminHeaderVariants) {
+        for (const body of identifierBodies) {
+          await callProvider("/instance/disconnect", "POST", headers, body).catch(() => null);
+
+          for (const endpoint of ["/instance/delete", "/instance/remove", "/admin/instance/delete", "/admin/instance/remove"]) {
+            for (const method of ["DELETE", "POST"] as const) {
+              const result = await callProvider(endpoint, method, headers, body);
+              if (result.ok) {
+                console.log(`[admin-data] UAZAPI delete success endpoint=${endpoint} method=${method} mode=admin-route`);
+                return { deleted: true, endpoint, method, mode: "admin-route", body_keys: Object.keys(body) };
+              }
+              logFailure(endpoint, method, result);
+              if (result.status === 401 || result.status === 403) break;
+            }
+          }
+        }
+      }
 
       console.warn(`[admin-data] Failed to delete instance from provider`, {
         providerInstanceId: trimmedProviderId || null,
@@ -1692,60 +1627,85 @@ Deno.serve(async (req) => {
       const rawInstances = Array.isArray(body?.instances) ? body.instances : [];
       const fallbackNames = Array.isArray(body?.instance_names) ? body.instance_names : [];
 
-      const normalizedInstances = [
-        ...rawInstances.map((item: any) => ({
+      const normalizedMap = new Map<string, any>();
+      const upsertInstance = (item: any) => {
+        const normalized = {
           provider_instance_id: String(item?.provider_instance_id || "").trim(),
           name: String(item?.name || "").trim(),
           token_full: String(item?.token_full || "").trim(),
           db_token_id: String(item?.db_token_id || "").trim(),
-        })),
-        ...fallbackNames.map((name: string) => ({
-          provider_instance_id: "",
-          name: String(name || "").trim(),
-          token_full: "",
-          db_token_id: "",
-        })),
-      ].filter((item: any) => item.provider_instance_id || item.name || item.token_full || item.db_token_id);
+        };
 
-      const uniqueInstances = Array.from(
-        new Map(
-          normalizedInstances.map((item: any) => [item.provider_instance_id || item.db_token_id || item.token_full || item.name, item])
-        ).values()
-      );
+        if (!normalized.provider_instance_id && !normalized.name && !normalized.token_full && !normalized.db_token_id) return;
 
+        const key = normalized.db_token_id || normalized.name || normalized.token_full || normalized.provider_instance_id;
+        const previous = normalizedMap.get(key) || {};
+        normalizedMap.set(key, {
+          provider_instance_id: normalized.provider_instance_id || previous.provider_instance_id || "",
+          name: normalized.name || previous.name || "",
+          token_full: normalized.token_full || previous.token_full || "",
+          db_token_id: normalized.db_token_id || previous.db_token_id || "",
+        });
+      };
+
+      rawInstances.forEach(upsertInstance);
+      fallbackNames.forEach((name: string) => upsertInstance({ name }));
+
+      const uniqueInstances = Array.from(normalizedMap.values());
       if (uniqueInstances.length === 0) {
         return new Response(JSON.stringify({ success: true, deleted: 0, db_cleaned: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      const candidateIds = [...new Set(uniqueInstances.map((item: any) => item.db_token_id).filter(Boolean))];
+      const candidateNames = [...new Set(uniqueInstances.map((item: any) => item.name).filter(Boolean))];
+      const candidateTokens = [...new Set(uniqueInstances.map((item: any) => item.token_full).filter(Boolean))];
+
+      const lookupFilters = await Promise.all([
+        candidateIds.length > 0
+          ? adminClient.from("user_api_tokens").select("id, token, label").in("id", candidateIds)
+          : Promise.resolve({ data: [] as any[] }),
+        candidateNames.length > 0
+          ? adminClient.from("user_api_tokens").select("id, token, label").in("label", candidateNames)
+          : Promise.resolve({ data: [] as any[] }),
+        candidateTokens.length > 0
+          ? adminClient.from("user_api_tokens").select("id, token, label").in("token", candidateTokens)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const tokenById = new Map<string, any>();
+      const tokenByLabel = new Map<string, any>();
+      const tokenByToken = new Map<string, any>();
+      for (const lookup of lookupFilters) {
+        for (const row of lookup.data || []) {
+          if (row?.id) tokenById.set(row.id, row);
+          if (row?.label) tokenByLabel.set(row.label, row);
+          if (row?.token) tokenByToken.set(row.token, row);
+        }
+      }
+
+      const enrichedInstances = uniqueInstances.map((item: any) => {
+        const dbRow = tokenById.get(item.db_token_id) || tokenByLabel.get(item.name) || tokenByToken.get(item.token_full) || null;
+        return {
+          ...item,
+          db_token_id: item.db_token_id || dbRow?.id || "",
+          token_full: item.token_full || dbRow?.token || "",
+          name: item.name || dbRow?.label || "",
+        };
+      });
+
       let deleted = 0;
-      const batchSize = 10;
-      for (let i = 0; i < uniqueInstances.length; i += batchSize) {
-        const batch = uniqueInstances.slice(i, i + batchSize);
+      const batchSize = 4;
+      for (let i = 0; i < enrichedInstances.length; i += batchSize) {
+        const batch = enrichedInstances.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map((item: any) => deleteInstanceFromProvider(item.token_full || "", item.name || null, item.provider_instance_id || null))
         );
         deleted += results.filter((r) => r.status === "fulfilled" && (r.value as any).deleted).length;
       }
 
-      const candidateIds = new Set<string>(uniqueInstances.map((item: any) => item.db_token_id).filter(Boolean));
-      const candidateNames = [...new Set(uniqueInstances.map((item: any) => item.name).filter(Boolean))];
-      const candidateTokens = [...new Set(uniqueInstances.map((item: any) => item.token_full).filter(Boolean))];
-
-      const tokenLookups = await Promise.all([
-        candidateNames.length > 0
-          ? adminClient.from("user_api_tokens").select("id").in("label", candidateNames)
-          : Promise.resolve({ data: [] as any[] }),
-        candidateTokens.length > 0
-          ? adminClient.from("user_api_tokens").select("id").in("token", candidateTokens)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-
-      (tokenLookups[0].data || []).forEach((row: any) => candidateIds.add(row.id));
-      (tokenLookups[1].data || []).forEach((row: any) => candidateIds.add(row.id));
-
-      const idsToDelete = [...candidateIds];
+      const idsToDelete = [...new Set(enrichedInstances.map((item: any) => item.db_token_id).filter(Boolean))];
       if (idsToDelete.length > 0) {
         for (let i = 0; i < idsToDelete.length; i += 200) {
           await adminClient.from("user_api_tokens").delete().in("id", idsToDelete.slice(i, i + 200));
@@ -1775,9 +1735,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Delete from UAZAPI in batches
+      // Delete from UAZAPI in smaller batches to avoid request timeout
       let providerDeleted = 0;
-      const batchSize = 10;
+      const batchSize = 4;
       for (let i = 0; i < idleTokens.length; i += batchSize) {
         const batch = idleTokens.slice(i, i + batchSize);
         const results = await Promise.allSettled(
