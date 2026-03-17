@@ -1427,8 +1427,10 @@ Deno.serve(async (req) => {
         .limit(2000);
       if (tokErr) throw tokErr;
 
+      const visibleTokens = (allTokens || []).filter((t: any) => t.status !== "deleted");
+
       // Get profile names for all unique user_ids
-      const userIds = [...new Set((allTokens || []).map((t: any) => t.user_id))];
+      const userIds = [...new Set(visibleTokens.map((t: any) => t.user_id))];
       const { data: profiles } = await adminClient
         .from("profiles")
         .select("id, full_name")
@@ -1438,14 +1440,14 @@ Deno.serve(async (req) => {
       (profiles || []).forEach((p: any) => { profileMap[p.id] = p.full_name || "Sem nome"; });
 
       // Get device names for tokens in use
-      const deviceIds = (allTokens || []).map((t: any) => t.device_id).filter(Boolean);
+      const deviceIds = visibleTokens.map((t: any) => t.device_id).filter(Boolean);
       const { data: devices } = deviceIds.length > 0
         ? await adminClient.from("devices").select("id, name").in("id", deviceIds)
         : { data: [] };
       const deviceMap: Record<string, string> = {};
       (devices || []).forEach((d: any) => { deviceMap[d.id] = d.name; });
 
-      const enriched = (allTokens || []).map((t: any) => ({
+      const enriched = visibleTokens.map((t: any) => ({
         ...t,
         client_name: profileMap[t.user_id] || "Desconhecido",
         device_name: t.device_id ? (deviceMap[t.device_id] || "—") : null,
