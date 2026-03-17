@@ -1207,7 +1207,7 @@ const WarmupInstances = () => {
                             const { data: { session: s } } = await supabase.auth.getSession();
                             if (s) {
                               await supabase.functions.invoke("sync-devices", { headers: { Authorization: `Bearer ${s.access_token}` } });
-                              qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                              qc.invalidateQueries({ queryKey: ["devices"] });
                             }
                           } catch {}
                         } else {
