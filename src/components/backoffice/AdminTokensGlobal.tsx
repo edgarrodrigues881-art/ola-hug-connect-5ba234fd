@@ -69,10 +69,15 @@ const AdminTokensGlobal = () => {
     return result;
   }, [instances, search, statusFilter]);
 
-  const toggleSelect = (name: string) => {
+  const getInstanceKey = (instance: Pick<UazapiInstance, "provider_instance_id" | "db_token_id" | "token_full" | "name">) => (
+    instance.db_token_id || instance.provider_instance_id || instance.token_full || instance.name
+  );
+
+  const toggleSelect = (instance: UazapiInstance) => {
+    const key = getInstanceKey(instance);
     setSelectedNames(prev => {
       const n = new Set(prev);
-      n.has(name) ? n.delete(name) : n.add(name);
+      n.has(key) ? n.delete(key) : n.add(key);
       return n;
     });
   };
@@ -81,12 +86,12 @@ const AdminTokensGlobal = () => {
     if (selectedNames.size === filtered.length) {
       setSelectedNames(new Set());
     } else {
-      setSelectedNames(new Set(filtered.map(i => i.name)));
+      setSelectedNames(new Set(filtered.map(getInstanceKey)));
     }
   };
 
   const selectDisconnected = () => {
-    setSelectedNames(new Set(instances.filter(i => !i.connected).map(i => i.name)));
+    setSelectedNames(new Set(instances.filter(i => !i.connected).map(getInstanceKey)));
   };
 
   const handleBulkDelete = () => {
