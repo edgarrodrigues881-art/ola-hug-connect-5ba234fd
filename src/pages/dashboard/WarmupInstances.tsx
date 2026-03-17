@@ -758,7 +758,7 @@ const WarmupInstances = () => {
               callApi({ action: "refreshQr", deviceId: connectingDevice.id }).then(result => {
                 if (result?.alreadyConnected) {
                   setConnectStep("done");
-                  qc.invalidateQueries({ queryKey: ["devices-warmup-list"] });
+                  qc.invalidateQueries({ queryKey: ["devices"] });
                   return;
                 }
                 const b64 = result?.base64 || result?.qr;
