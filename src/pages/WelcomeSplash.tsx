@@ -29,17 +29,53 @@ const WelcomeSplash = () => {
           <div className="flex flex-col items-center gap-2 px-6">
 
             <motion.div
-              className="mt-4 sm:mt-5"
+              className="mt-4 sm:mt-5 relative"
               style={{ willChange: "opacity, transform" }}
               initial={{ opacity: 0, scale: 0.92 }}
               animate={phase >= 3 ? { opacity: 1, scale: 1 } : undefined}
               transition={{ duration: 0.5 }}
             >
-              <img
-                src={logo}
-                alt="DG Contingência Pro"
-                className="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl"
-              />
+              {/* Gold glow behind logo */}
+              <div className="absolute -inset-6 bg-gradient-to-br from-amber-500/20 via-yellow-500/15 to-amber-600/20 blur-[40px] rounded-full" />
+              <div className="absolute -inset-10 bg-amber-500/10 blur-[60px] rounded-full" />
+              {/* Gold particles */}
+              <div className="absolute -inset-12 pointer-events-none overflow-hidden">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <motion.span
+                    key={i}
+                    className="absolute w-1 h-1 rounded-full bg-amber-400"
+                    style={{
+                      left: `${10 + Math.random() * 80}%`,
+                      top: `${10 + Math.random() * 80}%`,
+                    }}
+                    animate={{
+                      y: [0, -18 - Math.random() * 25, 0],
+                      x: [0, (Math.random() - 0.5) * 16, 0],
+                      opacity: [0.05, 0.4 + Math.random() * 0.3, 0.05],
+                      scale: [0.4, 1 + Math.random() * 0.5, 0.4],
+                    }}
+                    transition={{
+                      duration: 3 + Math.random() * 3,
+                      repeat: Infinity,
+                      delay: Math.random() * 3,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ))}
+              </div>
+              {/* Gold frame */}
+              <div className="relative w-28 h-28 sm:w-40 sm:h-40 rounded-2xl overflow-hidden" style={{
+                padding: '2px',
+                background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #fbbf24)',
+              }}>
+                <div className="w-full h-full rounded-[14px] overflow-hidden bg-background">
+                  <img
+                    src={logo}
+                    alt="DG Contingência Pro"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
             </motion.div>
 
             <motion.div
@@ -69,18 +105,18 @@ const WelcomeSplash = () => {
             </motion.div>
 
             <motion.div
-              className="mt-8 sm:mt-10 w-48 sm:w-60 h-[5px] rounded-full bg-primary/10 overflow-hidden"
+              className="mt-8 sm:mt-10 w-48 sm:w-60 h-[5px] rounded-full bg-amber-500/10 overflow-hidden"
               style={{ willChange: "opacity" }}
               initial={{ opacity: 0 }}
               animate={phase >= 3 ? { opacity: 1 } : undefined}
               transition={{ duration: 0.3, delay: 0.2 }}
             >
               <motion.div
-                className="h-full rounded-full bg-primary"
+                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-500"
                 style={{
                   willChange: "transform",
                   transformOrigin: "left",
-                  boxShadow: "0 0 8px hsl(var(--primary) / 0.3)",
+                  boxShadow: "0 0 12px rgba(245,158,11,0.4)",
                 }}
                 initial={{ scaleX: 0 }}
                 animate={phase >= 3 ? { scaleX: 1 } : undefined}
