@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   ChevronUp,
+  Crown,
   
   ChevronRight,
   CreditCard,
@@ -397,7 +398,37 @@ export function AppSidebar() {
             <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
-              {renderNavItem({ title: "Meu Plano", url: "/dashboard/my-plan", icon: CreditCard })}
+              {/* Meu Plano - Premium animated button */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Meu Plano">
+                  <NavLink
+                    to="/dashboard/my-plan"
+                    className={cn(
+                      "sidebar-nav-item relative flex items-center rounded-[10px] text-[13px] overflow-hidden transition-[background-color,color,opacity] duration-[120ms] ease-out group/plan",
+                      collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 pr-3.5 py-[10px]',
+                      isActive("/dashboard/my-plan")
+                        ? 'text-foreground font-semibold'
+                        : 'text-muted-foreground font-medium hover:text-foreground'
+                    )}
+                    activeClassName=""
+                  >
+                    {/* Animated gold border */}
+                    <span className="absolute inset-0 rounded-[10px] p-[1px] overflow-hidden pointer-events-none">
+                      <span className="absolute inset-[-50%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0%,#fbbf24_20%,#f59e0b_40%,transparent_50%,transparent_80%,#fbbf24_95%,transparent_100%)]" />
+                      <span className="absolute inset-[1px] rounded-[9px] bg-sidebar" />
+                    </span>
+                    {isActive("/dashboard/my-plan") && !collapsed && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-amber-400 z-10" />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center w-[18px] h-[18px] shrink-0">
+                      <Crown className={cn("w-[16px] h-[16px] transition-colors duration-150", isActive("/dashboard/my-plan") ? "text-amber-400" : "text-amber-500/70 group-hover/plan:text-amber-400")} strokeWidth={isActive("/dashboard/my-plan") ? 2.2 : 1.8} />
+                    </span>
+                    {!collapsed && (
+                      <span className="truncate flex-1 relative z-10">Meu Plano</span>
+                    )}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
