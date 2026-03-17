@@ -1758,7 +1758,7 @@ const WarmupInstanceDetail = () => {
                   };
 
                   return (
-                    <div className="max-h-[500px] overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
+                    <div className="md:max-h-[500px] md:overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
                       {Array.from({ length: totalDays }, (_, i) => i + 1).filter((day) => {
                         const s = getDayStatus(day);
                         return s === "concluído" || s === "ativo" || s === "pulado";
