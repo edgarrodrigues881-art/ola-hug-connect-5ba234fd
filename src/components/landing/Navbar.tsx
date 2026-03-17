@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Flame } from "lucide-react";
 import logo from "@/assets/logo-new.png";
 
 const Navbar = () => {
@@ -51,6 +52,10 @@ const Navbar = () => {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1">
+            <Flame className="w-4 h-4 text-orange-400" />
+            <span className="text-xs font-bold text-orange-400">87%</span>
+          </div>
           <Button
             variant="ghost"
             size="sm"
