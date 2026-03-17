@@ -407,8 +407,8 @@ export function AppSidebar() {
                       "sidebar-nav-item relative flex items-center rounded-[10px] text-[13px] overflow-hidden transition-[background-color,color,opacity] duration-[120ms] ease-out group/plan",
                       collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 pr-3.5 py-[10px]',
                       isActive("/dashboard/my-plan")
-                        ? 'text-foreground font-semibold'
-                        : 'text-muted-foreground font-medium hover:text-foreground'
+                        ? 'bg-amber-500/10 text-foreground font-semibold'
+                        : 'text-muted-foreground font-medium hover:text-foreground hover:bg-amber-500/5'
                     )}
                     activeClassName=""
                   >
