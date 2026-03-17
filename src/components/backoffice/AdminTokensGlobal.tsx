@@ -130,20 +130,19 @@ const AdminTokensGlobal = () => {
     );
   };
 
-  const handleDeleteOne = (name: string) => {
-    const instance = instances.find(inst => inst.name === name);
+  const handleDeleteOne = (instance: UazapiInstance) => {
     setDeleting(true);
     mutate(
       {
         action: "bulk-delete-uazapi-instances",
         body: {
-          instances: instance ? [{
+          instances: [{
             provider_instance_id: instance.provider_instance_id,
             name: instance.name,
             token_full: instance.token_full,
             db_token_id: instance.db_token_id,
-          }] : [],
-          instance_names: [name],
+          }],
+          instance_names: [instance.name],
         },
       },
       {
@@ -151,10 +150,10 @@ const AdminTokensGlobal = () => {
           const deleted = d?.deleted ?? 0;
           const dbCleaned = d?.db_cleaned ?? 0;
           const title = deleted > 0
-            ? `Instância "${name}" deletada da UAZAPI`
+            ? `Instância "${instance.name}" deletada da UAZAPI`
             : dbCleaned > 0
-              ? `Instância "${name}" ocultada no sistema`
-              : `A instância "${name}" não foi deletada`;
+              ? `Instância "${instance.name}" ocultada no sistema`
+              : `A instância "${instance.name}" não foi deletada`;
           const description = dbCleaned > 0 ? `${dbCleaned} token(s) limpos no DB` : undefined;
           toast({ title, description });
           setDeleting(false);
