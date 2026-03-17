@@ -71,8 +71,8 @@ const PlansSection = () => {
                 }`}
               >
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-semibold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap">
-                    Recomendado
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-bold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap shadow-[0_0_20px_-4px_rgba(245,158,11,0.5)]">
+                    ⭐ Mais Escolhido
                   </span>
                 )}
 
