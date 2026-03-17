@@ -473,23 +473,48 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Admin report_wa: auto-create instance if no pool token
-      if (!instanceToken && isReportDevice) {
-        const { data: isAdmin } = await svc.rpc("has_role", { _user_id: user.id, _role: "admin" });
-        if (isAdmin) {
-          const createResult = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, `admin_report_${Date.now()}`);
+      // Auto-create instance on provider if no pool token available
+      if (!instanceToken) {
+        if (BASE_URL && ADMIN_TOKEN) {
+          // Get client name for label
+          const { data: prof } = await svc.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+          const clientLabel = (prof?.full_name || user.email || "cliente").replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 20);
+          const { count: tokenCount } = await svc.from("user_api_tokens")
+            .select("id", { count: "exact", head: true }).eq("user_id", user.id);
+          const instName = `${clientLabel}_${(tokenCount ?? 0) + 1}`;
+
+          const createResult = await adminCreateInstance(BASE_URL, ADMIN_TOKEN, instName);
           if (createResult.ok && createResult.token) {
-            await Promise.all([
-              svc.from("devices").update({ uazapi_token: createResult.token, uazapi_base_url: BASE_URL }).eq("id", deviceId),
-              svc.from("user_api_tokens").insert({
+            // Check idempotency
+            const { data: dup } = await svc.from("user_api_tokens")
+              .select("id").eq("token", createResult.token).maybeSingle();
+
+            let newTokenId: string;
+            if (dup) {
+              newTokenId = dup.id;
+              await svc.from("user_api_tokens").update({
+                status: "in_use", device_id: deviceId,
+                assigned_at: new Date().toISOString(),
+              }).eq("id", dup.id);
+            } else {
+              const { data: ins } = await svc.from("user_api_tokens").insert({
                 user_id: user.id, token: createResult.token, admin_id: user.id,
                 device_id: deviceId, status: "in_use", healthy: true,
-                label: "admin_report", assigned_at: new Date().toISOString(),
+                label: instName, assigned_at: new Date().toISOString(),
                 last_checked_at: new Date().toISOString(),
-              }),
-            ]);
+              }).select("id").single();
+              newTokenId = ins?.id || "";
+            }
+
+            await svc.from("devices").update({
+              uazapi_token: createResult.token, uazapi_base_url: BASE_URL,
+            }).eq("id", deviceId);
+
             instanceToken = createResult.token;
             instanceUrl = BASE_URL;
+            autoAssignedTokenId = newTokenId;
+            console.log(`[evolution-connect] on-demand token created: ${instName} for ${deviceId.substring(0, 8)}`);
+            await oplog(svc, user.id, "token_on_demand", `Token gerado sob demanda: ${instName}`, deviceId, { label: instName });
           }
         }
       }
