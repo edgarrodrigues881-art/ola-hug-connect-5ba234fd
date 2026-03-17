@@ -1177,8 +1177,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const PROVIDER_DELETE_TIMEOUT_MS = 1200;
+    const PROVIDER_DELETE_TIMEOUT_MS = 2000;
     const PROVIDER_DELETE_BATCH_SIZE = 12;
+    const PROVIDER_DISCONNECT_TIMEOUT_MS = 1500;
 
     // ─── Helper: delete instance from UAZAPI by token/name/id ───
     const deleteInstanceFromProvider = async (
@@ -1206,31 +1207,40 @@ Deno.serve(async (req) => {
         ? [
             { admintoken: ADMIN_TOKEN },
             { token: ADMIN_TOKEN },
+            { Authorization: `Bearer ${ADMIN_TOKEN}` },
           ]
         : [];
 
-      const adminAttemptsByName = trimmedLabel
-        ? [
-            { name: trimmedLabel },
-            { instanceName: trimmedLabel },
-          ]
-        : [];
-
-      const adminAttemptsById = trimmedProviderId
-        ? [
-            { id: trimmedProviderId },
-            { instanceId: trimmedProviderId },
-          ]
-        : [];
+      const adminPayloads = [
+        ...(trimmedToken
+          ? [
+              { token: trimmedToken },
+              { instanceToken: trimmedToken },
+            ]
+          : []),
+        ...(trimmedLabel
+          ? [
+              { name: trimmedLabel },
+              { instanceName: trimmedLabel },
+            ]
+          : []),
+        ...(trimmedProviderId
+          ? [
+              { id: trimmedProviderId },
+              { instanceId: trimmedProviderId },
+            ]
+          : []),
+      ];
 
       const callProvider = async (
         endpoint: string,
         method: "DELETE" | "POST",
         headers: Record<string, string>,
         body?: Record<string, unknown>,
+        timeoutMs = PROVIDER_DELETE_TIMEOUT_MS,
       ) => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), PROVIDER_DELETE_TIMEOUT_MS);
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
           const requestHeaders: Record<string, string> = {
@@ -1305,80 +1315,106 @@ Deno.serve(async (req) => {
           }
         }
 
-        for (const entry of results) {
-          if (entry.status !== "fulfilled") continue;
-          const { result, endpoint, method } = entry.value;
-          if (![0, 401, 403, 404, 405].includes(result.status)) {
-            console.warn(`[admin-data] Delete attempt failed ${endpoint} ${method}: status=${result.status} body=${result.text.slice(0, 200)}`);
+        const debugResults = results.flatMap((entry) => {
+          if (entry.status !== "fulfilled") return [];
+          const { result, endpoint, method, mode } = entry.value;
+          return [{ endpoint, method, mode, status: result.status, body: result.text.slice(0, 160) }];
+        });
+
+        for (const row of debugResults) {
+          if (![0, 401, 403, 404, 405].includes(row.status)) {
+            console.warn(`[admin-data] Delete attempt failed ${row.endpoint} ${row.method}: status=${row.status} body=${row.body}`);
           }
         }
 
-        return null;
+        return { deleted: false, debugResults };
       };
+
+      await Promise.allSettled(
+        tokenHeaderVariants.map((headers) =>
+          callProvider("/instance/disconnect", "POST", headers, undefined, PROVIDER_DISCONNECT_TIMEOUT_MS)
+        )
+      );
 
       const tokenWave = await runAttemptWave(
         tokenHeaderVariants.flatMap((headers) => [
+          {
+            endpoint: "/instance/delete",
+            method: "DELETE" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
+          {
+            endpoint: "/instance/delete",
+            method: "POST" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
+          {
+            endpoint: "/instance/remove",
+            method: "DELETE" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
+          {
+            endpoint: "/instance/remove",
+            method: "POST" as const,
+            headers,
+            mode: "instance-token" as const,
+          },
           {
             endpoint: "/instance",
             method: "DELETE" as const,
             headers,
             mode: "instance-token" as const,
           },
-          {
-            endpoint: "/instance/delete",
-            method: "DELETE" as const,
-            headers,
-            mode: "instance-token" as const,
-          },
-          {
-            endpoint: "/instance/remove",
-            method: "DELETE" as const,
-            headers,
-            mode: "instance-token" as const,
-          },
         ])
       );
-      if (tokenWave) return tokenWave;
+      if (tokenWave?.deleted) return tokenWave;
 
       const adminWave = await runAttemptWave(
-        adminHeaderVariants.flatMap((headers) => [
-          ...adminAttemptsByName.map((body) => ({
-            endpoint: "/instance/delete",
-            method: "POST" as const,
-            headers,
-            body,
-            mode: "admin-route" as const,
-          })),
-          ...adminAttemptsByName.map((body) => ({
-            endpoint: "/instance/remove",
-            method: "POST" as const,
-            headers,
-            body,
-            mode: "admin-route" as const,
-          })),
-          ...adminAttemptsById.map((body) => ({
-            endpoint: "/instance/delete",
-            method: "POST" as const,
-            headers,
-            body,
-            mode: "admin-route" as const,
-          })),
-          ...adminAttemptsById.map((body) => ({
-            endpoint: "/instance/remove",
-            method: "POST" as const,
-            headers,
-            body,
-            mode: "admin-route" as const,
-          })),
-        ])
+        adminHeaderVariants.flatMap((headers) =>
+          adminPayloads.flatMap((body) => [
+            {
+              endpoint: "/instance/delete",
+              method: "POST" as const,
+              headers,
+              body,
+              mode: "admin-route" as const,
+            },
+            {
+              endpoint: "/instance/delete",
+              method: "DELETE" as const,
+              headers,
+              body,
+              mode: "admin-route" as const,
+            },
+            {
+              endpoint: "/instance/remove",
+              method: "POST" as const,
+              headers,
+              body,
+              mode: "admin-route" as const,
+            },
+            {
+              endpoint: "/instance/remove",
+              method: "DELETE" as const,
+              headers,
+              body,
+              mode: "admin-route" as const,
+            },
+          ])
+        )
       );
-      if (adminWave) return adminWave;
+      if (adminWave?.deleted) return adminWave;
 
       console.warn(`[admin-data] Failed to delete instance from provider`, {
         providerInstanceId: trimmedProviderId || null,
         label: trimmedLabel || null,
         hasToken: !!trimmedToken,
         attempted,
+        tokenWave: tokenWave?.debugResults?.slice(0, 6) || [],
+        adminWave: adminWave?.debugResults?.slice(0, 8) || [],
       });
       return {
         deleted: false,
