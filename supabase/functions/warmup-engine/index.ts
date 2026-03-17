@@ -397,10 +397,11 @@ async function ensureJoinGroupJobs(
 
   if (existingJoinJobs && existingJoinJobs.length > 0) return 0;
 
-  // Find groups that haven't been joined yet (by device_id, not cycle)
+  // Find groups that haven't been joined yet for the CURRENT cycle only
   const { data: pendingGroups } = await db
     .from("warmup_instance_groups")
     .select("group_id, group_name, invite_link")
+    .eq("cycle_id", cycleId)
     .eq("device_id", deviceId)
     .eq("join_status", "pending");
 

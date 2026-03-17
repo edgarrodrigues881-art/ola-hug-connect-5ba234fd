@@ -334,7 +334,9 @@ async function ensureJoinGroupJobs(db: any, cycleId: string, userId: string, dev
 
   const { data: pending } = await db.from("warmup_instance_groups")
     .select("group_id, group_name, invite_link")
-    .eq("device_id", deviceId).eq("join_status", "pending");
+    .eq("cycle_id", cycleId)
+    .eq("device_id", deviceId)
+    .eq("join_status", "pending");
   if (!pending?.length) return 0;
 
   const shuffled = pending.sort(() => Math.random() - 0.5);
