@@ -476,6 +476,7 @@ const WarmupInstances = () => {
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkInstanceSearch, setBulkInstanceSearch] = useState("");
   const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
   const [bulkDaysTotal, setBulkDaysTotal] = useState("30");
   const [bulkStartDay, setBulkStartDay] = useState("1");
@@ -488,6 +489,7 @@ const WarmupInstances = () => {
 
   const openBulkWarmupDialog = useCallback(() => {
     setBulkSelected(new Set());
+    setBulkInstanceSearch("");
     setBulkChipState("new");
     setBulkStartDay("1");
     setBulkDaysTotal("14");
@@ -1739,14 +1741,30 @@ const WarmupInstances = () => {
                   {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
               </div>
+
+              {/* Search bar */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 pointer-events-none" />
+                <Input
+                  value={bulkInstanceSearch}
+                  onChange={(e) => setBulkInstanceSearch(e.target.value)}
+                  placeholder="Buscar instância por nome ou número..."
+                  className="h-9 pl-9 text-xs bg-card/30 backdrop-blur-sm border-border/20 focus-visible:border-primary/40 rounded-xl"
+                />
+              </div>
+
                <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
-                {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status)).length === 0 ? (
+                {(() => {
+                  const src = (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status));
+                  const q = bulkInstanceSearch.trim().toLowerCase();
+                  const list = q ? src.filter(d => d.name.toLowerCase().includes(q) || (d.number || "").includes(q)) : src;
+                  return list.length === 0 ? (
                   <div className="flex flex-col items-center py-8 gap-2">
                     <Smartphone className="w-6 h-6 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground/60 font-medium">Nenhuma instância disponível</p>
+                    <p className="text-xs text-muted-foreground/60 font-medium">{q ? "Nenhum resultado" : "Nenhuma instância disponível"}</p>
                   </div>
                 ) : (
-                  (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status)).map(d => {
+                  list.map(d => {
                     const isWarming = cycleByDeviceId.has(d.id);
                     return (
                     <div
@@ -1806,7 +1824,8 @@ const WarmupInstances = () => {
                     </div>
                     );
                   })
-                )}
+                )})()}
+
               </div>
                <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
                 {bulkSelected.size} de {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
