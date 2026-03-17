@@ -518,11 +518,17 @@ Deno.serve(async (req) => {
             autoAssignedTokenId = newTokenId;
             console.log(`[evolution-connect] on-demand token created: ${instName} for ${deviceId.substring(0, 8)}`);
             await oplog(svc, user.id, "token_on_demand", `Token gerado sob demanda: ${instName}`, deviceId, { label: instName });
+          } else {
+            console.log(`[evolution-connect] on-demand creation FAILED: ${createResult.error}`);
+            await oplog(svc, user.id, "token_on_demand_failed", `Falha ao criar token sob demanda: ${createResult.error}`, deviceId);
           }
+        } else {
+          console.log(`[evolution-connect] cannot create on-demand: BASE_URL=${BASE_URL ? 'set' : 'MISSING'} ADMIN_TOKEN=${ADMIN_TOKEN ? 'set' : 'MISSING'}`);
         }
       }
 
       if (!instanceToken) {
+        console.log(`[evolution-connect] NO TOKEN AVAILABLE for device=${deviceId.substring(0, 8)} user=${user.id.substring(0, 8)}`);
         return json({ error: "Nenhum token disponível. Solicite ao administrador.", code: "NO_TOKEN" }, 400);
       }
 
