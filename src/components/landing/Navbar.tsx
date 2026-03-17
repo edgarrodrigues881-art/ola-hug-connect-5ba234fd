@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Flame } from "lucide-react";
 import logo from "@/assets/logo-new.png";
 
 const Navbar = () => {
