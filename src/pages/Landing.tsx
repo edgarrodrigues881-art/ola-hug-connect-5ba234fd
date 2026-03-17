@@ -340,7 +340,8 @@ const Landing = () => {
         <HowItWorks />
         <Features />
         <Plans />
-        
+        <CommunitySection />
+       
         <FAQ />
         
         <FooterSection />
