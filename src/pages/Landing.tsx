@@ -47,9 +47,10 @@ const Navbar = () => {
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-7">
-          {[["beneficios", "Benefícios"], ["como-funciona", "Como funciona"], ["recursos", "Recursos"], ["planos", "Planos"], ["comunidade", "Comunidade"]].map(([id, label]) => (
+          {[["beneficios", "Benefícios"], ["como-funciona", "Como funciona"], ["recursos", "Recursos"], ["planos", "Planos"]].map(([id, label]) => (
             <button key={id} onClick={() => scroll(id)} className="text-[13px] font-medium text-white/45 hover:text-white transition-colors">{label}</button>
           ))}
+          <button onClick={() => scroll("comunidade")} className="text-[13px] font-semibold text-amber-400 hover:text-amber-300 transition-colors border border-amber-500/30 rounded-full px-4 py-1.5 bg-amber-500/10 hover:bg-amber-500/15">⭐ Comunidade</button>
         </nav>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-xs font-medium text-white/50 hover:text-white hover:bg-white/5">Entrar</Button>
