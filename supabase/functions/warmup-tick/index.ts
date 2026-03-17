@@ -1809,36 +1809,52 @@ async function handleTick(db: any) {
         let groupName = "Grupo";
         let targetGroupId: string | null = null;
 
-        if (joinedGroups.length > 0) {
-          const target = pickRandom(joinedGroups);
-          targetGroupId = target.group_id;
-          const grpRef = groupsMap[target.group_id];
-          groupName = grpRef?.name || target.group_name || "Grupo";
-
-          // Resolve JID by DB, fallback by invite link JID, then live lookup by name
-          groupJid = target.group_jid;
-          if (!groupJid && (target.invite_link || grpRef?.external_group_ref)?.includes("@g.us")) {
-            groupJid = target.invite_link || grpRef?.external_group_ref;
-          }
-          if (!groupJid) {
-            try {
-              if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
+        // Helper: try to resolve JID for a specific group
+        const resolveJidForGroup = async (target: any): Promise<string | null> => {
+          if (target.group_jid) return target.group_jid;
+          
+          // Try live lookup by name
+          try {
+            if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
+            const grpRef = groupsMap[target.group_id];
+            const targetName = norm(grpRef?.name || target.group_name || "");
+            if (targetName) {
               const match = liveGroupsCache.find((g: any) =>
-                norm(g.subject || g.name || g.Name || g.title || "") === norm(groupName)
+                norm(g.subject || g.name || g.Name || g.title || "") === targetName
               );
               if (match) {
-                groupJid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
-                if (groupJid) {
+                const jid = match.jid || match.id || match.JID || match.groupJid || match.chatId;
+                if (jid) {
                   await db.from("warmup_instance_groups")
-                    .update({ group_jid: groupJid })
+                    .update({ group_jid: jid })
                     .eq("device_id", job.device_id)
                     .eq("group_id", target.group_id);
+                  target.group_jid = jid;
+                  return jid;
                 }
               }
-            } catch { /* ignore */ }
+            }
+          } catch { /* ignore */ }
+          return null;
+        };
+
+        if (joinedGroups.length > 0) {
+          // Shuffle and try all joined groups until we find one with a resolvable JID
+          const shuffled = joinedGroups.sort(() => Math.random() - 0.5);
+          for (const target of shuffled) {
+            const jid = await resolveJidForGroup(target);
+            if (jid) {
+              groupJid = jid;
+              targetGroupId = target.group_id;
+              const grpRef = groupsMap[target.group_id];
+              groupName = grpRef?.name || target.group_name || "Grupo";
+              break;
+            }
           }
-        } else {
-          // Fallback resiliente: se não há mapeamento joined no banco, usa grupo real do dispositivo
+        }
+
+        // Fallback: if no joined group has a resolvable JID, use any live group from device
+        if (!groupJid) {
           try {
             if (!liveGroupsCache.length) liveGroupsCache = await fetchLiveGroups();
           } catch { /* ignore */ }
@@ -1858,9 +1874,9 @@ async function handleTick(db: any) {
               level: "error",
               event_type: "group_live_discovery_empty",
               message: "Nenhum grupo retornado pelos endpoints de descoberta",
-              meta: { fetched_count: liveGroupsCache.length },
+              meta: { fetched_count: liveGroupsCache.length, joined_count: joinedGroups.length },
             });
-            throw new Error("Nenhum grupo joined (mesmo após auto-sync)");
+            throw new Error("Nenhum grupo com JID resolvido (aguardando entrada nos grupos)");
           }
 
           const fallbackGroup = pickRandom(candidates);
@@ -1870,7 +1886,7 @@ async function handleTick(db: any) {
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "group_fallback_live_jid",
-            message: `Sem mapeamento joined no banco. Usando grupo real do dispositivo: ${groupName}`,
+            message: `Sem JID no banco. Usando grupo real do dispositivo: ${groupName}`,
             meta: { group_jid: groupJid },
           });
         }
