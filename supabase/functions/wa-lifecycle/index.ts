@@ -394,20 +394,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 3) Trigger process-message-queue to send the queued messages
+      // 3) DO NOT trigger process-message-queue immediately.
+      // Messages stay as "pending" so admin can review them in the BackOffice.
+      // The process-message-queue cron (every 5 min) will pick them up
+      // only within the 09:00-19:00 BRT sending window.
       if (queued > 0) {
-        try {
-          const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
-          const processUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-message-queue`;
-          const processRes = await fetch(processUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-cron-secret": tickSecret },
-          });
-          const processData = await processRes.json();
-          console.log(`[wa-lifecycle] process-message-queue result:`, JSON.stringify(processData));
-        } catch (e) {
-          console.error("[wa-lifecycle] Failed to trigger process-message-queue:", e.message);
-        }
+        console.log(`[wa-lifecycle] ${queued} messages queued as pending. Will be sent by cron within 09-19h BRT window.`);
       }
 
       console.log(`[wa-lifecycle] Cron completed: ${alertsSent} group alerts, ${queued} messages queued, ${totalDevices} total devices`);
