@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_connection_purposes: {
+        Row: {
+          device_id: string | null
+          group_id: string | null
+          group_name: string | null
+          id: string
+          label: string
+          purpose: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          device_id?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          label: string
+          purpose: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          device_id?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          label?: string
+          purpose?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_connection_purposes_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_costs: {
         Row: {
           admin_id: string
@@ -41,6 +82,42 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      admin_dispatch_templates: {
+        Row: {
+          admin_id: string
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          admin_id: string
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          admin_id?: string
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          variables?: Json
         }
         Relationships: []
       }

@@ -6,7 +6,8 @@ import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
-  AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key
+  AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key,
+  Send, FileText, Cable
 } from "lucide-react";
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,9 @@ const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
 const AdminConexao = lazy(() => import("./AdminConexao"));
 const AdminTokensGlobal = lazy(() => import("./AdminTokensGlobal"));
+const AdminDispatchTemplates = lazy(() => import("./AdminDispatchTemplates"));
+const AdminDispatch = lazy(() => import("./AdminDispatch"));
+const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
@@ -48,19 +52,21 @@ const NAV_ITEMS = [
   { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
   { id: "messages", label: "Relatório WhatsApp", shortLabel: "Relatório", icon: MessageCircle, group: "principal", badge: false },
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
-  { id: "conexao", label: "Conexão", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
+  { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
+
+  { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
+  { id: "dispatch", label: "Disparar", shortLabel: "Disparar", icon: Send, group: "disparo", badge: false },
+  { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "disparo", badge: false },
+
   { id: "groups-pool", label: "Grupo De Aquecimento", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
-  
-  
-  
   { id: "tokens-global", label: "Tokens Globais", shortLabel: "Tokens", icon: Key, group: "sistema", badge: false },
   { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
-  
   { id: "msg-generator", label: "Gerador de Mensagens", shortLabel: "Gerador", icon: Sparkles, group: "operacao", badge: false },
 ] as const;
 
 const GROUP_LABELS: Record<string, string> = {
   principal: "Principal",
+  disparo: "Disparo",
   gestao: "Gestão",
   operacao: "Operação",
   sistema: "Sistema",
@@ -395,6 +401,9 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         case "pendencias": return <PendenciasTab onSelectClient={handleSelectClient} users={data?.users || []} />;
         case "messages": return <AdminMessages />;
         case "conexao": return <AdminConexao />;
+        case "dispatch-templates": return <AdminDispatchTemplates />;
+        case "dispatch": return <AdminDispatch />;
+        case "dispatch-connections": return <AdminConnectionPurposes />;
         case "logs": return <AdminLogs />;
         case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
         case "groups-pool": return <AdminGroupsPool />;
