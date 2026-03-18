@@ -633,3 +633,14 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes warmup-glow-spin {
+  0% { --glow-angle: 0deg; }
+  100% { --glow-angle: 360deg; }
+}
