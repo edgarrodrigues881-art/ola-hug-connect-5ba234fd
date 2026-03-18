@@ -71,7 +71,7 @@ className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !sha
                 type="source"
                 position={Position.Right}
                 id={`btn-${btn.id}`}
-                className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-card !rounded-full !right-[-5px] !shadow-[0_0_4px_hsl(var(--primary)/0.25)] !transition-all !duration-150 hover:!scale-125"
+                className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-card !rounded-full !right-[-5px] !shadow-[0_0_4px_hsl(var(--primary)/0.25)]"
               />
             </div>
           ))}
