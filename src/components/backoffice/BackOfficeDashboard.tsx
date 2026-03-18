@@ -310,10 +310,12 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
           ))}
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
-              {/* Logo with golden glow */}
+              {/* Logo with golden ring */}
               <div className="relative">
                 <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
-                <img src={logoNew} alt="DG Logo" className="w-10 h-10 rounded-xl relative z-10" />
+                <div className="relative z-10 p-[2px] rounded-xl bg-gradient-to-br from-primary via-primary/60 to-primary">
+                  <img src={logoNew} alt="DG Logo" className="w-10 h-10 rounded-[10px] block" />
+                </div>
               </div>
               <div>
                 <h1 className="text-sm font-bold tracking-tight">

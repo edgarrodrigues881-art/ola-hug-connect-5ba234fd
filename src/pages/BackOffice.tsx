@@ -110,10 +110,12 @@ const BackOffice = () => {
         ))}
         <div className="w-full max-w-[400px] relative z-10">
           <div className="text-center mb-8">
-            {/* Logo with golden glow */}
+            {/* Logo with golden ring */}
             <div className="relative inline-block mb-4">
               <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl scale-150" />
-              <img src={logoNew} alt="DG Logo" className="w-20 h-20 rounded-2xl relative z-10 mx-auto" />
+              <div className="relative z-10 p-[3px] rounded-2xl bg-gradient-to-br from-primary via-primary/60 to-primary">
+                <img src={logoNew} alt="DG Logo" className="w-20 h-20 rounded-[13px] block" />
+              </div>
             </div>
             <h1 className="text-2xl font-bold tracking-tight">
               <span className="text-primary">DG</span>{" "}
