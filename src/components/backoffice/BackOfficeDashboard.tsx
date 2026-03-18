@@ -587,10 +587,13 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
                     <button
                       key={item.id}
                       onClick={() => {
-                        const routeTabs = ["bo-campaigns", "bo-campaign-list", "bo-campaign-detail"];
-                        if (routeTabs.includes(item.id)) {
-                          const routes: Record<string, string> = { "bo-campaigns": "/backoffice/campaigns", "bo-campaign-list": "/backoffice/campaign-list" };
-                          if (routes[item.id]) navigate(routes[item.id]);
+                        const routes: Record<string, string> = {
+                          overview: "/backoffice",
+                          "bo-campaigns": "/backoffice/campaigns",
+                          "bo-campaign-list": "/backoffice/campaign-list",
+                        };
+                        if (routes[item.id]) {
+                          navigate(routes[item.id]);
                         }
                         setActiveTab(item.id); setSidebarOpen(false);
                       }}
