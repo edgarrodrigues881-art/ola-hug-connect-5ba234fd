@@ -98,6 +98,8 @@ export default function AdminDispatch() {
   const [templateId, setTemplateId] = useState<string>("custom");
   const [customMessage, setCustomMessage] = useState("");
   const [connectionPurpose, setConnectionPurpose] = useState("dispatch");
+  const [minDelay, setMinDelay] = useState(5);
+  const [maxDelay, setMaxDelay] = useState(15);
   const [dispatching, setDispatching] = useState(false);
   const [result, setResult] = useState<{ ok: number; fail: number } | null>(null);
 
