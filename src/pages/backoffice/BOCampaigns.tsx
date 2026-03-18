@@ -134,8 +134,7 @@ const Campaigns = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { isBlocked, planState } = usePlanGate();
-  const [planGateOpen, setPlanGateOpen] = useState(false);
+  const isBlocked = false; // Admin bypass
   // Removed: useAutoSyncDevices already runs in DashboardLayout — no duplicate needed
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
