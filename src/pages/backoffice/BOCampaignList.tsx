@@ -201,7 +201,7 @@ const CampaignList = () => {
                 <div
                   key={c.id}
                   className="group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-100 hover:bg-muted/20"
-                  onClick={() => navigate(`/dashboard/campaign/${c.id}`)}
+                  onClick={() => navigate(`/backoffice/campaign/${c.id}`)}
                 >
                   {/* Name + Status */}
                   <div className="flex-1 min-w-0">

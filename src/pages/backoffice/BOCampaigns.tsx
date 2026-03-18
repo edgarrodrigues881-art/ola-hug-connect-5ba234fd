@@ -2487,7 +2487,6 @@ const Campaigns = () => {
         </DialogContent>
       </Dialog>
 
-      <PlanGateDialog open={planGateOpen} onOpenChange={setPlanGateOpen} planState={planState} />
     </div>
   );
 };
