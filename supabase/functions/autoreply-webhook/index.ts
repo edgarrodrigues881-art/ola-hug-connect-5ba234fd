@@ -367,6 +367,7 @@ Deno.serve(async (req) => {
 
     // ── Find the device by explicit device id, fallback to token ──
     if (!deviceHeaderId && !instanceToken) {
+      console.log("[autoreply] SKIP: no device identifier (no token, no deviceId header)");
       return json({ ok: true, skipped: true, reason: "no_device_identifier" });
     }
 
@@ -379,19 +380,47 @@ Deno.serve(async (req) => {
         .eq("id", deviceHeaderId)
         .maybeSingle();
       device = data;
+      if (device) console.log(`[autoreply] Device found by header id: ${device.id}`);
     }
 
     if (!device && instanceToken) {
+      // Try direct token match first
       const { data } = await supabase
         .from("devices")
         .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
         .eq("uazapi_token", instanceToken)
         .maybeSingle();
       device = data;
+      
+      // If not found, try via user_api_tokens pool
+      if (!device) {
+        const { data: poolRow } = await supabase
+          .from("user_api_tokens")
+          .select("device_id, token")
+          .eq("token", instanceToken)
+          .eq("status", "in_use")
+          .maybeSingle();
+        
+        if (poolRow?.device_id) {
+          const { data: poolDevice } = await supabase
+            .from("devices")
+            .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
+            .eq("id", poolRow.device_id)
+            .maybeSingle();
+          device = poolDevice;
+          if (device) {
+            // Use the pool token for sending
+            device.uazapi_token = poolRow.token;
+            console.log(`[autoreply] Device found via token pool: ${device.id}`);
+          }
+        }
+      } else {
+        console.log(`[autoreply] Device found by token: ${device.id}`);
+      }
     }
 
     if (!device) {
-      console.log("[autoreply] Device not found for webhook identifiers");
+      console.log(`[autoreply] SKIP: Device not found for token=${instanceToken?.substring(0, 8)}... deviceId=${deviceHeaderId}`);
       return json({ ok: true, skipped: true, reason: "device_not_found" });
     }
 
