@@ -256,6 +256,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── RANDOM DELAY 1-4 MINUTES before processing to avoid spam ──
+    const delayMinutes = 1 + Math.random() * 3; // 1 to 4 minutes
+    const delayMs = Math.floor(delayMinutes * 60_000);
+    console.log(`[process-mq] Waiting ${Math.round(delayMinutes * 10) / 10} min (${delayMs}ms) before processing...`);
+    await new Promise((r) => setTimeout(r, delayMs));
+
     console.log("[process-mq] Starting queue processing...");
 
     // Get device credentials for sending
@@ -270,8 +276,8 @@ Deno.serve(async (req) => {
     // Load templates from DB
     const templates = await loadTemplates(adminClient);
 
-    // Atomically claim pending messages using FOR UPDATE SKIP LOCKED
-    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 50 });
+    // Process only 1 message per cron tick (delay of 1-4 min between messages is handled by cron interval)
+    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 1 });
 
     if (claimErr) {
       console.error("[process-mq] Claim error:", claimErr.message);
@@ -376,12 +382,7 @@ Deno.serve(async (req) => {
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${nome}: ${result.error}`);
       }
 
-      // Random delay between 3-8 seconds
-      if (pendingItems.indexOf(item) < pendingItems.length - 1) {
-        const delayMs = Math.floor(Math.random() * 5000) + 3000;
-        console.log(`[process-mq] Waiting ${delayMs}ms before next...`);
-        await randomDelay(delayMs, delayMs);
-      }
+      // Only 1 message per tick — next message will be sent on next cron execution
     }
 
     console.log(`[process-mq] Done: ${sent} sent, ${failed} failed`);
