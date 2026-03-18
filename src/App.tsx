@@ -58,15 +58,7 @@ const WarmupInstanceDetail = lazyRetry(() => import("./pages/dashboard/WarmupIns
 const AutoSave = lazyRetry(() => import("./pages/dashboard/AutoSave"));
 const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
 const Community = lazyRetry(() => import("./pages/dashboard/Community"));
-const AutoReply = lazyRetry(() => import("./pages/dashboard/AutoReply"));
-const AutoReplyList = lazyRetry(() => import("./pages/dashboard/AutoReplyList"));
-
-const AutoReplyComingSoon = lazy(() => Promise.resolve({
-  default: () => {
-    const navigate = (await import("react-router-dom")).useNavigate;
-    return null;
-  }
-}));
+const AutoReplyComingSoon = lazyRetry(() => import("./pages/dashboard/AutoReplyComingSoon"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
