@@ -170,6 +170,36 @@ const phaseShort: Record<string, string> = {
 };
 
 const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const getWarmupProgress = (cycle?: {
+  started_at?: string;
+  days_total?: number;
+  day_index?: number;
+  phase?: string;
+  is_running?: boolean;
+} | null) => {
+  if (!cycle) return null;
+
+  const totalDays = Math.max(cycle.days_total ?? 1, 1);
+
+  if (cycle.phase === "completed") return 100;
+
+  if (!cycle.is_running || cycle.phase === "paused" || cycle.phase === "error") {
+    return Math.min(99, Math.max(0, Math.round((((cycle.day_index ?? 1) - 1) / totalDays) * 100)));
+  }
+
+  const startedAtMs = cycle.started_at ? new Date(cycle.started_at).getTime() : Number.NaN;
+
+  if (!Number.isFinite(startedAtMs)) {
+    return Math.min(99, Math.max(0, Math.round((((cycle.day_index ?? 1) - 1) / totalDays) * 100)));
+  }
+
+  const elapsedMs = Math.max(Date.now() - startedAtMs, 0);
+  const totalDurationMs = totalDays * DAY_IN_MS;
+
+  return Math.min(99, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)));
+};
 
 const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick, onRemoveFromFolder }: {
   device: any;
@@ -187,6 +217,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
 }) => {
   const connected = CONNECTED_STATUSES.includes(device.status);
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
+  const warmupProgress = getWarmupProgress(cycle);
 
   return (
     <div
@@ -216,11 +247,11 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
         <div className="flex items-center gap-1.5">
-          {cycle && (
+          {cycle && warmupProgress !== null && (
             <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/25 rounded-full px-2 py-0.5">
               <Flame className="w-3 h-3 text-orange-400" />
               <span className="text-[10px] font-bold text-orange-400">
-                {Math.round((cycle.day_index / cycle.days_total) * 100)}%
+                {warmupProgress}%
               </span>
             </div>
           )}
