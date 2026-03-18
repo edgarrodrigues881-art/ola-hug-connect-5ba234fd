@@ -74,6 +74,7 @@ export default function AdminAnnouncements() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewFromEditor, setPreviewFromEditor] = useState(false);
   const [previewData, setPreviewData] = useState<typeof defaultForm | null>(null);
 
   const { data: announcements = [], isLoading } = useQuery({
