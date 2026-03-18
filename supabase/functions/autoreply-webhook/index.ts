@@ -367,6 +367,7 @@ Deno.serve(async (req) => {
 
     // ── Find the device by explicit device id, fallback to token ──
     if (!deviceHeaderId && !instanceToken) {
+      console.log("[autoreply] SKIP: no device identifier (no token, no deviceId header)");
       return json({ ok: true, skipped: true, reason: "no_device_identifier" });
     }
 
@@ -379,19 +380,47 @@ Deno.serve(async (req) => {
         .eq("id", deviceHeaderId)
         .maybeSingle();
       device = data;
+      if (device) console.log(`[autoreply] Device found by header id: ${device.id}`);
     }
 
     if (!device && instanceToken) {
+      // Try direct token match first
       const { data } = await supabase
         .from("devices")
         .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
         .eq("uazapi_token", instanceToken)
         .maybeSingle();
       device = data;
+      
+      // If not found, try via user_api_tokens pool
+      if (!device) {
+        const { data: poolRow } = await supabase
+          .from("user_api_tokens")
+          .select("device_id, token")
+          .eq("token", instanceToken)
+          .eq("status", "in_use")
+          .maybeSingle();
+        
+        if (poolRow?.device_id) {
+          const { data: poolDevice } = await supabase
+            .from("devices")
+            .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
+            .eq("id", poolRow.device_id)
+            .maybeSingle();
+          device = poolDevice;
+          if (device) {
+            // Use the pool token for sending
+            device.uazapi_token = poolRow.token;
+            console.log(`[autoreply] Device found via token pool: ${device.id}`);
+          }
+        }
+      } else {
+        console.log(`[autoreply] Device found by token: ${device.id}`);
+      }
     }
 
     if (!device) {
-      console.log("[autoreply] Device not found for webhook identifiers");
+      console.log(`[autoreply] SKIP: Device not found for token=${instanceToken?.substring(0, 8)}... deviceId=${deviceHeaderId}`);
       return json({ ok: true, skipped: true, reason: "device_not_found" });
     }
 
@@ -436,6 +465,7 @@ Deno.serve(async (req) => {
       .eq("is_active", true);
 
     if (!flows || flows.length === 0) {
+      console.log(`[autoreply] SKIP: No active flows for user ${userId}`);
       return json({ ok: true, skipped: true, reason: "no_active_flows" });
     }
 
@@ -444,7 +474,10 @@ Deno.serve(async (req) => {
       (f) => !f.device_id || f.device_id === deviceId
     );
 
+    console.log(`[autoreply] Device ${deviceId}: ${flows.length} active flows, ${matchingFlows.length} matching this device`);
+
     if (matchingFlows.length === 0) {
+      console.log(`[autoreply] SKIP: No flows matching device ${deviceId}. Flow device_ids: ${flows.map((f: any) => f.device_id).join(", ")}`);
       return json({ ok: true, skipped: true, reason: "no_matching_flows" });
     }
 
@@ -586,21 +619,21 @@ Deno.serve(async (req) => {
     }
 
     // ── No active session — check if message matches any flow trigger ──
-    // Guard: if there's already a recent session (active, completed, or paused) for this contact
-    // in the last 2 hours, do NOT re-trigger the flow (prevents template re-sends)
+    // Guard: only block re-trigger if there's an ACTIVE session (not completed/paused)
+    // Completed/paused sessions should allow re-triggering the flow
     const { data: recentExistingSession } = await supabase
       .from("autoreply_sessions")
       .select("id, status, last_message_at")
       .eq("device_id", deviceId)
       .eq("contact_phone", fromPhone)
-      .in("status", ["active", "completed", "paused"])
-      .gte("last_message_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+      .eq("status", "active")
+      .gte("last_message_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (recentExistingSession) {
-      console.log(`[autoreply] Skipping re-trigger: recent session ${recentExistingSession.id} status=${recentExistingSession.status} for ${fromPhone}`);
+      console.log(`[autoreply] SKIP re-trigger: active session ${recentExistingSession.id} for ${fromPhone} (last msg ${recentExistingSession.last_message_at})`);
       return json({ ok: true, skipped: true, reason: "recent_session_exists" });
     }
 
@@ -617,11 +650,18 @@ Deno.serve(async (req) => {
       const edges = flow.edges as FlowEdge[];
 
       const startNode = nodes.find((n) => n.type === "startNode");
-      if (!startNode) continue;
+      if (!startNode) {
+        console.log(`[autoreply] Flow ${flow.id} has no startNode, skipping`);
+        continue;
+      }
 
-      if (!matchesTrigger(startNode, messageText, isFirstMessage)) continue;
+      const triggerType = startNode.data.trigger || "any_message";
+      if (!matchesTrigger(startNode, messageText, isFirstMessage)) {
+        console.log(`[autoreply] Flow ${flow.id} trigger "${triggerType}" did NOT match text "${messageText.substring(0, 50)}" (keyword="${startNode.data.keyword || ""}")`);
+        continue;
+      }
 
-      console.log(`[autoreply] Flow ${flow.id} matched for ${fromPhone}`);
+      console.log(`[autoreply] ✅ Flow ${flow.id} MATCHED for ${fromPhone} (trigger=${triggerType})`);
 
       // Create or reset session
       const { data: newSession, error: sessErr } = await supabase
@@ -663,7 +703,6 @@ Deno.serve(async (req) => {
           return json({ error: "Failed to send start message", details: sendErr instanceof Error ? sendErr.message : String(sendErr) }, 502);
         }
 
-        // Update session to start node
         await supabase
           .from("autoreply_sessions")
           .update({
@@ -673,7 +712,6 @@ Deno.serve(async (req) => {
           })
           .eq("id", newSession!.id);
 
-        // If there are buttons, wait for response
         if (startNode.data.buttons?.length) {
           return json({ ok: true, action: "start_with_buttons" });
         }
@@ -682,13 +720,16 @@ Deno.serve(async (req) => {
       // Process the chain of connected nodes
       const nextNodes = findNextNodes(startNode.id, edges);
       if (nextNodes.length > 0) {
+        console.log(`[autoreply] Processing chain from startNode → ${nextNodes[0]}`);
         await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, nextNodes[0], nodes, edges, newSession!.id, flow.id, deviceId, userId);
+      } else {
+        console.log(`[autoreply] No edges from startNode, flow has no next steps`);
       }
 
       return json({ ok: true, action: "flow_started" });
     }
 
-    return json({ ok: true, skipped: true, reason: "no_trigger_match" });
+    console.log(`[autoreply] SKIP: No trigger matched for "${messageText.substring(0, 50)}" on device ${deviceId}`);
   } catch (err) {
     console.error("[autoreply] Error:", err);
     return json({ error: "Internal error", details: err instanceof Error ? err.message : String(err) }, 500);
