@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { BarChart3 } from "lucide-react";
 import { format, eachMonthOfInterval, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -79,34 +80,37 @@ const RevenueChart = ({ payments, costs }: RevenueChartProps) => {
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
-      <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] mb-4">Receita Mensal (6 meses)</p>
+    <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
+      <div className="flex items-center gap-2 mb-5">
+        <BarChart3 size={16} className="text-primary" />
+        <p className="text-xs font-bold text-foreground uppercase tracking-[0.12em]">Receita Mensal (6 meses)</p>
+      </div>
       <div className="h-[240px] sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barGap={2} barCategoryGap="20%">
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 5% 18%)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 14%)" vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 11, fill: "hsl(240 5% 55%)", fontWeight: 500 }}
+              tick={{ fontSize: 11, fill: "hsl(0 0% 45%)", fontWeight: 500 }}
               tickLine={false}
-              axisLine={{ stroke: "hsl(240 5% 18%)" }}
+              axisLine={{ stroke: "hsl(0 0% 14%)" }}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "hsl(240 5% 55%)", fontWeight: 500 }}
+              tick={{ fontSize: 11, fill: "hsl(0 0% 45%)", fontWeight: 500 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => `R$${(v / 1000).toFixed(v >= 1000 ? 1 : 0)}${v >= 1000 ? "k" : ""}`}
               width={55}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(240 5% 14%)" }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(0 0% 10%)" }} />
             <Legend
               iconType="square"
               iconSize={10}
-              wrapperStyle={{ fontSize: "11px", color: "hsl(240 5% 55%)", paddingTop: "8px", fontWeight: 500 }}
+              wrapperStyle={{ fontSize: "11px", color: "hsl(0 0% 45%)", paddingTop: "8px", fontWeight: 500 }}
             />
             <Bar dataKey="Recebida" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
             <Bar dataKey="Custos" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
-            <Bar dataKey="Líquida" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="Líquida" fill="#60a5fa" radius={[4, 4, 0, 0]} maxBarSize={32} />
           </BarChart>
         </ResponsiveContainer>
       </div>
