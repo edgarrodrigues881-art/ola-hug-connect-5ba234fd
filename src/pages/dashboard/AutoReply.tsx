@@ -343,6 +343,8 @@ function FlowCanvas() {
         onToggleActive={() => setIsActive(!isActive)}
         onSave={handleSave}
         saving={saving}
+        deviceId={deviceId}
+        onDeviceChange={setDeviceId}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <FlowSidebar />
