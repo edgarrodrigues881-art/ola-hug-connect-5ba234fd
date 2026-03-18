@@ -109,6 +109,51 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
     }
   }, [deleteTarget, queryClient]);
 
+  const handleDispatch = useCallback(async () => {
+    if (!dispatchMessage.trim() && dispatchType === "custom") {
+      toast.error("Digite a mensagem para enviar");
+      return;
+    }
+    setDispatching(true);
+    setDispatchResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUsers = filtered.map(u => ({
+        user_id: u.id,
+        phone: u.phone,
+        name: u.full_name || u.email,
+        email: u.email,
+        plan_name: u.plan_name,
+      }));
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=bulk-dispatch`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            targets: targetUsers,
+            message_type: dispatchType,
+            message_content: dispatchMessage.trim(),
+          }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Erro ao disparar");
+      setDispatchResult({ ok: result.enqueued || targetUsers.length, fail: result.failed || 0 });
+      toast.success(`Disparo enfileirado para ${result.enqueued || targetUsers.length} clientes`);
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao disparar mensagens");
+    } finally {
+      setDispatching(false);
+    }
+  }, [filtered, dispatchType, dispatchMessage, queryClient]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter(u => {
