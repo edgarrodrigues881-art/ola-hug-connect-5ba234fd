@@ -32,6 +32,7 @@ import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
 import { useSidebarStats } from "@/hooks/useSidebarStats";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
+import { useFeatureControls } from "@/hooks/useFeatureControls";
 import logo from "@/assets/logo-new.png";
 
 import {
