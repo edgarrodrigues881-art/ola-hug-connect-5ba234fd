@@ -1,5 +1,4 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useCallback, useRef, useMemo } from "react";
 import {
   ReactFlow,
   Controls,
@@ -47,22 +46,6 @@ const defaultNodes: Node<FlowNodeData>[] = [
 ];
 
 const defaultEdges: Edge[] = [];
-
-function getInitialData(): { nodes: Node<FlowNodeData>[]; edges: Edge[]; name: string } {
-  try {
-    const raw = sessionStorage.getItem("autoreply_template");
-    if (raw) {
-      sessionStorage.removeItem("autoreply_template");
-      const parsed = JSON.parse(raw);
-      return {
-        nodes: parsed.nodes || defaultNodes,
-        edges: parsed.edges || defaultEdges,
-        name: parsed.name || "Minha Automação",
-      };
-    }
-  } catch {}
-  return { nodes: defaultNodes, edges: defaultEdges, name: "Minha Automação" };
-}
 
 let nodeId = 100;
 
