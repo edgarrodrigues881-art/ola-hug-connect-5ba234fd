@@ -832,12 +832,56 @@ export default function AdminDispatch() {
                   {dispatchConnection?.device_id ? (dispatchDevice ? `${dispatchDeviceNumber} · ${dispatchDeviceConnected ? "Conectada ✓" : "Configurada ✓"}` : "Configurada ✓") : "Sem dispositivo ⚠"}
                 </p>
               </div>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Intervalo</p>
+                <p className="text-sm font-semibold text-foreground">{minDelay}s – {maxDelay}s</p>
+                <p className="text-[11px] text-muted-foreground">entre cada envio</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Tempo estimado</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {(() => {
+                    const avg = (minDelay + maxDelay) / 2;
+                    const totalSec = avg * effectiveSelected.size;
+                    if (totalSec < 60) return `~${Math.round(totalSec)}s`;
+                    if (totalSec < 3600) return `~${Math.round(totalSec / 60)} min`;
+                    return `~${(totalSec / 3600).toFixed(1)}h`;
+                  })()}
+                </p>
+                <p className="text-[11px] text-muted-foreground">aprox. total</p>
+              </div>
             </div>
 
+            {/* WhatsApp-style message preview */}
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-2">Mensagem</p>
-              <div className="bg-muted/30 border border-border/40 rounded-lg p-4 max-h-40 overflow-y-auto">
-                <p className="text-sm whitespace-pre-wrap text-foreground">{messageContent}</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-2">Prévia da Mensagem</p>
+              <div className="bg-[#0b1418] rounded-xl p-4 max-w-sm mx-auto">
+                <div className="bg-[#005c4b] rounded-lg p-3 ml-auto max-w-[90%]">
+                  {selectedTemplate?.media_url && (
+                    <div className="mb-2 rounded overflow-hidden bg-black/20 flex items-center justify-center h-32 text-xs text-white/40">
+                      📎 Mídia anexada
+                    </div>
+                  )}
+                  <p className="text-[13px] whitespace-pre-wrap text-white leading-relaxed">{messageContent || "(mensagem vazia)"}</p>
+                  {/* Buttons */}
+                  {(() => {
+                    const buttons = templateId !== "custom" && selectedTemplate
+                      ? (selectedTemplate as any).buttons || (selectedTemplate as any).variables?.buttons
+                      : [];
+                    const btnArray = Array.isArray(buttons) ? buttons : [];
+                    if (btnArray.length === 0) return null;
+                    return (
+                      <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
+                        {btnArray.map((btn: any, i: number) => (
+                          <div key={i} className="text-center py-1.5 rounded bg-white/5 text-[12px] text-[#53bdeb] font-medium">
+                            {btn.text || btn.label || btn.title || `Botão ${i + 1}`}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  <p className="text-[10px] text-white/40 text-right mt-1">agora</p>
+                </div>
               </div>
             </div>
           </div>
