@@ -190,11 +190,11 @@ Deno.serve(async (req) => {
     }
 
     // ── Parse incoming message from UaZapi webhook ──
-    const event = body.event || body.type || "";
+    const event = body.event || body.EventType || body.type || "";
     const msgData = body.data || body;
 
-    // Log raw payload for debugging (first 800 chars)
-    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 800)}`);
+    // Log raw payload for debugging (first 1200 chars)
+    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 1200)}`);
 
     // Extract message details
     let fromPhone = "";
@@ -228,48 +228,99 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid webhook secret" }, 401);
     }
 
-    // UaZapi format
-    if (msgData.key) {
+    // ── UaZapi NATIVE format (EventType + chat object) ──
+    if (body.EventType === "messages" && body.chat) {
+      // Extract phone from chat object
+      const chatPhone = body.chat.phoneNumber || body.chat.phone || "";
+      const chatName = body.chat.lead_name || body.chat.name || body.chat.pushName || "";
+      if (chatPhone) {
+        fromPhone = String(chatPhone).replace(/\D/g, "");
+      }
+      
+      isFromMe = body.isFromMe === true || body.fromMe === true;
+
+      // Extract message text - UaZapi native format
+      messageText = body.text || body.messageBody || body.body || body.caption || "";
+      
+      // If message is in a nested message object
+      if (!messageText && body.message) {
+        const msg = body.message;
+        messageText = msg.conversation || msg.extendedTextMessage?.text || msg.text || msg.body || "";
+      }
+
+      // UaZapi button response detection
+      if (body.selectedButtonId || body.selectedId) {
+        buttonResponseId = body.selectedButtonId || body.selectedId || "";
+        hasButtonResponse = true;
+        if (!messageText) {
+          messageText = body.selectedDisplayText || body.title || "";
+        }
+      }
+      
+      // Also check for buttonsResponseMessage in body
+      if (body.buttonsResponseMessage) {
+        buttonResponseId = body.buttonsResponseMessage.selectedButtonId || buttonResponseId;
+        messageText = body.buttonsResponseMessage.selectedDisplayText || messageText;
+        hasButtonResponse = true;
+      }
+
+      // Check for templateButtonReplyMessage
+      if (body.templateButtonReplyMessage) {
+        buttonResponseId = body.templateButtonReplyMessage.selectedId || buttonResponseId;
+        messageText = body.templateButtonReplyMessage.selectedDisplayText || messageText;
+        hasButtonResponse = true;
+      }
+
+      // Check for type=button in UaZapi payload
+      if (body.type === "buttonsResponseMessage" || body.type === "templateButtonReplyMessage") {
+        hasButtonResponse = true;
+      }
+      
+      console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} chatName="${chatName}"`);
+    }
+    // ── Baileys / Evolution API format (key.remoteJid) ──
+    else if (msgData.key) {
       fromPhone = (msgData.key.remoteJid || "").replace(/@.*$/, "");
       isFromMe = msgData.key.fromMe === true;
-    } else if (msgData.from || msgData.phone || msgData.number) {
-      fromPhone = (msgData.from || msgData.phone || msgData.number || "").replace(/\D/g, "");
+      
+      if (msgData.message) {
+        const msg = msgData.message;
+        messageText =
+          msg.conversation ||
+          msg.extendedTextMessage?.text ||
+          msg.imageMessage?.caption ||
+          msg.videoMessage?.caption ||
+          msg.documentMessage?.caption ||
+          "";
+
+        if (msg.buttonsResponseMessage) {
+          buttonResponseId = msg.buttonsResponseMessage.selectedButtonId || "";
+          messageText = msg.buttonsResponseMessage.selectedDisplayText || messageText;
+          hasButtonResponse = true;
+        }
+        if (msg.templateButtonReplyMessage) {
+          buttonResponseId = msg.templateButtonReplyMessage.selectedId || "";
+          messageText = msg.templateButtonReplyMessage.selectedDisplayText || messageText;
+          hasButtonResponse = true;
+        }
+        if (msg.listResponseMessage) {
+          buttonResponseId = msg.listResponseMessage.singleSelectReply?.selectedRowId || "";
+          messageText = msg.listResponseMessage.title || messageText;
+          hasButtonResponse = true;
+        }
+      } else if (msgData.body || msgData.text || msgData.messageBody) {
+        messageText = msgData.body || msgData.text || msgData.messageBody || "";
+      }
     }
-
-    // Extract message text
-    if (msgData.message) {
-      const msg = msgData.message;
-      messageText =
-        msg.conversation ||
-        msg.extendedTextMessage?.text ||
-        msg.imageMessage?.caption ||
-        msg.videoMessage?.caption ||
-        msg.documentMessage?.caption ||
-        "";
-
-      // Button response
-      if (msg.buttonsResponseMessage) {
-        buttonResponseId = msg.buttonsResponseMessage.selectedButtonId || "";
-        messageText = msg.buttonsResponseMessage.selectedDisplayText || messageText;
-        hasButtonResponse = true;
-      }
-      if (msg.templateButtonReplyMessage) {
-        buttonResponseId = msg.templateButtonReplyMessage.selectedId || "";
-        messageText = msg.templateButtonReplyMessage.selectedDisplayText || messageText;
-        hasButtonResponse = true;
-      }
-      if (msg.listResponseMessage) {
-        buttonResponseId = msg.listResponseMessage.singleSelectReply?.selectedRowId || "";
-        messageText = msg.listResponseMessage.title || messageText;
-        hasButtonResponse = true;
-      }
-    } else if (msgData.body || msgData.text || msgData.messageBody) {
+    // ── Generic fallback ──
+    else {
+      fromPhone = (msgData.from || msgData.phone || msgData.number || body.chat?.phoneNumber || "").toString().replace(/\D/g, "");
       messageText = msgData.body || msgData.text || msgData.messageBody || "";
     }
 
-    // Also check for button response at top level (some UaZapi versions)
+    // Also check for button response at top level (any format)
     if (!buttonResponseId) {
-      buttonResponseId = msgData.selectedButtonId || msgData.buttonId || body.selectedButtonId || "";
+      buttonResponseId = msgData.selectedButtonId || msgData.buttonId || body.selectedButtonId || body.selectedId || "";
       if (buttonResponseId) hasButtonResponse = true;
     }
 
