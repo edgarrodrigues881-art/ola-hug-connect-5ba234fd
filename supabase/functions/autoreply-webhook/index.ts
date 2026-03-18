@@ -162,8 +162,8 @@ function matchesTrigger(
     case "start_chat":
       return isFirstMessage;
     case "template":
-      // Template nodes are manual/template-only and must never auto-fire on inbound messages.
-      return false;
+      // Template trigger fires like any_message, but session guard (below) prevents re-triggering
+      return true;
     default:
       return false;
   }
