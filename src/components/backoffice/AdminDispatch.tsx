@@ -232,48 +232,43 @@ export default function AdminDispatch() {
       {/* Step: Audience */}
       {step === "audience" && (
         <div className="space-y-4">
-          {/* Category filter chips */}
-          <div className="flex flex-wrap gap-1.5">
-            {AUDIENCE_OPTIONS.map(opt => {
-              const count = users.filter(u => {
-                const d = getDaysLeft(u.plan_expires_at);
-                switch (opt.value) {
-                  case "all": return true;
-                  case "active": return u.status === "active";
-                  case "expired": return d !== null && d <= 0;
-                  case "expiring": return d !== null && d > 0 && d <= 3;
-                  case "trial": return u.plan_name === "Trial";
-                  case "start": return u.plan_name === "Start";
-                  case "pro": return u.plan_name === "Pro";
-                  case "scale": return u.plan_name === "Scale";
-                  case "elite": return u.plan_name === "Elite";
-                  default: return true;
-                }
-              }).length;
-              if (count === 0 && opt.value !== "all") return null;
-              const isActive = audienceFilter === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => setAudienceFilter(opt.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
-                    isActive
-                      ? "bg-primary/15 text-primary border-primary/40"
-                      : "bg-card/50 border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
-                  }`}
-                >
-                  {opt.label}
-                  <span className={`text-[10px] font-mono ${isActive ? "text-primary" : "text-muted-foreground/50"}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Filter dropdown + Search */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={audienceFilter} onValueChange={(v) => setAudienceFilter(v as AudienceFilter)}>
+              <SelectTrigger className="h-9 w-56 bg-card/50 border-border/60 text-sm">
+                <Filter size={14} className="mr-2 text-muted-foreground/50" />
+                <SelectValue placeholder="Filtrar clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                {AUDIENCE_OPTIONS.map(opt => {
+                  const count = users.filter(u => {
+                    const d = getDaysLeft(u.plan_expires_at);
+                    switch (opt.value) {
+                      case "all": return true;
+                      case "active": return u.status === "active";
+                      case "expired": return d !== null && d <= 0;
+                      case "expiring": return d !== null && d > 0 && d <= 3;
+                      case "trial": return u.plan_name === "Trial";
+                      case "start": return u.plan_name === "Start";
+                      case "pro": return u.plan_name === "Pro";
+                      case "scale": return u.plan_name === "Scale";
+                      case "elite": return u.plan_name === "Elite";
+                      default: return true;
+                    }
+                  }).length;
+                  return (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="flex items-center justify-between gap-3 w-full">
+                        {opt.label}
+                        <span className="text-[10px] font-mono text-muted-foreground/50">{count}</span>
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
 
-          {/* Search + Select All */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 max-w-xs">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
               <Input
                 placeholder="Buscar cliente..."
@@ -282,6 +277,7 @@ export default function AdminDispatch() {
                 className="pl-9 h-9 bg-card/50 border-border/60 text-sm"
               />
             </div>
+
             <button
               onClick={toggleAllManual}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
