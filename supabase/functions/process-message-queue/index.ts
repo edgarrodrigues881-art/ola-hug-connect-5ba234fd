@@ -245,6 +245,17 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
+    // ── TIME WINDOW CHECK: only send between 09:00 and 19:00 BRT ──
+    const nowBRT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const hourBRT = nowBRT.getHours();
+    if (hourBRT < 9 || hourBRT >= 19) {
+      console.log(`[process-mq] Outside sending window (${hourBRT}h BRT). Skipping.`);
+      return new Response(
+        JSON.stringify({ skipped: true, reason: `Outside sending window (${hourBRT}h BRT, allowed 09-19)` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log("[process-mq] Starting queue processing...");
 
     // Get device credentials for sending
