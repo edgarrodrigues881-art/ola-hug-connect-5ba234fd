@@ -270,8 +270,8 @@ Deno.serve(async (req) => {
     // Load templates from DB
     const templates = await loadTemplates(adminClient);
 
-    // Atomically claim pending messages using FOR UPDATE SKIP LOCKED
-    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 50 });
+    // Process only 1 message per cron tick (delay of 1-4 min between messages is handled by cron interval)
+    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 1 });
 
     if (claimErr) {
       console.error("[process-mq] Claim error:", claimErr.message);
