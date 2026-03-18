@@ -514,6 +514,7 @@ Deno.serve(async (req) => {
   const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
   let userId: string;
+  let isAdmin = false;
 
   const body = await req.json();
   const { action, campaignId, deviceId } = body;
@@ -524,12 +525,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Campaign not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     userId = camp.user_id;
+    isAdmin = true; // service role calls are from admin/cron
   } else {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     userId = user.id;
+    // Check if caller is admin
+    const { data: roleData } = await serviceClient.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    isAdmin = !!roleData;
   }
 
   // ─── PLAN CHECK HELPER ───
