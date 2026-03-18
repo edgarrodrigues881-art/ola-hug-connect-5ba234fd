@@ -333,11 +333,12 @@ const TabLoader = () => (
   </div>
 );
 
-const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
+const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; initialTab?: string }) => {
   const { data, isLoading, error, refetch } = useAdminDashboard();
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialTab || "overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleSelectClient = useCallback((u: AdminUser) => {
     setSelectedClient(u);
