@@ -207,7 +207,7 @@ const AdminAutoTemplates = () => {
                       />
                     </div>
                   </div>
-                  {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <ChevronDown size={16} className="text-muted-foreground/40" />}
+                  {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <Pencil size={14} className="text-muted-foreground/40" />}
                 </div>
 
                 {/* Expanded editor */}
