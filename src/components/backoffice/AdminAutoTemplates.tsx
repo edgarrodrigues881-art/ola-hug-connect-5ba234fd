@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  Mail, Clock, AlertTriangle, XCircle, Skull, Loader2,
+  Mail, Clock, AlertTriangle, XCircle, Skull, Loader2, Pencil,
   Save, Eye, ChevronDown, ChevronUp, Sparkles, RefreshCw,
   FileText, ToggleLeft
 } from "lucide-react";
@@ -207,7 +207,7 @@ const AdminAutoTemplates = () => {
                       />
                     </div>
                   </div>
-                  {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <ChevronDown size={16} className="text-muted-foreground/40" />}
+                  {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <Pencil size={14} className="text-muted-foreground/40" />}
                 </div>
 
                 {/* Expanded editor */}
