@@ -36,6 +36,7 @@ const AdminClientBase = lazy(() => import("./AdminClientBase"));
 const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
 const AdminAutoTemplates = lazy(() => import("./AdminAutoTemplates"));
 const AdminAnnouncements = lazy(() => import("./AdminAnnouncements"));
+const AdminFeatureControls = lazy(() => import("./AdminFeatureControls"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
