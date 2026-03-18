@@ -847,6 +847,44 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
   return await doRegisterWebhook(device);
 }
 
+async function handleDisableWebhook(supabase: any, body: any, req: Request) {
+  const { device_id } = body;
+  const authHeader = req.headers.get("authorization") ?? "";
+  const bearerToken = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(bearerToken);
+  if (authErr || !user) return json({ error: "Not authenticated" }, 401);
+
+  const { data: device } = await supabase
+    .from("devices")
+    .select("id, uazapi_token, uazapi_base_url")
+    .eq("id", device_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!device?.uazapi_token || !device?.uazapi_base_url) {
+    return json({ error: "Device not configured" }, 400);
+  }
+
+  const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const webhookUrl = `${supabaseUrl}/functions/v1/autoreply-webhook`;
+  const headers: Record<string, string> = { "Content-Type": "application/json", token: device.uazapi_token };
+
+  try {
+    const putRes = await fetch(`${baseUrl}/webhook`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ url: webhookUrl, enabled: false, events: ["messages"] }),
+    });
+    const putText = await putRes.text();
+    console.log(`[autoreply] DISABLE PUT /webhook: ${putRes.status} ${putText.substring(0, 300)}`);
+  } catch (err) {
+    console.log(`[autoreply] Disable webhook failed: ${err}`);
+  }
+
+  return json({ ok: true, disabled: true });
+}
+
 async function doRegisterWebhook(device: any) {
   const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

@@ -87,9 +87,9 @@ export default function AutoReplyList() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      // When activating, verify device is assigned and connected
+      const flow = flows?.find((f) => f.id === id);
+
       if (is_active) {
-        const flow = flows?.find((f) => f.id === id);
         if (!flow?.device_id) {
           throw new Error("NO_DEVICE");
         }
@@ -105,20 +105,17 @@ export default function AutoReplyList() {
       const { error } = await supabase.from("autoreply_flows").update({ is_active }).eq("id", id);
       if (error) throw error;
 
-      // When activating, register webhook on the device's UaZapi instance
-      if (is_active) {
-        const flow = flows?.find((f) => f.id === id);
-        if (flow?.device_id) {
-          const { data, error: webhookError } = await supabase.functions.invoke("autoreply-webhook", {
-            body: { action: "register_webhook", device_id: flow.device_id },
-          });
+      if (flow?.device_id) {
+        const action = is_active ? "register_webhook" : "disable_webhook";
+        const { data, error: webhookError } = await supabase.functions.invoke("autoreply-webhook", {
+          body: { action, device_id: flow.device_id },
+        });
 
-          const webhookMessage = webhookError?.message || (data?.error ? `${data.error}${data.details ? ` ${data.details}` : ""}` : "");
+        const webhookMessage = webhookError?.message || (data?.error ? `${data.error}${data.details ? ` ${data.details}` : ""}` : "");
 
-          if (webhookMessage) {
-            await supabase.from("autoreply_flows").update({ is_active: false }).eq("id", id);
-            throw new Error(`WEBHOOK_REGISTRATION_FAILED:${webhookMessage}`);
-          }
+        if (is_active && webhookMessage) {
+          await supabase.from("autoreply_flows").update({ is_active: false }).eq("id", id);
+          throw new Error(`WEBHOOK_REGISTRATION_FAILED:${webhookMessage}`);
         }
       }
     },
