@@ -9,6 +9,7 @@ import {
   Flame,
   Shield,
   UsersRound,
+  BotMessageSquare,
   LogOut,
   Settings,
   ChevronUp,
