@@ -183,7 +183,7 @@ async function ensureNextDailyResetJob(db: any, job: any, cycleId: string): Prom
 
   const nextReset = new Date();
   nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-  nextReset.setUTCHours(3, 5, 0, 0);
+  nextReset.setUTCHours(9, 50, 0, 0);
 
   await db.from("warmup_jobs").insert({
     user_id: job.user_id,
