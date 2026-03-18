@@ -136,14 +136,15 @@ function FlowCanvas() {
       const node = nodes.find((n) => n.id === id);
       if (!node) return;
       const newId = `${node.type}-${++nodeId}`;
+      const nodeData = node.data as FlowNodeData;
       const newNode: Node<FlowNodeData> = {
         ...node,
         id: newId,
         position: { x: node.position.x + 50, y: node.position.y + 50 },
         data: {
-          ...node.data,
-          label: `${node.data.label} (cópia)`,
-          buttons: node.data.buttons?.map((b) => ({ ...b, id: `btn-${++nodeId}` })),
+          ...nodeData,
+          label: `${nodeData.label} (cópia)`,
+          buttons: nodeData.buttons?.map((b) => ({ ...b, id: `btn-${++nodeId}` })),
         },
         selected: false,
       };
