@@ -258,49 +258,33 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
         <div className="flex flex-col items-end gap-1">
-          {cycle && warmupProgress !== null && (() => {
-            const phaseColor = {
-              pre_24h: { ring: "hsl(199 89% 48%)", bg: "hsl(199 89% 48% / 0.12)", text: "text-sky-300", glow: "hsl(199 89% 48% / 0.3)" },
-              groups_only: { ring: "hsl(142 71% 45%)", bg: "hsl(142 71% 45% / 0.12)", text: "text-emerald-300", glow: "hsl(142 71% 45% / 0.3)" },
-              autosave_enabled: { ring: "hsl(263 70% 50%)", bg: "hsl(263 70% 50% / 0.12)", text: "text-violet-300", glow: "hsl(263 70% 50% / 0.3)" },
-              community_enabled: { ring: "hsl(38 92% 50%)", bg: "hsl(38 92% 50% / 0.12)", text: "text-amber-300", glow: "hsl(38 92% 50% / 0.3)" },
-              paused: { ring: "hsl(var(--muted-foreground))", bg: "hsl(var(--muted) / 0.2)", text: "text-muted-foreground", glow: "transparent" },
-              completed: { ring: "hsl(var(--primary))", bg: "hsl(var(--primary) / 0.12)", text: "text-primary", glow: "hsl(var(--primary) / 0.3)" },
-            }[cycle.phase] || { ring: "hsl(25 95% 53%)", bg: "hsl(25 95% 53% / 0.12)", text: "text-orange-300", glow: "hsl(25 95% 53% / 0.3)" };
-
-            return (
-              <div className="flex flex-col items-end gap-1">
-                {/* Circular progress ring + percentage */}
-                <div className="relative w-[42px] h-[42px] flex items-center justify-center">
-                  <svg className="absolute inset-0 -rotate-90" viewBox="0 0 42 42">
-                    <circle cx="21" cy="21" r="17" fill="none" stroke="hsl(var(--border) / 0.15)" strokeWidth="3" />
-                    <circle
-                      cx="21" cy="21" r="17" fill="none"
-                      stroke={phaseColor.ring}
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 17}`}
-                      strokeDashoffset={`${2 * Math.PI * 17 * (1 - warmupProgress / 100)}`}
-                      style={{
-                        transition: "stroke-dashoffset 0.8s ease-out",
-                        filter: `drop-shadow(0 0 4px ${phaseColor.glow})`,
-                      }}
-                    />
-                  </svg>
-                  <span className="text-[10px] font-extrabold tabular-nums text-foreground/90 leading-none">
-                    {warmupProgress}%
-                  </span>
-                </div>
-                {/* Phase label */}
-                <span className={cn(
-                  "text-[7px] font-bold uppercase tracking-widest px-1.5 py-[2px] rounded-md",
-                  phaseColor.text,
-                )} style={{ backgroundColor: phaseColor.bg }}>
-                  {phaseShort[cycle.phase] || cycle.phase}
-                </span>
-              </div>
-            );
-          })()}
+          {cycle && warmupProgress !== null && (
+            <div className="relative flex items-center gap-1.5 rounded-lg px-2.5 py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden min-w-[72px]">
+              {/* Background progress bar */}
+              <div
+                className="absolute inset-0 rounded-lg transition-all duration-700 ease-out"
+                style={{
+                  background: `linear-gradient(90deg, hsl(25 95% 53% / 0.18) 0%, hsl(25 95% 53% / 0.08) ${warmupProgress}%, transparent ${warmupProgress}%)`,
+                }}
+              />
+              <Flame className="w-3 h-3 text-orange-400 relative z-10 shrink-0" />
+              <span className="text-[11px] font-bold text-orange-300 relative z-10 tabular-nums">
+                {warmupProgress}%
+              </span>
+              {/* Phase pill */}
+              <span className={cn(
+                "relative z-10 text-[7px] font-extrabold uppercase tracking-widest px-1.5 py-[1px] rounded ml-0.5",
+                cycle.phase === "pre_24h" && "bg-sky-500/20 text-sky-300",
+                cycle.phase === "groups_only" && "bg-emerald-500/20 text-emerald-300",
+                cycle.phase === "autosave_enabled" && "bg-violet-500/20 text-violet-300",
+                cycle.phase === "community_enabled" && "bg-amber-500/20 text-amber-300",
+                cycle.phase === "paused" && "bg-muted/30 text-muted-foreground",
+                cycle.phase === "completed" && "bg-primary/20 text-primary",
+              )}>
+                {phaseShort[cycle.phase] || cycle.phase}
+              </span>
+            </div>
+          )}
           {!connected && countdown && (() => {
             const [hh, mm] = countdown.split(":");
             return (
