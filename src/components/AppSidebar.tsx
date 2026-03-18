@@ -306,45 +306,68 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
               {/* Main warmup item with expand arrow */}
-              <SidebarMenuItem>
-                <div className="flex items-center">
-                  <SidebarMenuButton asChild tooltip="Aquecimento" className="flex-1">
-                    <NavLink
-                      to="/dashboard/warmup-v2"
-                       className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
-                        transition-[background-color,color,opacity] duration-[120ms] ease-out
-                        ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 py-[10px]'}
-                        ${isActive("/dashboard/warmup-v2")
-                          ? 'bg-primary/10 text-foreground font-semibold'
-                          : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
-                        }`}
-                      activeClassName=""
-                    >
-                      {isActive("/dashboard/warmup-v2") && !collapsed && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
-                      )}
-                      <Flame
-                        className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${isActive("/dashboard/warmup-v2") ? 'text-primary' : ''}`}
-                        strokeWidth={isActive("/dashboard/warmup-v2") ? 2.2 : 1.5}
-                      />
+              {(() => {
+                const warmupBlocked = isFeatureBlocked("/dashboard/warmup-v2");
+                const handleWarmupClick = (e: React.MouseEvent) => {
+                  if (warmupBlocked) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setMaintenanceModal({ name: warmupBlocked.feature_name, message: warmupBlocked.maintenance_message });
+                  }
+                };
+                return (
+                  <SidebarMenuItem>
+                    <div className="flex items-center">
+                      <SidebarMenuButton asChild tooltip={warmupBlocked ? "Aquecimento (Em manutenção)" : "Aquecimento"} className="flex-1">
+                        <NavLink
+                          to={warmupBlocked ? "#" : "/dashboard/warmup-v2"}
+                          onClick={handleWarmupClick}
+                          className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
+                            transition-[background-color,color,opacity] duration-[120ms] ease-out
+                            ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 py-[10px]'}
+                            ${warmupBlocked
+                              ? 'text-muted-foreground/40 font-medium cursor-not-allowed'
+                              : isActive("/dashboard/warmup-v2")
+                                ? 'bg-primary/10 text-foreground font-semibold'
+                                : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
+                            }`}
+                          activeClassName=""
+                        >
+                          {isActive("/dashboard/warmup-v2") && !warmupBlocked && !collapsed && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+                          )}
+                          <div className="relative shrink-0">
+                            <Flame
+                              className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${warmupBlocked ? 'text-muted-foreground/30' : isActive("/dashboard/warmup-v2") ? 'text-primary' : ''}`}
+                              strokeWidth={isActive("/dashboard/warmup-v2") ? 2.2 : 1.5}
+                            />
+                            {warmupBlocked && (
+                              <Lock className="absolute -bottom-1 -right-1 w-[10px] h-[10px] text-amber-500/70" strokeWidth={2.5} />
+                            )}
+                          </div>
+                          {!collapsed && (
+                            <span className={`truncate flex-1 ${warmupBlocked ? 'opacity-50' : ''}`}>Aquecimento</span>
+                          )}
+                          {!collapsed && warmupBlocked && (
+                            <Lock className="ml-auto w-3.5 h-3.5 text-amber-500/60 shrink-0" />
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
                       {!collapsed && (
-                        <span className="truncate flex-1">Aquecimento</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWarmupExpanded(!warmupExpanded);
+                          }}
+                          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground transition-colors mr-2"
+                        >
+                          <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", warmupExpanded && "rotate-90")} />
+                        </button>
                       )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                  {!collapsed && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setWarmupExpanded(!warmupExpanded);
-                      }}
-                      className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/40 hover:text-muted-foreground transition-colors mr-2"
-                    >
-                      <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", warmupExpanded && "rotate-90")} />
-                    </button>
-                  )}
-                </div>
-              </SidebarMenuItem>
+                    </div>
+                  </SidebarMenuItem>
+                );
+              })()}
 
               {/* Folders only toggle with the arrow */}
               {warmupExpanded && !collapsed && folders.length > 0 && (

@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export function useWarmupEngine() {
   const qc = useQueryClient();
+  const { checkRoute } = useFeatureGate();
 
   return useMutation({
     mutationFn: async (params: {
@@ -13,6 +15,10 @@ export function useWarmupEngine() {
       plan_id?: string;
       start_day?: number;
     }) => {
+      // Block warmup actions when feature is in maintenance
+      if (!checkRoute("/dashboard/warmup-v2")) {
+        throw new Error("Funcionalidade em manutenção");
+      }
       const { data, error } = await supabase.functions.invoke("warmup-engine", {
         body: params,
       });
