@@ -6,6 +6,33 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const onlineStatuses = new Set(["connected", "Connected", "Ready", "ready", "authenticated"]);
+
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+function normalizePhone(phone: string) {
+  return phone.replace(/\D/g, "");
+}
+
+function getSkipMessage(reason: string, incomingText: string) {
+  switch (reason) {
+    case "no_active_flows":
+      return "Nenhuma automação ativa para esta instância.";
+    case "no_matching_flows":
+      return "A automação ativa está vinculada a outra instância.";
+    case "no_trigger_match":
+      return `A mensagem de teste "${incomingText}" não corresponde ao gatilho configurado.`;
+    case "device_not_found":
+      return "Instância não encontrada para processar o teste.";
+    default:
+      return `Teste ignorado (${reason}).`;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,36 +41,28 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const webhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Auth
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Não autenticado" }, 401);
     }
 
-    const { device_id, message_text, media_url } = await req.json();
+    const body = await req.json();
+    const deviceId = body.device_id as string | undefined;
+    const incomingText = String(body.incoming_text || body.message_text || "").trim();
 
-    if (!device_id) {
-      return new Response(JSON.stringify({ error: "Selecione uma instância antes de testar" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!deviceId) {
+      return json({ error: "Selecione uma instância antes de testar" }, 400);
     }
 
-    if (!message_text) {
-      return new Response(JSON.stringify({ error: "Nenhuma mensagem no fluxo para testar" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!incomingText) {
+      return json({ error: "Defina uma mensagem de entrada para simular o teste" }, 400);
     }
 
-    // Get user's phone from profile
     const { data: profile } = await supabase
       .from("profiles")
       .select("phone")
@@ -51,68 +70,81 @@ Deno.serve(async (req) => {
       .single();
 
     if (!profile?.phone) {
-      return new Response(JSON.stringify({ error: "Cadastre seu telefone no perfil para testar" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Cadastre seu telefone no perfil para testar" }, 400);
     }
 
-    // Get device credentials
+    const phone = normalizePhone(profile.phone);
+    if (phone.length < 10) {
+      return json({ error: "O telefone do perfil é inválido para o teste" }, 400);
+    }
+
     const { data: device } = await supabase
       .from("devices")
-      .select("uazapi_token, uazapi_base_url, status")
-      .eq("id", device_id)
+      .select("id, status, uazapi_token, uazapi_base_url")
+      .eq("id", deviceId)
       .eq("user_id", user.id)
       .single();
 
-    if (!device?.uazapi_token || !device?.uazapi_base_url) {
-      return new Response(JSON.stringify({ error: "Instância sem configuração de API. Conecte-a primeiro." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!device) {
+      return json({ error: "Instância não encontrada" }, 404);
     }
 
-    const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
-    const phone = profile.phone.replace(/\D/g, "").replace(/^\+/, "");
-
-    // Send message
-    let sendUrl: string;
-    let body: Record<string, unknown>;
-
-    if (media_url) {
-      sendUrl = `${baseUrl}/send/image`;
-      body = { number: phone, image: media_url, caption: message_text };
-    } else {
-      sendUrl = `${baseUrl}/send/text`;
-      body = { number: phone, text: message_text };
+    if (!onlineStatuses.has(device.status)) {
+      return json({ error: "A instância selecionada está offline. Reconecte antes de testar." }, 400);
     }
 
-    const resp = await fetch(sendUrl, {
+    if (!device.uazapi_token || !device.uazapi_base_url) {
+      return json({ error: "Instância sem configuração de API. Conecte-a primeiro." }, 400);
+    }
+
+    const webhookResponse = await fetch(`${supabaseUrl}/functions/v1/autoreply-webhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        token: device.uazapi_token,
+        "x-device-id": deviceId,
+        ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}),
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        event: "message",
+        device_id: deviceId,
+        data: {
+          from: phone,
+          text: incomingText,
+        },
+      }),
     });
 
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      console.error("Send failed:", resp.status, errText);
-      return new Response(JSON.stringify({ error: "Falha ao enviar mensagem de teste" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const responseText = await webhookResponse.text();
+    let payload: Record<string, any> = {};
+    try {
+      payload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      payload = { raw: responseText };
     }
 
-    return new Response(JSON.stringify({ success: true, phone }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!webhookResponse.ok || payload.error) {
+      return json(
+        {
+          error: payload.error || "Falha ao executar o teste",
+          details: payload.details || payload.raw || responseText || undefined,
+        },
+        webhookResponse.status >= 400 ? webhookResponse.status : 500,
+      );
+    }
+
+    if (payload.skipped) {
+      return json({ error: getSkipMessage(String(payload.reason || "unknown"), incomingText) }, 400);
+    }
+
+    return json({
+      success: true,
+      phone,
+      trigger: incomingText,
+      action: payload.action,
+      message: `Teste executado simulando uma mensagem recebida de ${phone}.`,
     });
   } catch (err) {
     console.error("test-autoreply error:", err);
-    return new Response(JSON.stringify({ error: "Erro interno" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Erro interno", details: err instanceof Error ? err.message : String(err) }, 500);
   }
 });
