@@ -281,6 +281,23 @@ const AdminAutoTemplates = () => {
                       <pre className="text-[13px] text-foreground whitespace-pre-wrap font-sans leading-relaxed">
                         {getPreviewContent(currentContent)}
                       </pre>
+                      {/* Buttons preview */}
+                      {Array.isArray(tpl.buttons) && tpl.buttons.length > 0 && (
+                        <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-border/20">
+                          {tpl.buttons.map((btn: TemplateButton) => {
+                            const btnIcon = btn.type === "url" ? <Link size={13} /> : btn.type === "phone" ? <Phone size={13} /> : <MessageSquare size={13} />;
+                            return (
+                              <div
+                                key={btn.id}
+                                className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-primary/30 bg-primary/5 text-primary text-[13px] font-medium"
+                              >
+                                {btnIcon}
+                                <span>{btn.text || "Botão sem texto"}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
