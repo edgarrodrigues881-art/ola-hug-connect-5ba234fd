@@ -323,12 +323,14 @@ export default function AdminDispatchTemplates() {
     const mediaValue = formMediaFiles.length > 0
       ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name, sendMode: f.sendMode })))
       : undefined;
+    const buttonsPayload = formButtons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value }));
+    console.log("[AdminDispatchTemplates] handleSave payload:", { formButtons, buttonsPayload, mediaValue, combinedContent });
     saveMutation.mutate({
       name: formName,
       category: formCategory,
       content: combinedContent,
       media_url: mediaValue,
-      buttons: formButtons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      buttons: buttonsPayload,
       id: editingId || undefined,
     });
   };
