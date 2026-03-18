@@ -231,19 +231,11 @@ Deno.serve(async (req) => {
         console.log("[wa-lifecycle] Group result:", groupResult.ok ? "OK" : groupResult.error);
       }
 
-      // 3) Trigger process-message-queue to send immediately
+      // 3) DO NOT trigger process-message-queue immediately for welcome either.
+      // The message stays as "pending" and will be processed by the cron
+      // within the 09:00-19:00 BRT sending window.
       if (pvQueued) {
-        try {
-          const tickSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
-          const processUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-message-queue`;
-          await fetch(processUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-cron-secret": tickSecret },
-          });
-          console.log("[wa-lifecycle] Triggered process-message-queue");
-        } catch (e) {
-          console.error("[wa-lifecycle] Failed to trigger process-mq:", e.message);
-        }
+        console.log("[wa-lifecycle] WELCOME queued as pending. Will be sent by cron within 09-19h BRT window.");
       }
 
       // Save to client_messages history
