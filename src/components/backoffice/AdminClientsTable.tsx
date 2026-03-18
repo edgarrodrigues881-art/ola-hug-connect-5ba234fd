@@ -109,6 +109,21 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
     }
   }, [deleteTarget, queryClient]);
 
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return users.filter(u => {
+      const sub = getSubStatus(u);
+      if (filter === "expiring" && sub.label !== "Vencendo") return false;
+      if (filter === "expired" && sub.label !== "Vencida") return false;
+      if (["Start", "Pro", "Scale", "Elite", "Trial"].includes(filter) && u.plan_name !== filter) return false;
+      if (filter === "active" && u.status !== "active") return false;
+      if (filter === "suspended" && u.status !== "suspended") return false;
+      if (filter === "cancelled" && u.status !== "cancelled") return false;
+      if (q && !u.full_name?.toLowerCase().includes(q) && !u.email?.toLowerCase().includes(q) && !u.phone?.includes(q)) return false;
+      return true;
+    });
+  }, [users, search, filter]);
+
   const handleDispatch = useCallback(async () => {
     if (!dispatchMessage.trim() && dispatchType === "custom") {
       toast.error("Digite a mensagem para enviar");
@@ -153,21 +168,6 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
       setDispatching(false);
     }
   }, [filtered, dispatchType, dispatchMessage, queryClient]);
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return users.filter(u => {
-      const sub = getSubStatus(u);
-      if (filter === "expiring" && sub.label !== "Vencendo") return false;
-      if (filter === "expired" && sub.label !== "Vencida") return false;
-      if (["Start", "Pro", "Scale", "Elite", "Trial"].includes(filter) && u.plan_name !== filter) return false;
-      if (filter === "active" && u.status !== "active") return false;
-      if (filter === "suspended" && u.status !== "suspended") return false;
-      if (filter === "cancelled" && u.status !== "cancelled") return false;
-      if (q && !u.full_name?.toLowerCase().includes(q) && !u.email?.toLowerCase().includes(q) && !u.phone?.includes(q)) return false;
-      return true;
-    });
-  }, [users, search, filter]);
 
   const handleSearch = useCallback((val: string) => { setSearch(val); setPage(0); }, []);
   const handleFilter = useCallback((val: string) => { setFilter(f => f === val ? "all" : val); setPage(0); }, []);
