@@ -330,11 +330,7 @@ Deno.serve(async (req) => {
         sent++;
         console.log(`[process-mq] ✅ Sent ${item.message_type} to ${item.client_name}`);
 
-        if (device.groupNumber) {
-          const report = buildReport("sent", item, vencimento, messageText);
-          await sendText(device.baseUrl, device.token, device.groupNumber, report);
-          await randomDelay(1500, 2500);
-        }
+        // Report de envio removido — admin só quer notificação de novos cadastros
       } else {
         // Revert to failed
         await adminClient.from("message_queue").update({
@@ -346,11 +342,7 @@ Deno.serve(async (req) => {
         failed++;
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${item.client_name}: ${result.error}`);
 
-        if (device.groupNumber) {
-          const report = buildReport("failed", item, vencimento, messageText, result.error);
-          await sendText(device.baseUrl, device.token, device.groupNumber, report);
-          await randomDelay(1500, 2500);
-        }
+        // Report de falha removido — admin só quer notificação de novos cadastros
       }
 
       // Random delay between 3-8 seconds to avoid mass sending
