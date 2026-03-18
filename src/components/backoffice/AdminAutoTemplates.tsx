@@ -11,8 +11,11 @@ import { cn } from "@/lib/utils";
 import {
   Mail, Clock, AlertTriangle, XCircle, Skull, Loader2, Pencil,
   Save, Eye, EyeOff, Sparkles, RefreshCw, Bold, Italic,
-  Strikethrough, Code, Smile, X, ClipboardPaste
+  Strikethrough, Code, Smile, Plus, Trash2, Link, Phone,
+  MessageSquare, ClipboardPaste
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface AutoTemplate {
