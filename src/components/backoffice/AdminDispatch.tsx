@@ -874,6 +874,11 @@ export default function AdminDispatch() {
                 <p className="text-[11px] text-muted-foreground">entre cada envio</p>
               </div>
               <div className="bg-muted/20 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Pausa</p>
+                <p className="text-sm font-semibold text-foreground">{pauseDurationMin}s – {pauseDurationMax}s</p>
+                <p className="text-[11px] text-muted-foreground">a cada {pauseEveryMin}–{pauseEveryMax} msgs</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Tempo estimado</p>
                 <p className="text-sm font-semibold text-foreground">
                   {(() => {
