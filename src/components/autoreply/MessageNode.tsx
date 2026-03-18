@@ -20,7 +20,7 @@ export function MessageNode({ data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         id="in"
-className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
+        className="!w-5 !h-5 !bg-primary !border-[3px] !border-card !rounded-full !shadow-[0_0_8px_hsl(var(--primary)/0.35)] !-left-2.5"
       />
 
       {/* Header */}
@@ -71,7 +71,7 @@ className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !sha
                 type="source"
                 position={Position.Right}
                 id={`btn-${btn.id}`}
-                className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-card !rounded-full !right-[-5px] !shadow-[0_0_4px_hsl(var(--primary)/0.25)]"
+                className="!w-5 !h-5 !bg-primary !border-[3px] !border-card !rounded-full !-right-2.5 !shadow-[0_0_8px_hsl(var(--primary)/0.35)]"
               />
             </div>
           ))}
@@ -84,7 +84,7 @@ className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !sha
           type="source"
           position={Position.Right}
           id="out"
-className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
+          className="!w-5 !h-5 !bg-primary !border-[3px] !border-card !rounded-full !shadow-[0_0_8px_hsl(var(--primary)/0.35)] !-right-2.5"
         />
       )}
     </div>
