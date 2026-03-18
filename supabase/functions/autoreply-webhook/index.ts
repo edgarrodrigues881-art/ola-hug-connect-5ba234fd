@@ -684,19 +684,18 @@ async function doRegisterWebhook(device: any) {
   const webhookUrl = `${supabaseUrl}/functions/v1/autoreply-webhook`;
 
   try {
-    // UaZapi V2: POST /webhook/set
     const webhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
 
-    const res = await fetch(`${baseUrl}/webhook/set`, {
+    // UaZapi GO uses POST /webhook with webhookURL field
+    const res = await fetch(`${baseUrl}/webhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         token: device.uazapi_token,
       },
       body: JSON.stringify({
-        url: webhookUrl,
-        events: ["messages.upsert"],
-        headers: {
+        webhookURL: webhookUrl,
+        webhookHeaders: {
           token: device.uazapi_token,
           "x-device-id": device.id,
           ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}),
