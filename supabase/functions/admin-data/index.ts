@@ -3332,11 +3332,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ─── BO CAMPAIGNS LIST (all system campaigns) ───
+    // ─── BO CAMPAIGNS LIST (admin's own campaigns only) ───
     if (action === "bo-campaigns") {
       const { data: campaigns, error: campErr } = await adminClient
         .from("campaigns")
         .select("id, user_id, name, status, message_type, message_content, media_url, buttons, template_id, total_contacts, sent_count, delivered_count, failed_count, scheduled_at, started_at, completed_at, created_at, updated_at, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, device_id, device_ids, messages_per_instance, pause_on_disconnect")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(500);
       if (campErr) throw campErr;
