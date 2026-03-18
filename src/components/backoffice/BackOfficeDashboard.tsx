@@ -35,6 +35,7 @@ const AdminDispatchTemplates = lazy(() => import("./AdminDispatchTemplates"));
 const AdminClientBase = lazy(() => import("./AdminClientBase"));
 const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
 const AdminAutoTemplates = lazy(() => import("./AdminAutoTemplates"));
+const AdminAnnouncements = lazy(() => import("./AdminAnnouncements"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
@@ -62,6 +63,7 @@ const NAV_ITEMS = [
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
   { id: "auto-templates", label: "Modelo Automático", shortLabel: "Auto", icon: Sparkles, group: "principal", badge: false },
+  { id: "announcements", label: "Aviso", shortLabel: "Aviso", icon: Megaphone, group: "principal", badge: false },
 
   { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
   { id: "client-base", label: "Base de Contatos", shortLabel: "Contatos", icon: Users, group: "disparo", badge: false },
@@ -505,6 +507,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "community": return <AdminCommunityWarmer />;
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
         case "msg-generator": return <MessageGeneratorPreview />;
+        case "announcements": return <AdminAnnouncements />;
         default: return null;
       }
     })();

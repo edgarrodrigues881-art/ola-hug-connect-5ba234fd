@@ -15,6 +15,7 @@ import logo from "@/assets/logo-new.png";
 
 import { useNavigate } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { AnnouncementManager } from "@/components/AnnouncementManager";
 import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -157,6 +158,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <main className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto p-2.5 sm:p-5 md:p-8 has-[.flow-builder-fullscreen]:!p-0 has-[.flow-builder-fullscreen]:!overflow-hidden">
             {children}
           </main>
+          <AnnouncementManager />
         </div>
       </div>
     </SidebarProvider>
