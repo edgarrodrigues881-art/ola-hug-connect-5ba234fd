@@ -537,8 +537,9 @@ Deno.serve(async (req) => {
     isAdmin = !!roleData;
   }
 
-  // ─── PLAN CHECK HELPER ───
+  // ─── PLAN CHECK HELPER (skipped for admins) ───
   async function checkActivePlan(uid: string): Promise<string | null> {
+    if (isAdmin) return null; // Admin bypasses plan checks
     const { data: sub } = await serviceClient
       .from("subscriptions")
       .select("expires_at")
