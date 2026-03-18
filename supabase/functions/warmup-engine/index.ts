@@ -901,7 +901,7 @@ async function handleResume(db: any, userId: string | null, body: any) {
   // Schedule next daily reset
   const nextReset = new Date(now);
   nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-  nextReset.setUTCHours(3, 5, 0, 0);
+  nextReset.setUTCHours(9, 50, 0, 0);
   await db.from("warmup_jobs").insert({
     user_id: userId, device_id, cycle_id: cycle.id,
     job_type: "daily_reset", payload: {},

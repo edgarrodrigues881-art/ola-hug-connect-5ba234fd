@@ -3153,7 +3153,7 @@ async function handleDailyReset(db: any) {
     // Schedule next daily reset
     const nextReset = new Date();
     nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-    nextReset.setUTCHours(3, 5, 0, 0);
+    nextReset.setUTCHours(9, 50, 0, 0);
     await db.from("warmup_jobs").insert({
       user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
       job_type: "daily_reset", payload: {},
