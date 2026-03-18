@@ -321,7 +321,7 @@ const AdminMessages = () => {
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );
