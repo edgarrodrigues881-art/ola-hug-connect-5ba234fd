@@ -66,7 +66,7 @@ function matchesTrigger(startNode: FlowNode, messageText: string, isFirstMessage
     case "any_message":
       return true;
     case "template":
-      return false;
+      return true;
     case "keyword": {
       const keyword = (startNode.data.keyword || "").trim().toLowerCase();
       if (!keyword) return false;
