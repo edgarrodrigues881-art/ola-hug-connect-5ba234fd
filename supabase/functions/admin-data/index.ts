@@ -3332,6 +3332,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── BO CAMPAIGNS LIST (all system campaigns) ───
+    if (action === "bo-campaigns") {
+      const { data: campaigns, error: campErr } = await adminClient
+        .from("campaigns")
+        .select("id, user_id, name, status, message_type, message_content, media_url, buttons, template_id, total_contacts, sent_count, delivered_count, failed_count, scheduled_at, started_at, completed_at, created_at, updated_at, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max, device_id, device_ids, messages_per_instance, pause_on_disconnect")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (campErr) throw campErr;
+
+      // Enrich with user email/name
+      const userIds = [...new Set((campaigns || []).map((c: any) => c.user_id))];
+      let profilesMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await adminClient
+          .from("profiles")
+          .select("id, full_name, company")
+          .in("id", userIds);
+        for (const p of profiles || []) {
+          profilesMap[p.id] = p;
+        }
+      }
+
+      const enriched = (campaigns || []).map((c: any) => ({
+        ...c,
+        owner_name: profilesMap[c.user_id]?.full_name || profilesMap[c.user_id]?.company || "—",
+      }));
+
+      return new Response(JSON.stringify(enriched), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(
       JSON.stringify({ error: "Ação inválida" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
