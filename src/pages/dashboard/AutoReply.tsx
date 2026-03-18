@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ReactFlow,
   Controls,
@@ -36,78 +37,41 @@ const defaultEdgeOptions = {
   markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary) / 0.6)", width: 16, height: 16 },
 };
 
-const initialNodes: Node<FlowNodeData>[] = [
+const defaultNodes: Node<FlowNodeData>[] = [
   {
     id: "start-1",
     type: "startNode",
     position: { x: 100, y: 200 },
     data: { label: "Início", trigger: "keyword", keyword: "" },
   },
-  {
-    id: "msg-1",
-    type: "messageNode",
-    position: { x: 450, y: 100 },
-    data: {
-      label: "Boas-vindas",
-      text: "Olá {nome}, seja bem-vindo! 👋\nEscolha uma opção abaixo:",
-      imageUrl: "",
-      imageCaption: "",
-      delay: 0,
-      buttons: [
-        { id: "btn-1", label: "Ver planos", targetNodeId: "" },
-        { id: "btn-2", label: "Suporte", targetNodeId: "" },
-        { id: "btn-3", label: "Falar com atendente", targetNodeId: "" },
-      ],
-    },
-  },
-  {
-    id: "msg-2",
-    type: "messageNode",
-    position: { x: 850, y: 0 },
-    data: {
-      label: "Planos",
-      text: "Confira nossos planos disponíveis:\n\n🥇 Pro — R$197/mês\n🥈 Start — R$97/mês\n\nQual plano te interessa?",
-      imageUrl: "",
-      imageCaption: "",
-      delay: 2,
-      buttons: [],
-    },
-  },
-  {
-    id: "msg-3",
-    type: "messageNode",
-    position: { x: 850, y: 250 },
-    data: {
-      label: "Suporte",
-      text: "Nosso suporte está disponível de segunda a sexta, das 9h às 18h.\n\nDescreva sua dúvida que vamos te ajudar! 😊",
-      imageUrl: "",
-      imageCaption: "",
-      delay: 1,
-      buttons: [],
-    },
-  },
-  {
-    id: "end-1",
-    type: "endNode",
-    position: { x: 850, y: 480 },
-    data: { label: "Finalizar", action: "end_flow" },
-  },
 ];
 
-const initialEdges: Edge[] = [
-  { id: "e-start-msg1", source: "start-1", target: "msg-1", sourceHandle: "out" },
-  { id: "e-msg1-btn1", source: "msg-1", target: "msg-2", sourceHandle: "btn-btn-1" },
-  { id: "e-msg1-btn2", source: "msg-1", target: "msg-3", sourceHandle: "btn-btn-2" },
-  { id: "e-msg1-btn3", source: "msg-1", target: "end-1", sourceHandle: "btn-btn-3" },
-];
+const defaultEdges: Edge[] = [];
+
+function getInitialData(): { nodes: Node<FlowNodeData>[]; edges: Edge[]; name: string } {
+  try {
+    const raw = sessionStorage.getItem("autoreply_template");
+    if (raw) {
+      sessionStorage.removeItem("autoreply_template");
+      const parsed = JSON.parse(raw);
+      return {
+        nodes: parsed.nodes || defaultNodes,
+        edges: parsed.edges || defaultEdges,
+        name: parsed.name || "Minha Automação",
+      };
+    }
+  } catch {}
+  return { nodes: defaultNodes, edges: defaultEdges, name: "Minha Automação" };
+}
 
 let nodeId = 100;
 
 function FlowCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const initial = useMemo(() => getInitialData(), []);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [flowName, setFlowName] = useState("Minha Automação");
+  const [flowName, setFlowName] = useState(initial.name);
   const [isActive, setIsActive] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
