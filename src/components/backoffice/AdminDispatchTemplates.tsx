@@ -452,7 +452,7 @@ export default function AdminDispatchTemplates() {
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
                   <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
-                    onClick={() => { setPreviewTemplate({ ...t, buttons: [] }); setPreviewOpen(true); }} title="Preview">
+                    onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }} title="Preview">
                     <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                   <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
