@@ -6,24 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Search, MessageCircle, Clock, AlertTriangle, XCircle, Skull,
-  Loader2, Check, Mail, RefreshCw, RotateCcw, Filter, Hourglass
+  Loader2, Check, Mail, RefreshCw, RotateCcw, Filter, Hourglass,
+  Phone, Calendar, User, Send, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
-  WELCOME: { label: "Boas-vindas", icon: Mail, color: "text-emerald-500" },
-  DUE_3_DAYS: { label: "Faltam 3 dias", icon: Clock, color: "text-yellow-500" },
-  DUE_TODAY: { label: "Vence hoje", icon: AlertTriangle, color: "text-orange-500" },
-  OVERDUE_1: { label: "Vencido 1 dia", icon: XCircle, color: "text-destructive" },
-  OVERDUE_7: { label: "Vencido 7 dias", icon: XCircle, color: "text-destructive" },
-  OVERDUE_30: { label: "Vencido 30 dias", icon: Skull, color: "text-destructive" },
-  "boas-vindas": { label: "Boas-vindas", icon: Mail, color: "text-emerald-500" },
-  "faltam-3-dias": { label: "Faltam 3 dias", icon: Clock, color: "text-yellow-500" },
-  "vence-hoje": { label: "Vence hoje", icon: AlertTriangle, color: "text-orange-500" },
-  "vencido-1-dia": { label: "Vencido 1 dia", icon: XCircle, color: "text-destructive" },
-  "vencido-7-dias": { label: "Vencido 7 dias", icon: XCircle, color: "text-destructive" },
-  "vencido-30-dias": { label: "Vencido 30 dias", icon: Skull, color: "text-destructive" },
+const MESSAGE_TYPE_CONFIG: Record<string, { label: string; shortLabel: string; icon: any; color: string; bg: string; border: string }> = {
+  WELCOME:      { label: "Boas-vindas",    shortLabel: "Welcome",  icon: Mail,          color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  DUE_3_DAYS:   { label: "Faltam 3 dias",  shortLabel: "3 dias",   icon: Clock,         color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
+  DUE_TODAY:    { label: "Vence hoje",      shortLabel: "Hoje",     icon: AlertTriangle,  color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20" },
+  OVERDUE_1:    { label: "Vencido 1 dia",   shortLabel: "1d",       icon: XCircle,        color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
+  OVERDUE_7:    { label: "Vencido 7 dias",  shortLabel: "7d",       icon: XCircle,        color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
+  OVERDUE_30:   { label: "Vencido 30 dias", shortLabel: "30d",      icon: Skull,          color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
+  "boas-vindas":    { label: "Boas-vindas",    shortLabel: "Welcome", icon: Mail,          color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  "faltam-3-dias":  { label: "Faltam 3 dias",  shortLabel: "3 dias",  icon: Clock,         color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
+  "vence-hoje":     { label: "Vence hoje",      shortLabel: "Hoje",    icon: AlertTriangle,  color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20" },
+  "vencido-1-dia":  { label: "Vencido 1 dia",   shortLabel: "1d",      icon: XCircle,        color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
+  "vencido-7-dias": { label: "Vencido 7 dias",  shortLabel: "7d",      icon: XCircle,        color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
+  "vencido-30-dias":{ label: "Vencido 30 dias", shortLabel: "30d",     icon: Skull,          color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20" },
 };
 
 const STATUS_FILTERS = [
@@ -42,6 +43,18 @@ const TYPE_FILTERS = [
   { value: "OVERDUE_7", label: "7 dias" },
   { value: "OVERDUE_30", label: "30 dias" },
 ] as const;
+
+function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55"))
+    return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,9)} ${digits.slice(9)}`;
+  if (digits.length === 12 && digits.startsWith("55"))
+    return `+${digits.slice(0,2)} ${digits.slice(2,4)} ${digits.slice(4,8)} ${digits.slice(8)}`;
+  if (digits.length === 11)
+    return `+55 ${digits.slice(0,2)} ${digits.slice(2,7)} ${digits.slice(7)}`;
+  return phone;
+}
 
 const AdminMessages = () => {
   const [search, setSearch] = useState("");
@@ -66,12 +79,8 @@ const AdminMessages = () => {
 
   const filtered = useMemo(() => {
     let items = history;
-    if (statusFilter !== "all") {
-      items = items.filter((m: any) => m.status === statusFilter);
-    }
-    if (typeFilter !== "all") {
-      items = items.filter((m: any) => m.message_type === typeFilter);
-    }
+    if (statusFilter !== "all") items = items.filter((m: any) => m.status === statusFilter);
+    if (typeFilter !== "all") items = items.filter((m: any) => m.message_type === typeFilter);
     if (search) {
       const q = search.toLowerCase();
       items = items.filter((m: any) =>
@@ -104,74 +113,115 @@ const AdminMessages = () => {
     }
   };
 
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit", year: "2-digit",
+      hour: "2-digit", minute: "2-digit"
+    });
+  };
+
+  const StatusBadge = ({ status }: { status: string }) => {
+    if (status === "sent") return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <Check size={9} /> Enviada
+      </span>
+    );
+    if (status === "pending") return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+        <Hourglass size={9} /> Pendente
+      </span>
+    );
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20">
+        <XCircle size={9} /> Falha
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+      {/* ═══ HEADER ═══ */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <MessageCircle size={18} className="text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Send size={17} className="text-primary" />
           </div>
           <div>
             <h2 className="text-base font-bold text-foreground tracking-tight">Fila de Mensagens</h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Mensagens automáticas do ciclo de vida</p>
+            <p className="text-[11px] text-muted-foreground/50">Automação do ciclo de vida · {history.length} registros</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {pendingCount > 0 && (
-            <Badge variant="outline" className="text-[10px] border-yellow-500/30 text-yellow-500 bg-yellow-500/5">
-              <Hourglass size={9} className="mr-0.5" /> {pendingCount} pendentes
-            </Badge>
-          )}
-          <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
-            <Check size={9} className="mr-0.5" /> {sentCount} enviadas
-          </Badge>
-          {failedCount > 0 && (
-            <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive bg-destructive/5">
-              <XCircle size={9} className="mr-0.5" /> {failedCount} falhas
-            </Badge>
-          )}
+        <div className="flex items-center gap-2">
+          {/* Summary pills */}
+          <div className="hidden sm:flex items-center gap-1.5 mr-2">
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-yellow-500/8 text-yellow-400/80 border border-yellow-500/15">
+                <Hourglass size={10} /> {pendingCount}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-500/8 text-emerald-400/80 border border-emerald-500/15">
+              <Check size={10} /> {sentCount}
+            </span>
+            {failedCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-red-500/8 text-red-400/80 border border-red-500/15">
+                <XCircle size={10} /> {failedCount}
+              </span>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}
-            className="text-[11px] h-8 gap-1.5 rounded-lg border-border hover:bg-muted/30">
+            className="text-[11px] h-8 gap-1.5 rounded-lg border-border/50 hover:bg-muted/20">
             {isFetching ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
             Atualizar
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Status filter */}
-        <div className="flex gap-1 bg-muted/30 rounded-lg p-1">
+      {/* ═══ FILTERS ═══ */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-0.5 bg-muted/20 rounded-lg p-0.5 border border-border/30">
           {STATUS_FILTERS.map((f) => {
             const Icon = f.icon;
             const isActive = statusFilter === f.value;
+            const count = f.value === "pending" ? pendingCount : f.value === "sent" ? sentCount : f.value === "failed" ? failedCount : null;
             return (
               <button
                 key={f.value}
                 onClick={() => setStatusFilter(f.value)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md transition-colors ${
-                  isActive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md transition-all ${
+                  isActive
+                    ? "bg-card text-foreground shadow-sm border border-border/50"
+                    : "text-muted-foreground/60 hover:text-foreground/80 border border-transparent"
                 }`}
               >
-                <Icon size={11} /> {f.label}
+                <Icon size={11} />
+                {f.label}
+                {count !== null && count > 0 && (
+                  <span className={`text-[8px] font-bold px-1 py-0.5 rounded-full ${
+                    isActive ? "bg-primary/15 text-primary" : "bg-muted/50 text-muted-foreground/50"
+                  }`}>{count}</span>
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Type filter */}
-        <div className="flex gap-1 bg-muted/30 rounded-lg p-1 overflow-x-auto">
+        <div className="flex gap-0.5 bg-muted/20 rounded-lg p-0.5 overflow-x-auto border border-border/30">
           {TYPE_FILTERS.map((f) => {
             const isActive = typeFilter === f.value;
+            const cfg = MESSAGE_TYPE_CONFIG[f.value];
             return (
               <button
                 key={f.value}
                 onClick={() => setTypeFilter(f.value)}
-                className={`px-2.5 py-1.5 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                  isActive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-md transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-card text-foreground shadow-sm border border-border/50"
+                    : "text-muted-foreground/60 hover:text-foreground/80 border border-transparent"
                 }`}
               >
+                {cfg && <cfg.icon size={10} className={isActive ? cfg.color : ""} />}
                 {f.label}
               </button>
             );
@@ -179,113 +229,93 @@ const AdminMessages = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* ═══ SEARCH ═══ */}
       <div className="relative">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
         <Input
           placeholder="Buscar por cliente, email, telefone ou plano..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="pl-10 h-10 bg-card border-border text-sm rounded-xl"
+          className="pl-10 h-9 bg-card/50 border-border/50 text-sm rounded-xl placeholder:text-muted-foreground/30"
         />
       </div>
 
-      {/* List */}
+      {/* ═══ LIST ═══ */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 space-y-2">
-          <MessageCircle size={28} className="text-muted-foreground/30 mx-auto" />
-          <p className="text-muted-foreground text-sm">
-            {search || statusFilter !== "all" || typeFilter !== "all" ? "Nenhum resultado encontrado" : "Nenhuma mensagem na fila ainda"}
+          <Send size={28} className="text-muted-foreground/20 mx-auto" />
+          <p className="text-muted-foreground/50 text-sm">
+            {search || statusFilter !== "all" || typeFilter !== "all" ? "Nenhum resultado encontrado" : "Nenhuma mensagem na fila"}
           </p>
-          <p className="text-muted-foreground/60 text-xs">As mensagens são inseridas automaticamente pelo cron de vencimentos</p>
+          <p className="text-muted-foreground/30 text-xs">Mensagens são geradas automaticamente pelo sistema</p>
         </div>
       ) : (
-        <ScrollArea className="max-h-[calc(100vh-380px)]">
-          <div className="space-y-2">
+        <ScrollArea className="max-h-[calc(100vh-420px)]">
+          <div className="space-y-1.5">
             {filtered.map((m: any) => {
-              const config = MESSAGE_TYPE_CONFIG[m.message_type] || { label: m.message_type, icon: Mail, color: "text-muted-foreground" };
-              const Icon = config.icon;
-              const isPending = m.status === "pending";
-              const isSent = m.status === "sent";
+              const config = MESSAGE_TYPE_CONFIG[m.message_type] || { label: m.message_type, shortLabel: m.message_type, icon: Mail, color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border" };
               const isFailed = m.status === "failed";
+
               return (
-                <div key={m.id} className={`bg-card border rounded-xl px-4 py-3.5 ${
-                  isPending ? "border-yellow-500/20" : isFailed ? "border-destructive/20" : "border-border"
-                }`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div
+                  key={m.id}
+                  className={`group bg-card/40 border rounded-xl px-4 py-3 transition-colors hover:bg-card/60 ${
+                    isFailed ? "border-red-500/15" : m.status === "pending" ? "border-yellow-500/15" : "border-border/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Left: client info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Icon size={14} className={config.color} />
-                        <p className="text-[13px] font-semibold text-foreground truncate">{m.client_name || m.client_email}</p>
+                        <span className="text-[13px] font-semibold text-foreground/90 truncate">{m.client_name || "—"}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-[11px] text-muted-foreground">{m.client_email}</span>
+                      <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground/40 flex-wrap">
+                        <span className="truncate max-w-[180px]">{m.client_email}</span>
                         {m.client_phone && (
                           <>
-                            <span className="text-[11px] text-muted-foreground/40">·</span>
-                            <span className="text-[11px] text-muted-foreground">{m.client_phone}</span>
+                            <span>·</span>
+                            <span className="font-mono tracking-wide text-muted-foreground/50">{formatPhone(m.client_phone)}</span>
                           </>
                         )}
-                        <span className="text-[11px] text-muted-foreground/40">·</span>
-                        <span className="text-[11px] text-muted-foreground">{m.plan_name || "—"}</span>
+                        <span>·</span>
+                        <span>{m.plan_name || "—"}</span>
                         {m.expires_at && (
                           <>
-                            <span className="text-[11px] text-muted-foreground/40">·</span>
-                            <span className="text-[11px] text-muted-foreground">
-                              Venc: {new Date(m.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                            </span>
+                            <span>·</span>
+                            <span>Venc: {new Date(m.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
                           </>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                      <Badge variant="outline" className="text-[10px]">
+                    {/* Right: type + status + date */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${config.bg} ${config.color} ${config.border} border`}>
                         {config.label}
-                      </Badge>
-                      {isPending && (
-                        <Badge variant="outline" className="text-[9px] border-yellow-500/30 text-yellow-500 bg-yellow-500/5">
-                          <Hourglass size={8} className="mr-0.5" /> Pendente
-                        </Badge>
-                      )}
-                      {isSent && (
-                        <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
-                          <Check size={8} className="mr-0.5" /> Enviada
-                        </Badge>
-                      )}
+                      </span>
+                      <StatusBadge status={m.status} />
                       {isFailed && (
-                        <>
-                          <Badge variant="outline" className="text-[9px] border-destructive/30 text-destructive bg-destructive/5" title={m.error_message || ""}>
-                            <XCircle size={8} className="mr-0.5" /> Falha
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => resendMessage(m.id)}
-                            disabled={resending === m.id}
-                            className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-                            title="Reenviar"
-                          >
-                            {resending === m.id ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
-                          </Button>
-                        </>
+                        <button
+                          onClick={() => resendMessage(m.id)}
+                          disabled={resending === m.id}
+                          className="p-1 rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-muted/20 transition-colors"
+                          title="Reenviar"
+                        >
+                          {resending === m.id ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                        </button>
                       )}
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {(m.sent_at || m.created_at) ? new Date(m.sent_at || m.created_at).toLocaleString("pt-BR", {
-                          timeZone: "America/Sao_Paulo",
-                          day: "2-digit", month: "2-digit", year: "2-digit",
-                          hour: "2-digit", minute: "2-digit"
-                        }) : "—"}
+                      <span className="text-[10px] text-muted-foreground/30 whitespace-nowrap min-w-[100px] text-right">
+                        {formatDate(m.sent_at || m.created_at)}
                       </span>
                     </div>
                   </div>
 
                   {isFailed && m.error_message && (
-                    <p className="text-[10px] text-destructive/80 mt-1.5 truncate">⚠️ {m.error_message}</p>
+                    <p className="text-[10px] text-red-400/60 mt-1.5 pl-0 truncate">⚠ {m.error_message}</p>
                   )}
                 </div>
               );
