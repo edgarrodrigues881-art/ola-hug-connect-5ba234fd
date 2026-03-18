@@ -650,11 +650,18 @@ Deno.serve(async (req) => {
       const edges = flow.edges as FlowEdge[];
 
       const startNode = nodes.find((n) => n.type === "startNode");
-      if (!startNode) continue;
+      if (!startNode) {
+        console.log(`[autoreply] Flow ${flow.id} has no startNode, skipping`);
+        continue;
+      }
 
-      if (!matchesTrigger(startNode, messageText, isFirstMessage)) continue;
+      const triggerType = startNode.data.trigger || "any_message";
+      if (!matchesTrigger(startNode, messageText, isFirstMessage)) {
+        console.log(`[autoreply] Flow ${flow.id} trigger "${triggerType}" did NOT match text "${messageText.substring(0, 50)}" (keyword="${startNode.data.keyword || ""}")`);
+        continue;
+      }
 
-      console.log(`[autoreply] Flow ${flow.id} matched for ${fromPhone}`);
+      console.log(`[autoreply] ✅ Flow ${flow.id} MATCHED for ${fromPhone} (trigger=${triggerType})`);
 
       // Create or reset session
       const { data: newSession, error: sessErr } = await supabase
@@ -696,7 +703,6 @@ Deno.serve(async (req) => {
           return json({ error: "Failed to send start message", details: sendErr instanceof Error ? sendErr.message : String(sendErr) }, 502);
         }
 
-        // Update session to start node
         await supabase
           .from("autoreply_sessions")
           .update({
@@ -706,7 +712,6 @@ Deno.serve(async (req) => {
           })
           .eq("id", newSession!.id);
 
-        // If there are buttons, wait for response
         if (startNode.data.buttons?.length) {
           return json({ ok: true, action: "start_with_buttons" });
         }
@@ -715,13 +720,16 @@ Deno.serve(async (req) => {
       // Process the chain of connected nodes
       const nextNodes = findNextNodes(startNode.id, edges);
       if (nextNodes.length > 0) {
+        console.log(`[autoreply] Processing chain from startNode → ${nextNodes[0]}`);
         await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, nextNodes[0], nodes, edges, newSession!.id, flow.id, deviceId, userId);
+      } else {
+        console.log(`[autoreply] No edges from startNode, flow has no next steps`);
       }
 
       return json({ ok: true, action: "flow_started" });
     }
 
-    return json({ ok: true, skipped: true, reason: "no_trigger_match" });
+    console.log(`[autoreply] SKIP: No trigger matched for "${messageText.substring(0, 50)}" on device ${deviceId}`);
   } catch (err) {
     console.error("[autoreply] Error:", err);
     return json({ error: "Internal error", details: err instanceof Error ? err.message : String(err) }, 500);
