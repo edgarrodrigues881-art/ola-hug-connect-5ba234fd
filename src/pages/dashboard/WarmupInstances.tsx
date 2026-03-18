@@ -172,15 +172,15 @@ const phaseShort: Record<string, string> = {
 const CONNECTED_STATUSES = ["Connected", "Ready", "authenticated"];
 
 const getWarmupProgress = (cycle?: {
-  days_total?: number;
-  day_index?: number;
+  daily_interaction_budget_target?: number;
+  daily_interaction_budget_used?: number;
   phase?: string;
 } | null) => {
   if (!cycle) return null;
   if (cycle.phase === "completed") return 100;
-  const total = Math.max(cycle.days_total ?? 1, 1);
-  const day = Math.max(cycle.day_index ?? 1, 1);
-  return Math.min(100, Math.max(1, Math.round((day / total) * 100)));
+  const target = Math.max(cycle.daily_interaction_budget_target ?? 0, 1);
+  const used = Math.max(cycle.daily_interaction_budget_used ?? 0, 0);
+  return Math.min(100, Math.round((used / target) * 100));
 };
 
 const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect, onNavigate, formatPhone, deviceTags, availableTags, onTagClick, onRemoveFromFolder }: {
