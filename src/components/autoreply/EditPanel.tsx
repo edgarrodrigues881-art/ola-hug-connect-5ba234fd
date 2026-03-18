@@ -240,7 +240,24 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
           </>
         )}
 
-        {/* End node */}
+        {/* Delay node */}
+        {isDelay && (
+          <div className="space-y-3">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Tempo de espera (segundos)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={3600}
+              value={d.delaySeconds ?? 5}
+              onChange={(e) => onUpdate(node.id, { delaySeconds: Math.max(1, parseInt(e.target.value) || 1) })}
+              className="h-9 text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground/40">
+              O fluxo aguardará esse tempo antes de continuar para o próximo bloco.
+            </p>
+          </div>
+        )}
+
         {isEnd && (
           <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Ação final</Label>
