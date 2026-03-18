@@ -52,7 +52,7 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
   return (
     <AnimatePresence>
       {visible && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ pointerEvents: "auto" }}>
+        <div className="announcement-theme fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ pointerEvents: "auto" }}>
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -126,12 +126,12 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
                   className="absolute left-1/2 -translate-x-1/2 -top-14 z-20"
                 >
                   <div className="relative">
-                    <div className="absolute -inset-3 rounded-[22px] bg-primary/15 blur-xl pointer-events-none" />
-                    <div className="relative w-[96px] h-[96px] rounded-[20px] overflow-hidden ring-[3px] ring-primary/30 shadow-2xl shadow-primary/20 bg-card">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+                    <div className="absolute -inset-3 rounded-[22px] blur-xl pointer-events-none" style={{ background: "hsl(43 96% 56% / 0.12)" }} />
+                    <div className="relative w-[96px] h-[96px] rounded-[20px] overflow-hidden shadow-2xl bg-card" style={{ boxShadow: "0 0 20px hsl(43 96% 56% / 0.15), 0 8px 32px hsl(0 0% 0% / 0.4)", border: "2px solid hsl(43 96% 56% / 0.25)" }}>
+                      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, hsl(43 96% 56% / 0.08), transparent)" }} />
                       <img src={logo} alt="Logo" className="w-full h-full object-cover block" />
                     </div>
-                    <Sparkles size={14} className="absolute -top-1.5 -right-1.5 text-primary/70 animate-pulse" />
+                    <Sparkles size={14} className="absolute -top-1.5 -right-1.5 animate-pulse" style={{ color: "hsl(43 96% 56% / 0.7)" }} />
                   </div>
                 </motion.div>
               )}
@@ -164,9 +164,9 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
                   className="text-center space-y-1"
                 >
                   <div className="flex items-center justify-center gap-3 mb-3">
-                    <div className="h-px w-8 bg-gradient-to-r from-transparent to-primary/40" />
-                    <Sparkles size={14} className="text-primary/60" />
-                    <div className="h-px w-8 bg-gradient-to-l from-transparent to-primary/40" />
+                    <div className="h-px w-8" style={{ background: "linear-gradient(to right, transparent, hsl(43 96% 56% / 0.3))" }} />
+                    <Sparkles size={14} style={{ color: "hsl(43 96% 56% / 0.5)" }} />
+                    <div className="h-px w-8" style={{ background: "linear-gradient(to left, transparent, hsl(43 96% 56% / 0.3))" }} />
                   </div>
                   <h2 className="text-[22px] font-bold text-foreground leading-tight tracking-tight">
                     {announcement.title}
