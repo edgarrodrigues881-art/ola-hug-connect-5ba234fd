@@ -230,14 +230,29 @@ Deno.serve(async (req) => {
 
     // ── UaZapi NATIVE format (EventType + chat object) ──
     if (body.EventType === "messages" && body.chat) {
+      // Skip messages sent by API (bot's own messages) - prevents loops
+      if (body.wasSentByApi === true || body.wa_sentByApi === true || body.sentByApi === true) {
+        console.log("[autoreply] Skipping wasSentByApi message (anti-loop)");
+        return json({ ok: true, skipped: true, reason: "sent_by_api" });
+      }
+
       // Extract phone from chat object
       const chatPhone = body.chat.phoneNumber || body.chat.phone || "";
       const chatName = body.chat.lead_name || body.chat.name || body.chat.pushName || "";
+      const ownerPhone = (body.chat.owner || "").replace(/\D/g, "");
+      
       if (chatPhone) {
         fromPhone = String(chatPhone).replace(/\D/g, "");
       }
       
-      isFromMe = body.isFromMe === true || body.fromMe === true;
+      // If extracted phone matches the instance owner, it's a self-message
+      if (ownerPhone && fromPhone && ownerPhone === fromPhone) {
+        console.log(`[autoreply] Skipping: phone matches owner ${ownerPhone} (self-message)`);
+        return json({ ok: true, skipped: true, reason: "owner_self_message" });
+      }
+
+      // Detect fromMe from various UaZapi fields
+      isFromMe = body.isFromMe === true || body.fromMe === true || body.wa_fromMe === true;
 
       // Extract message text - UaZapi native format
       messageText = body.text || body.messageBody || body.body || body.caption || "";
@@ -276,7 +291,7 @@ Deno.serve(async (req) => {
         hasButtonResponse = true;
       }
       
-      console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} chatName="${chatName}"`);
+      console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} owner="${ownerPhone}" chatName="${chatName}"`);
     }
     // ── Baileys / Evolution API format (key.remoteJid) ──
     else if (msgData.key) {
@@ -345,12 +360,12 @@ Deno.serve(async (req) => {
       return json({ ok: true, skipped: true, reason: "no_device_identifier" });
     }
 
-    let device: { id: string; user_id: string; uazapi_token: string | null; uazapi_base_url: string | null; status: string } | null = null;
+    let device: { id: string; user_id: string; uazapi_token: string | null; uazapi_base_url: string | null; status: string; number: string | null } | null = null;
 
     if (deviceHeaderId) {
       const { data } = await supabase
         .from("devices")
-        .select("id, user_id, uazapi_token, uazapi_base_url, status")
+        .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
         .eq("id", deviceHeaderId)
         .maybeSingle();
       device = data;
@@ -359,7 +374,7 @@ Deno.serve(async (req) => {
     if (!device && instanceToken) {
       const { data } = await supabase
         .from("devices")
-        .select("id, user_id, uazapi_token, uazapi_base_url, status")
+        .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
         .eq("uazapi_token", instanceToken)
         .maybeSingle();
       device = data;
@@ -374,6 +389,34 @@ Deno.serve(async (req) => {
     const userId = device.user_id;
     const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
     const deviceToken = device.uazapi_token!;
+
+    // ── Anti-loop: check if the incoming phone matches the device's own number ──
+    if (device.number) {
+      const deviceNumber = device.number.replace(/\D/g, "");
+      if (deviceNumber && fromPhone && (fromPhone === deviceNumber || fromPhone.endsWith(deviceNumber) || deviceNumber.endsWith(fromPhone))) {
+        console.log(`[autoreply] Skipping: fromPhone ${fromPhone} matches device number ${deviceNumber}`);
+        return json({ ok: true, skipped: true, reason: "device_own_number" });
+      }
+    }
+
+    // ── Anti-loop cooldown: prevent processing same contact more than once per 3 seconds ──
+    const { data: recentSession } = await supabase
+      .from("autoreply_sessions")
+      .select("last_message_at")
+      .eq("device_id", deviceId)
+      .eq("contact_phone", fromPhone)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentSession?.last_message_at) {
+      const lastMs = new Date(recentSession.last_message_at).getTime();
+      const nowMs = Date.now();
+      if (nowMs - lastMs < 3000) {
+        console.log(`[autoreply] Anti-loop cooldown: ${nowMs - lastMs}ms since last message`);
+        return json({ ok: true, skipped: true, reason: "cooldown" });
+      }
+    }
 
     // ── Find active flows for this device ──
     const { data: flows } = await supabase
