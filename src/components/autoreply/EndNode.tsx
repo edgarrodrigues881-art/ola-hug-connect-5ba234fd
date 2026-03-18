@@ -22,7 +22,7 @@ export function EndNode({ data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         id="in"
-        className="!w-3 !h-3 !bg-rose-500 !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(0_84%_60%/0.3)] !transition-all !duration-150 hover:!scale-125"
+        className="!w-5 !h-5 !bg-rose-500 !border-[3px] !border-card !rounded-full !shadow-[0_0_8px_hsl(0_84%_60%/0.35)] !-left-2.5"
       />
       <div className="flex items-center gap-2.5 px-4 py-3.5">
         <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center ring-1 ring-rose-500/20">
