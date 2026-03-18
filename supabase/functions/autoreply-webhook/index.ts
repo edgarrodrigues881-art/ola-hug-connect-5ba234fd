@@ -801,9 +801,26 @@ async function doRegisterWebhook(device: any) {
       });
 
       const text = await res.text();
-      console.log(`[autoreply] Webhook attempt ${attempt.url}: ${res.status} ${text.substring(0, 300)}`);
+      console.log(`[autoreply] Webhook attempt ${attempt.url}: ${res.status} ${text.substring(0, 500)}`);
 
       if (res.ok || res.status === 200 || res.status === 201) {
+        // Check if response shows webhook is still disabled (list response, not update)
+        try {
+          const parsed = JSON.parse(text);
+          const arr = Array.isArray(parsed) ? parsed : [parsed];
+          const ours = arr.find((w: any) => w.url === webhookUrl || w.webhookURL === webhookUrl);
+          if (ours && ours.enabled === false) {
+            console.log(`[autoreply] Webhook exists but disabled, trying PUT to update...`);
+            // Try PUT to update existing webhook
+            const putRes = await fetch(attempt.url, {
+              method: "PUT",
+              headers,
+              body: JSON.stringify({ ...attempt.body, id: ours.id }),
+            });
+            const putText = await putRes.text();
+            console.log(`[autoreply] PUT update: ${putRes.status} ${putText.substring(0, 300)}`);
+          }
+        } catch {}
         return json({ ok: true, webhook_url: webhookUrl, endpoint: attempt.url });
       }
 
