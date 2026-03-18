@@ -332,6 +332,8 @@ export default function AdminDispatch() {
               className="gap-2"
             >
               Próximo: Mensagem <ChevronRight size={14} />
+            </Button>
+          </div>
         </div>
       )}
 
