@@ -152,18 +152,37 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
               <div className="space-y-2">
                 <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Modelo vinculado</Label>
                 {isUsingModel ? (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2.5">
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FileText className="w-3.5 h-3.5 text-primary/70" />
-                        <span className="text-xs font-medium text-foreground">Usando modelo</span>
+                        <span className="text-xs font-medium text-foreground truncate">{d.templateName}</span>
                       </div>
                       <Badge variant="outline" className="text-[9px] px-1.5 h-4 border-primary/20 text-primary/60 bg-primary/5">
                         Vinculado
                       </Badge>
                     </div>
-                    <p className="text-xs text-primary/80 font-medium truncate">{d.templateName}</p>
-                    <div className="flex gap-1.5">
+
+                    {/* Template content preview */}
+                    {d.imageUrl && (
+                      <img src={d.imageUrl} alt="" className="w-full h-24 object-cover rounded-lg border border-border/20" />
+                    )}
+                    {d.text && (
+                      <p className="text-[11px] text-foreground/70 line-clamp-4 whitespace-pre-line leading-relaxed bg-background/30 rounded-lg p-2.5 border border-border/20">
+                        {d.text.replace(/\{(\w+)\}/g, (_, v) => `«${v}»`)}
+                      </p>
+                    )}
+                    {d.buttons && d.buttons.length > 0 && (
+                      <div className="space-y-1">
+                        {d.buttons.map((btn) => (
+                          <div key={btn.id} className="text-[10px] font-medium text-center py-1.5 px-3 rounded-lg bg-primary/6 text-primary/80 border border-primary/10">
+                            {btn.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-1.5 pt-1">
                       <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 flex-1 border-border/40" onClick={() => setShowModelPicker(true)}>
                         Trocar modelo
                       </Button>
