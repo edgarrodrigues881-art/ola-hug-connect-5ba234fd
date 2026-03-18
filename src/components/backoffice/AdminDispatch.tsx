@@ -508,6 +508,19 @@ export default function AdminDispatch() {
                 <span className="text-[10px] bg-primary-foreground/20 px-1.5 rounded-full">{importedContacts.length}</span>
               )}
             </button>
+            <button
+              onClick={() => setAudienceSource("manual")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                audienceSource === "manual"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/30"
+              }`}
+            >
+              <Pencil size={12} /> Manual
+              {manualContacts.length > 0 && (
+                <span className="text-[10px] bg-primary-foreground/20 px-1.5 rounded-full">{manualContacts.length}</span>
+              )}
+            </button>
           </div>
 
           {/* Clients source */}
