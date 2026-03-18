@@ -92,23 +92,25 @@ interface DayVolumes {
 }
 
 function getDailyBudget(): number {
-  return randInt(50, 120);
+  return randInt(30, 70);
 }
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // ULTRA CONSERVADOR — máximo 1 par para evitar bans
-  return 1;
+  // Conservador — 1 par para unstable, 2 para new/recovered
+  if (chipState === "unstable") return 1;
+  return Math.min(2, daysSinceCommunity + 1);
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // ULTRA CONSERVADOR — máximo 1 burst por par por dia
-  return 1;
+  // 2-4 bursts por par por dia para garantir que conversas progridam
+  if (chipState === "unstable") return 2;
+  return Math.min(4, daysSinceCommunity + 2);
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
