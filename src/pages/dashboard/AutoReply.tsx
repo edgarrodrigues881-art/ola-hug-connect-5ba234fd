@@ -76,7 +76,10 @@ function FlowCanvas() {
   );
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => {
+      pendingConnection.current = null;
+      setEdges((eds) => addEdge(params, eds));
+    },
     [setEdges]
   );
 
