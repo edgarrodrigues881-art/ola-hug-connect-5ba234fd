@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Zap } from "lucide-react";
+import { Zap, FileText } from "lucide-react";
 import type { FlowNodeData } from "./types";
 
 const triggerLabels: Record<string, string> = {
@@ -7,10 +7,13 @@ const triggerLabels: Record<string, string> = {
   keyword: "Palavra-chave",
   new_contact: "Novo contato",
   start_chat: "Início de atendimento",
+  template: "Template",
 };
 
 export function StartNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
+  const isTemplate = d.trigger === "template";
+
   return (
     <div
       className={`group rounded-2xl bg-card/95 backdrop-blur-sm min-w-[210px] transition-all duration-200 ease-out
@@ -20,13 +23,22 @@ export function StartNode({ data, selected }: NodeProps) {
         }`}
     >
       <div className="flex items-center gap-2.5 px-4 py-3.5">
-        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20">
-          <Zap className="w-4 h-4 text-emerald-500" />
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ring-1 ${
+          isTemplate
+            ? "bg-primary/10 ring-primary/20"
+            : "bg-emerald-500/10 ring-emerald-500/20"
+        }`}>
+          {isTemplate
+            ? <FileText className="w-4 h-4 text-primary" />
+            : <Zap className="w-4 h-4 text-emerald-500" />
+          }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-foreground leading-tight">{d.label}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {triggerLabels[d.trigger || "any_message"]}
+          <p className="text-[13px] font-semibold text-foreground leading-tight">
+            {isTemplate ? "Template" : d.label}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+            {isTemplate && d.templateName ? d.templateName : triggerLabels[d.trigger || "keyword"]}
           </p>
         </div>
       </div>

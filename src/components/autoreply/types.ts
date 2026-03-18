@@ -7,7 +7,7 @@ export interface FlowButton {
 export interface FlowNodeData extends Record<string, unknown> {
   label: string;
   // Start node
-  trigger?: "any_message" | "keyword" | "new_contact" | "start_chat";
+  trigger?: "any_message" | "keyword" | "new_contact" | "start_chat" | "template";
   keyword?: string;
   // Message node
   text?: string;
