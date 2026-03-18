@@ -1366,13 +1366,12 @@ const WarmupInstanceDetail = () => {
 
             const doneToday = cycle?.daily_interaction_budget_used ?? displayJobs.filter((j) => j.status === "succeeded").length;
             const failedToday = displayJobs.filter((j) => j.status === "failed").length;
-            const budgetTarget = cycle?.daily_interaction_budget_target || 0;
-            const totalFromJobs = Math.max(
-              displayJobs.filter((j) => actionableTypes.has(j.job_type)).length,
-              displayJobs.length,
-            );
-            // Use the actual done+failed count if it exceeds the target, so we never show "134/135" artificially
-            const totalDisplay = Math.max(budgetTarget, totalFromJobs, doneToday + failedToday);
+            const budgetTarget = cycle?.daily_interaction_budget_target || 1;
+            // totalDisplay = the daily target (budget). This is the denominator.
+            // doneToday comes from daily_interaction_budget_used which resets at 00:05 BRT (daily_reset job).
+            // During the operating window (07:00-19:00 BRT), progress grows from 0→100% as messages are sent.
+            // After all messages are sent, it stays at 100% until the next daily_reset zeros the counter.
+            const totalDisplay = budgetTarget;
             // Prioritize actionable jobs (phase_transition > interaction) over daily_reset for display
             const pendingJobs = displayJobs.filter((j) => j.status === "pending");
             const nextPendingJob =
@@ -1386,7 +1385,7 @@ const WarmupInstanceDetail = () => {
             const isPre24h = cycle?.phase === "pre_24h";
 
             const cyclePercent = Math.round((cycle!.day_index / cycle!.days_total) * 100);
-            const todayPercent = totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0;
+            const todayPercent = Math.min(100, totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0);
 
             return (
               <>
