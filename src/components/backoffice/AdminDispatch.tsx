@@ -388,21 +388,15 @@ export default function AdminDispatch() {
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Conexão para envio</label>
-              <Select value={connectionPurpose} onValueChange={setConnectionPurpose}>
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {connections.map((c: any) => (
-                    <SelectItem key={c.purpose} value={c.purpose}>
-                      <span className="flex items-center gap-2">
-                        <Smartphone size={12} /> {c.label}
-                        {!c.device_id && <span className="text-[10px] text-red-400">(sem dispositivo)</span>}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/50 bg-card/60">
+                <Smartphone size={14} className="text-primary shrink-0" />
+                <span className="text-sm font-medium text-foreground">{dispatchConnection?.label || "Disparos manuais"}</span>
+                {dispatchConnection?.device_id ? (
+                  <Badge variant="outline" className="ml-auto text-[9px] text-emerald-400 border-emerald-400/30">Conectado</Badge>
+                ) : (
+                  <span className="ml-auto text-[10px] text-red-400">(sem dispositivo)</span>
+                )}
+              </div>
               {dispatchConnection && !dispatchConnection.device_id && (
                 <p className="text-[10px] text-yellow-400 flex items-center gap-1">
                   <AlertTriangle size={10} /> Configure um dispositivo na aba Conexões
