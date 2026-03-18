@@ -361,6 +361,12 @@ export default function AdminDispatch() {
             phone: c.phone,
             name: c.name,
           }));
+      } else if (audienceSource === "manual") {
+        targets = manualContacts
+          .map(c => ({
+            phone: c.phone,
+            name: c.name,
+          }));
       } else {
         targets = audienceUsers
           .filter(u => effectiveSelected.has(u.id))
