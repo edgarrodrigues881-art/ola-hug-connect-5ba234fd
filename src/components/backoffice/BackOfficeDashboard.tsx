@@ -30,7 +30,7 @@ const AdminMessages = lazy(() => import("./AdminMessages"));
 const AdminConexao = lazy(() => import("./AdminConexao"));
 const AdminTokensGlobal = lazy(() => import("./AdminTokensGlobal"));
 const AdminDispatchTemplates = lazy(() => import("./AdminDispatchTemplates"));
-const AdminDispatch = lazy(() => import("./AdminDispatch"));
+const AdminClientBase = lazy(() => import("./AdminClientBase"));
 const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
@@ -60,7 +60,7 @@ const NAV_ITEMS = [
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
 
   { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
-  { id: "dispatch", label: "Disparar (Admin)", shortLabel: "Disparar", icon: Send, group: "disparo", badge: false },
+  { id: "client-base", label: "Base de Contatos", shortLabel: "Contatos", icon: Users, group: "disparo", badge: false },
   { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "disparo", badge: false },
   { id: "bo-campaigns", label: "Nova Campanha", shortLabel: "Campanha", icon: Megaphone, group: "campanhas", badge: false },
   { id: "bo-campaign-list", label: "Campanhas", shortLabel: "Lista", icon: List, group: "campanhas", badge: false },
@@ -416,7 +416,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "messages": return <AdminMessages />;
         case "conexao": return <AdminConexao />;
         case "dispatch-templates": return <AdminDispatchTemplates />;
-        case "dispatch": return <AdminDispatch />;
+        case "client-base": return <AdminClientBase />;
         case "dispatch-connections": return <AdminConnectionPurposes />;
         case "bo-campaigns": return <BOCampaigns />;
         case "bo-campaign-list": return <BOCampaignList />;
