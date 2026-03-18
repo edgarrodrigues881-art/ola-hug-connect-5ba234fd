@@ -387,6 +387,7 @@ export type Database = {
       autoreply_flows: {
         Row: {
           created_at: string
+          device_id: string | null
           edges: Json
           id: string
           is_active: boolean
@@ -397,6 +398,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          device_id?: string | null
           edges?: Json
           id?: string
           is_active?: boolean
@@ -407,6 +409,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          device_id?: string | null
           edges?: Json
           id?: string
           is_active?: boolean
@@ -415,7 +418,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "autoreply_flows_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_contacts: {
         Row: {

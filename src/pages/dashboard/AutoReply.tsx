@@ -75,6 +75,7 @@ function FlowCanvas() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [flowName, setFlowName] = useState("Minha Automação");
   const [isActive, setIsActive] = useState(false);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [dropMenu, setDropMenu] = useState<DropMenu | null>(null);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(isNew);
@@ -98,6 +99,7 @@ function FlowCanvas() {
       }
       setFlowName(data.name);
       setIsActive(data.is_active);
+      setDeviceId((data as any).device_id || null);
       if (Array.isArray(data.nodes) && data.nodes.length > 0) {
         setNodes(data.nodes as any);
       }
@@ -115,6 +117,7 @@ function FlowCanvas() {
       const payload = {
         name: flowName,
         is_active: isActive,
+        device_id: deviceId,
         nodes: nodes as any,
         edges: edges as any,
         user_id: user.id,
@@ -123,7 +126,7 @@ function FlowCanvas() {
       if (flowId) {
         const { error } = await supabase
           .from("autoreply_flows")
-          .update({ name: payload.name, is_active: payload.is_active, nodes: payload.nodes, edges: payload.edges })
+          .update({ name: payload.name, is_active: payload.is_active, device_id: payload.device_id, nodes: payload.nodes, edges: payload.edges })
           .eq("id", flowId);
         if (error) throw error;
         toast.success("Fluxo salvo com sucesso!");
@@ -340,6 +343,8 @@ function FlowCanvas() {
         onToggleActive={() => setIsActive(!isActive)}
         onSave={handleSave}
         saving={saving}
+        deviceId={deviceId}
+        onDeviceChange={setDeviceId}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <FlowSidebar />

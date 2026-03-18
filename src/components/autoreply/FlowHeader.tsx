@@ -1,8 +1,14 @@
-import { Save, Play, BotMessageSquare, ArrowLeft, Loader2 } from "lucide-react";
+import { Save, Play, BotMessageSquare, ArrowLeft, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 interface Props {
   name: string;
@@ -11,10 +17,27 @@ interface Props {
   onToggleActive: () => void;
   onSave: () => void;
   saving?: boolean;
+  deviceId: string | null;
+  onDeviceChange: (id: string | null) => void;
 }
 
-export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving }: Props) {
+export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange }: Props) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const { data: devices } = useQuery({
+    queryKey: ["devices-list", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("devices")
+        .select("id, name, number, status")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   return (
     <div className="flex items-center gap-4 px-5 py-3 border-b border-border/40 bg-card/50 backdrop-blur-sm shrink-0">
       <Button
@@ -36,6 +59,35 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
           placeholder="Nome da automação"
         />
       </div>
+
+      {/* Device selector */}
+      <Select
+        value={deviceId || "none"}
+        onValueChange={(v) => onDeviceChange(v === "none" ? null : v)}
+      >
+        <SelectTrigger className="w-[200px] h-8 text-xs bg-card/60 border-border/30 gap-2">
+          <Smartphone className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+          <SelectValue placeholder="Selecionar instância" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Nenhuma instância</SelectItem>
+          {devices?.map((d) => (
+            <SelectItem key={d.id} value={d.id}>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    d.status === "connected" ? "bg-emerald-500" : "bg-muted-foreground/30"
+                  }`}
+                />
+                <span className="truncate">{d.name}</span>
+                {d.number && (
+                  <span className="text-muted-foreground/40 text-[10px]">{d.number}</span>
+                )}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <div className="flex-1" />
 
