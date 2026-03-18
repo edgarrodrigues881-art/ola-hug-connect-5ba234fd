@@ -69,23 +69,25 @@ interface DayVolumes {
 }
 
 function getDailyBudget(): number {
-  return randInt(50, 120);
+  return randInt(30, 70);
 }
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // ULTRA CONSERVADOR — máximo 1 par para evitar bans
-  return 1;
+  // Conservador — 1 par para unstable, 2 para new/recovered
+  if (chipState === "unstable") return 1;
+  return Math.min(2, daysSinceCommunity + 1);
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // ULTRA CONSERVADOR — máximo 1 burst por par por dia
-  return 1;
+  // 2-4 bursts por par por dia para garantir que conversas progridam
+  if (chipState === "unstable") return 2;
+  return Math.min(4, daysSinceCommunity + 2);
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -95,18 +97,16 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   };
   if (["pre_24h", "completed", "paused", "error"].includes(phase)) return v;
 
-  // Grupos SEMPRE recebem o orçamento total (50-120)
+  // Grupos: orçamento reduzido para evitar flood (30-70)
   v.groupMsgs = getDailyBudget();
 
-  // Autosave como BÔNUS extra (10-15 interações) quando fase permitir
-  // [BUG 6 FIX] Removed community_light (dead code - getPhaseForDay never returns it)
+  // Autosave: 5 contatos × 3 msgs = 15 msgs/dia (máximo 3 msgs por contato)
   if (["autosave_enabled", "community_enabled"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
+    v.autosaveRounds = 3; // Max 3 msgs por contato
   }
 
-  // Community: progressão segura — volume total < 350 msgs/dia
-  // Cada burst = 3-7 msgs de uma vez (conversa real)
+  // Community: 2-4 bursts por par para garantir conversas completas
   if (phase === "community_enabled") {
     v.communityPeers = getCommunityPeers(dayIndex, chipState);
     v.communityMsgsPerPeer = getCommunityBurstsPerPeer(dayIndex, chipState);

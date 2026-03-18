@@ -133,7 +133,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   // [BUG 6 FIX] Removed community_light (dead code - getPhaseForDay never returns it)
   if (["autosave_enabled", "community_enabled"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 5;
+    v.autosaveRounds = 3; // Max 3 msgs por contato (15 total)
   }
 
   // Community: progressão segura — volume total < 350 msgs/dia
