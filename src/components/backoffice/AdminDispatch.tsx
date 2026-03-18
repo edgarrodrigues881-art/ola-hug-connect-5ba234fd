@@ -725,6 +725,78 @@ export default function AdminDispatch() {
             </>
           )}
 
+          {/* Manual source */}
+          {audienceSource === "manual" && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Digite os números (um por linha). Formato: <code className="text-primary/80">5511999998888</code> ou <code className="text-primary/80">Nome;5511999998888</code>
+              </p>
+              <Textarea
+                placeholder={"5511999998888\nJoão;5521988887777\nMaria;5531977776666"}
+                value={manualInput}
+                onChange={e => setManualInput(e.target.value)}
+                className="min-h-[180px] font-mono text-xs bg-card/50 border-border/60"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    const lines = manualInput.split("\n").map(l => l.trim()).filter(Boolean);
+                    const contacts: ImportedContact[] = [];
+                    const seen = new Set<string>();
+                    for (const line of lines) {
+                      const parts = line.split(/[;,\t]/);
+                      let name = "Contato";
+                      let phone = "";
+                      if (parts.length >= 2) {
+                        name = parts[0].trim() || "Contato";
+                        phone = parts[1].trim().replace(/\D/g, "");
+                      } else {
+                        phone = parts[0].trim().replace(/\D/g, "");
+                      }
+                      if (phone.length >= 10 && !seen.has(phone)) {
+                        seen.add(phone);
+                        contacts.push({ id: crypto.randomUUID(), name, phone });
+                      }
+                    }
+                    if (contacts.length === 0) {
+                      toast.error("Nenhum número válido encontrado");
+                      return;
+                    }
+                    setManualContacts(contacts);
+                    toast.success(`${contacts.length} contatos adicionados`);
+                  }}
+                >
+                  <Plus size={12} /> Adicionar ({manualInput.split("\n").filter(l => l.trim()).length} linhas)
+                </Button>
+                {manualContacts.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setManualContacts([]); setManualInput(""); }}
+                    className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                  >
+                    <Trash2 size={12} /> Limpar ({manualContacts.length})
+                  </Button>
+                )}
+              </div>
+              {manualContacts.length > 0 && (
+                <ScrollArea className="h-[200px] border border-border/50 rounded-xl bg-card/30">
+                  <div className="divide-y divide-border/30">
+                    {manualContacts.map(c => (
+                      <div key={c.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/10">
+                        <Checkbox checked className="shrink-0" />
+                        <p className="text-sm font-medium text-foreground truncate flex-1">{c.name}</p>
+                        <span className="text-[11px] font-mono text-muted-foreground/50">{formatPhone(c.phone)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          }
+
           <div className="flex justify-end">
             <Button
               onClick={() => setStep("message")}
