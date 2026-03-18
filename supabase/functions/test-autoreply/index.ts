@@ -77,19 +77,19 @@ function matchesTrigger(startNode: FlowNode, messageText: string, isFirstMessage
   }
 }
 
-/** Collect all message nodes to send in order, following the flow graph */
 function collectFlowMessages(nodes: FlowNode[], edges: FlowEdge[], startNode: FlowNode) {
   const visited = new Set<string>();
   const messages: { text: string; imageUrl?: string; imageCaption?: string; delay?: number; buttons?: { id: string; label: string }[] }[] = [];
   let currentNodeId = startNode.id;
+  let terminalNodeId = startNode.id;
   let maxSteps = 30;
 
   while (currentNodeId && maxSteps-- > 0 && !visited.has(currentNodeId)) {
     visited.add(currentNodeId);
     const node = findNodeById(currentNodeId, nodes);
     if (!node) break;
+    terminalNodeId = node.id;
 
-    // Collect message from messageNode or startNode with text
     if (node.type === "messageNode" || (node.type === "startNode" && node.data.text)) {
       const text = (node.data.text || "").trim();
       if (text || node.data.imageUrl) {
@@ -101,12 +101,7 @@ function collectFlowMessages(nodes: FlowNode[], edges: FlowEdge[], startNode: Fl
           buttons: node.data.buttons?.length ? node.data.buttons : undefined,
         });
       }
-      // If node has buttons, stop traversal (user needs to pick)
       if (node.data.buttons?.length) break;
-    }
-
-    if (node.type === "delayNode") {
-      // We'll add the delay to the next message
     }
 
     if (node.type === "endNode") break;
@@ -115,7 +110,7 @@ function collectFlowMessages(nodes: FlowNode[], edges: FlowEdge[], startNode: Fl
     currentNodeId = nextNodes[0] || "";
   }
 
-  return messages;
+  return { messages, terminalNodeId };
 }
 
 function isValidDraftFlow(draftFlow: DraftFlowPayload | null | undefined) {
@@ -130,14 +125,33 @@ async function sendMessage(
   imageUrl?: string,
   buttons?: { id: string; label: string }[]
 ) {
+  const cleanPhone = phone.replace(/\D/g, "");
   const url = `${baseUrl}/send/text`;
-  const payload: Record<string, unknown> = { number: phone, text };
+  const payload: Record<string, unknown> = { number: cleanPhone, text };
+
+  if (buttons?.length) {
+    const menuPayload: Record<string, unknown> = {
+      number: cleanPhone,
+      type: "button",
+      text,
+      choices: buttons.slice(0, 3).map((b) => `${b.label}|${b.id}`),
+    };
+    if (imageUrl) menuPayload.imageButton = imageUrl;
+    console.log(`[test-autoreply] Sending menu/buttons to ${cleanPhone}`);
+    const resp = await fetch(`${baseUrl}/send/menu`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(menuPayload),
+    });
+    const body = await resp.text();
+    console.log(`[test-autoreply] Menu response: ${resp.status} ${body.slice(0, 200)}`);
+    return { ok: resp.ok, status: resp.status, body };
+  }
 
   if (imageUrl) {
-    // Send as image with caption
     const imgUrl = `${baseUrl}/send/image`;
-    const imgPayload = { number: phone, image: imageUrl, caption: text || "" };
-    console.log(`[test-autoreply] Sending image to ${phone}`);
+    const imgPayload = { number: cleanPhone, image: imageUrl, caption: text || "" };
+    console.log(`[test-autoreply] Sending image to ${cleanPhone}`);
     const resp = await fetch(imgUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", token },
@@ -148,39 +162,7 @@ async function sendMessage(
     return { ok: resp.ok, status: resp.status, body };
   }
 
-  if (buttons?.length) {
-    // Send with buttons
-    const btnUrl = `${baseUrl}/send/buttons`;
-    const btnPayload = {
-      number: phone,
-      title: "",
-      text,
-      footer: "",
-      buttons: buttons.slice(0, 3).map((b) => ({ text: b.label })),
-    };
-    console.log(`[test-autoreply] Sending buttons to ${phone}`);
-    const resp = await fetch(btnUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token },
-      body: JSON.stringify(btnPayload),
-    });
-    const body = await resp.text();
-    console.log(`[test-autoreply] Buttons response: ${resp.status} ${body.slice(0, 200)}`);
-    // If buttons endpoint fails, fallback to plain text
-    if (!resp.ok) {
-      console.log(`[test-autoreply] Buttons failed, falling back to text`);
-      const resp2 = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token },
-        body: JSON.stringify(payload),
-      });
-      const body2 = await resp2.text();
-      return { ok: resp2.ok, status: resp2.status, body: body2 };
-    }
-    return { ok: resp.ok, status: resp.status, body };
-  }
-
-  console.log(`[test-autoreply] Sending text to ${phone}`);
+  console.log(`[test-autoreply] Sending text to ${cleanPhone}`);
   const resp = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", token },
