@@ -327,6 +327,69 @@ export default function AdminDispatch() {
     toast.success(`${contacts.length} contatos importados`);
   };
 
+  // === Manual file import ===
+  const handleManualFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
+    const processRows = (rawRows: any[][]) => {
+      if (rawRows.length < 1) { toast.error("Arquivo vazio"); return; }
+      // Try to detect header row
+      const firstRow = rawRows[0].map((c: any) => String(c || "").toLowerCase().trim());
+      const hasHeader = firstRow.some(h => ["nome", "name", "numero", "phone", "telefone", "number", "celular", "whatsapp"].includes(h));
+      const dataRows = hasHeader ? rawRows.slice(1) : rawRows;
+      const headers = hasHeader ? firstRow : [];
+
+      let nameIdx = headers.findIndex(h => h.includes("nome") || h.includes("name"));
+      let phoneIdx = headers.findIndex(h => h.includes("numero") || h.includes("phone") || h.includes("telefone") || h.includes("number") || h.includes("celular") || h.includes("whatsapp"));
+
+      // If no header, assume first column is phone (or name;phone)
+      if (phoneIdx < 0) phoneIdx = headers.length > 1 ? 1 : 0;
+
+      const contacts: ImportedContact[] = [];
+      const seen = new Set<string>();
+      for (const row of dataRows) {
+        const rawPhone = String(row[phoneIdx] || "").trim();
+        if (!rawPhone) continue;
+        const phone = rawPhone.replace(/\D/g, "");
+        if (phone.length < 10 || seen.has(phone)) continue;
+        seen.add(phone);
+        const name = nameIdx >= 0 && nameIdx !== phoneIdx ? String(row[nameIdx] || "").trim() || "Contato" : "Contato";
+        contacts.push({ id: crypto.randomUUID(), name, phone });
+      }
+
+      if (contacts.length === 0) { toast.error("Nenhum número válido encontrado"); return; }
+      setManualContacts(prev => {
+        const existingPhones = new Set(prev.map(c => c.phone));
+        const newContacts = contacts.filter(c => !existingPhones.has(c.phone));
+        return [...prev, ...newContacts];
+      });
+      toast.success(`${contacts.length} contatos importados`);
+    };
+
+    if (ext === "xlsx" || ext === "xls") {
+      import("xlsx").then(XLSX => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const wb = XLSX.read(ev.target?.result, { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          processRows(XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]);
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter(Boolean);
+        processRows(lines.map(l => l.split(/[,;\t]/)));
+      };
+      reader.readAsText(file);
+    }
+    e.target.value = "";
+  };
+
   // === Shared logic ===
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
   const messageContent = templateId === "custom" ? customMessage : selectedTemplate?.content || "";
