@@ -425,7 +425,7 @@ export default function AdminDispatch() {
       {step === "review" && (
         <div className="space-y-4">
           <div className="bg-card/60 border border-border/50 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-foreground">Resumo do Disparo</h3>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Eye size={16} className="text-primary" /> Resumo do Envio</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-muted/20 rounded-lg p-3">
