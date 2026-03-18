@@ -345,6 +345,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
     if (initialTab && initialTab !== activeTab) setActiveTab(initialTab);
   }, [initialTab]);
 
+  const handleSelectClient = useCallback((u: AdminUser) => {
     setSelectedClient(u);
     window.history.pushState({ backofficeClient: true }, "");
   }, []);
