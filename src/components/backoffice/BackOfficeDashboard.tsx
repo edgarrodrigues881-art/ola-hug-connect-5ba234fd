@@ -95,6 +95,21 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
     const user = findUser(userId);
     if (user && onSelectClient) onSelectClient(user);
   }, [findUser, onSelectClient]);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("message_queue" as any).delete() as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["message-queue-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-count"] });
+      toast.success("Pendência removida com sucesso");
+    },
+    onError: () => toast.error("Erro ao remover pendência"),
+  });
+
   const { data: queueItems = [], isLoading } = useQuery({
     queryKey: ["message-queue-pending"],
     queryFn: async () => {
