@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +12,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban,
+  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban, User,
 } from "lucide-react";
-import { useCampaigns, useDeleteCampaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -31,9 +31,26 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   failed:     { label: "Falhou",     color: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="w-3 h-3" /> },
 };
 
-const CampaignList = () => {
-  const { data: campaigns = [], isLoading } = useCampaigns();
-  const deleteCampaign = useDeleteCampaign();
+function useAdminCampaigns() {
+  return useQuery({
+    queryKey: ["bo-campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-data?action=bo-campaigns");
+      if (error) throw error;
+      return data as any[];
+    },
+    staleTime: 15_000,
+    refetchInterval: (query) => {
+      const campaigns = query.state.data;
+      const hasActive = campaigns?.some((c: any) => ["running", "processing"].includes(c.status));
+      return hasActive ? 5000 : false;
+    },
+  });
+}
+
+const BOCampaignList = () => {
+  const { data: campaigns = [], isLoading } = useAdminCampaigns();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -42,7 +59,9 @@ const CampaignList = () => {
 
   const filtered = useMemo(() => {
     return campaigns.filter((c) => {
-      const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
+      const matchSearch =
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.owner_name || "").toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || c.status === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -50,17 +69,22 @@ const CampaignList = () => {
 
   const protectedStatuses = ["running", "processing", "scheduled", "queued"];
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const campaign = campaigns.find((c) => c.id === id);
     if (campaign && protectedStatuses.includes(campaign.status)) {
       toast({ title: "Não é possível excluir", description: "Pause ou cancele a campanha antes.", variant: "destructive" });
       return;
     }
-    deleteCampaign.mutate(id, {
-      onSuccess: () => toast({ title: "Campanha excluída" }),
-      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-    });
+    try {
+      // Use admin edge function or direct delete with service role
+      await supabase.from("campaign_contacts").delete().eq("campaign_id", id);
+      await supabase.from("campaigns").delete().eq("id", id);
+      queryClient.invalidateQueries({ queryKey: ["bo-campaigns"] });
+      toast({ title: "Campanha excluída" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleClearAll = async () => {
@@ -77,6 +101,7 @@ const CampaignList = () => {
       }
       const skipped = campaigns.length - deletable.length;
       setClearAllOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["bo-campaigns"] });
       toast({ title: `${deletable.length} campanhas excluídas${skipped > 0 ? `, ${skipped} protegidas` : ""}` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -89,7 +114,6 @@ const CampaignList = () => {
     return Math.round(((c.sent_count || 0) + (c.failed_count || 0)) / total * 100);
   };
 
-  // Stats
   const stats = useMemo(() => {
     const total = campaigns.length;
     const active = campaigns.filter(c => ["running", "processing", "queued"].includes(c.status)).length;
@@ -102,11 +126,10 @@ const CampaignList = () => {
     <div className="flex flex-col" style={{ height: "calc(100vh - 5rem)" }}>
       {/* Fixed header area */}
       <div className="shrink-0 space-y-5 pb-4">
-        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">Campanhas</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Gerencie e acompanhe seus envios</p>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Campanhas (Todas)</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Todas as campanhas do sistema</p>
           </div>
           <div className="flex items-center gap-2">
             {campaigns.length > 0 && (
@@ -149,7 +172,7 @@ const CampaignList = () => {
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
             <Input
-              placeholder="Buscar..."
+              placeholder="Buscar por nome ou dono..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-8 text-xs bg-card/50 border-border/30"
@@ -174,7 +197,7 @@ const CampaignList = () => {
         </div>
       </div>
 
-      {/* Scrollable list area - optimized for 60fps */}
+      {/* Scrollable list */}
       <div
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-card/30"
         style={{ contain: "layout style", willChange: "scroll-position" }}
@@ -203,7 +226,6 @@ const CampaignList = () => {
                   className="group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-100 hover:bg-muted/20"
                   onClick={() => navigate(`/backoffice/campaign/${c.id}`)}
                 >
-                  {/* Name + Status */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-[13px] font-medium text-foreground truncate">{c.name}</p>
@@ -225,15 +247,18 @@ const CampaignList = () => {
                           {c.failed_count} falhas
                         </span>
                       )}
+                      {/* Owner name */}
+                      <span className="text-[10px] text-muted-foreground/70 truncate max-w-[120px] hidden md:flex items-center gap-1">
+                        <User className="w-2.5 h-2.5" />
+                        {c.owner_name}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Date */}
                   <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 hidden sm:block">
                     {format(new Date(c.created_at), "dd/MM/yy HH:mm")}
                   </span>
 
-                  {/* Delete */}
                   <div onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
@@ -251,7 +276,6 @@ const CampaignList = () => {
         )}
       </div>
 
-      {/* Clear All Confirmation */}
       <AlertDialog open={clearAllOpen} onOpenChange={setClearAllOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -272,4 +296,4 @@ const CampaignList = () => {
   );
 };
 
-export default CampaignList;
+export default BOCampaignList;
