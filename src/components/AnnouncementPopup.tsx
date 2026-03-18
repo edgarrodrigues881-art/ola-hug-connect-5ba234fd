@@ -117,25 +117,27 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
                 </button>
               )}
 
-              {/* Content */}
-              <div className="relative px-7 pt-8 pb-4 space-y-5">
-                {/* Logo */}
-                {announcement.show_logo && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1, duration: 0.4 }}
-                    className="flex justify-center"
-                  >
-                    <div className="relative">
-                      <div className="relative w-[72px] h-[72px] rounded-[16px] overflow-hidden ring-2 ring-primary/20 shadow-lg shadow-primary/15">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
-                        <img src={logo} alt="Logo" className="w-16 h-16 rounded-[15px] block" />
-                      </div>
-                      <Sparkles size={12} className="absolute -top-1 -right-1 text-primary/70 animate-pulse" />
+              {/* Logo — elevated above card */}
+              {announcement.show_logo && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                  className="absolute left-1/2 -translate-x-1/2 -top-14 z-20"
+                >
+                  <div className="relative">
+                    <div className="absolute -inset-3 rounded-[22px] bg-primary/15 blur-xl pointer-events-none" />
+                    <div className="relative w-[96px] h-[96px] rounded-[20px] overflow-hidden ring-[3px] ring-primary/30 shadow-2xl shadow-primary/20 bg-card">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+                      <img src={logo} alt="Logo" className="w-full h-full object-cover block" />
                     </div>
-                  </motion.div>
-                )}
+                    <Sparkles size={14} className="absolute -top-1.5 -right-1.5 text-primary/70 animate-pulse" />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Content */}
+              <div className={`relative px-7 pb-4 space-y-5 ${announcement.show_logo ? "pt-16" : "pt-8"}`}>
 
                 {/* Image */}
                 {announcement.image_url && (
