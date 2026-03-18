@@ -374,11 +374,10 @@ export default function AdminDispatchTemplates() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return templates.filter(t => {
-      if (filterCat !== "all" && t.category !== filterCat) return false;
       if (q && !t.name.toLowerCase().includes(q) && !t.content.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [templates, search, filterCat]);
+  }, [templates, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
