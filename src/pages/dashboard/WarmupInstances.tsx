@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
+import dgLogoNew from "@/assets/dg-logo-new.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
