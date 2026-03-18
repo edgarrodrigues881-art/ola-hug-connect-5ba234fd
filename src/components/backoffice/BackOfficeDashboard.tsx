@@ -68,7 +68,15 @@ const GROUP_LABELS: Record<string, string> = {
 
 const GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))];
 
-const PendenciasTab = memo(() => {
+const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: AdminUser) => void; users?: AdminUser[] }) => {
+  const findUser = useCallback((userId: string): AdminUser | null => {
+    return users?.find(u => u.id === userId) || null;
+  }, [users]);
+
+  const handleClickUser = useCallback((userId: string) => {
+    const user = findUser(userId);
+    if (user && onSelectClient) onSelectClient(user);
+  }, [findUser, onSelectClient]);
   const { data: queueItems = [], isLoading } = useQuery({
     queryKey: ["message-queue-pending"],
     queryFn: async () => {
