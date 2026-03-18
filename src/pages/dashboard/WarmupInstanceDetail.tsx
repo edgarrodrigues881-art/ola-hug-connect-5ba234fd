@@ -1042,73 +1042,70 @@ const WarmupInstanceDetail = () => {
 
           {/* action row */}
           {cycle && !isTerminalCycle && (
-            <div className="px-6 pb-6 space-y-2.5">
+            <div className="px-6 pb-6 space-y-2">
+              {/* Primary action */}
               {cycle.is_running ? (
                 <Button
-                  className="w-full gap-2 h-11 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary/20 font-bold backdrop-blur-sm shadow-[0_0_15px_-4px_hsl(var(--primary)/0.2)]"
+                  className="w-full gap-2 h-10 rounded-xl bg-muted/50 text-muted-foreground border border-border/50 hover:bg-muted hover:text-foreground text-xs font-medium transition-colors"
                   variant="ghost"
                   onClick={handlePause}
                 >
-                  <Pause className="w-4 h-4" /> Pausar aquecimento
+                  <Pause className="w-3.5 h-3.5" /> Pausar aquecimento
                 </Button>
               ) : cycle.phase === "paused" ? (
                 <Button
-                  className="w-full gap-2 h-11 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary/20 font-bold backdrop-blur-sm"
+                  className="w-full gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-xs font-medium transition-colors"
                   variant="ghost"
                   onClick={handleResume}
                 >
-                  <Play className="w-4 h-4" /> Retomar aquecimento
+                  <Play className="w-3.5 h-3.5" /> Retomar aquecimento
                 </Button>
               ) : null}
 
-              {/* Accelerate buttons */}
+              {/* Action grid */}
               {cycle.is_running && (
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-1.5">
                   <Button
-                    variant="outline"
-                    className="gap-1.5 h-10 rounded-xl text-xs border-amber-500/25 text-amber-400 hover:bg-amber-500/12 hover:text-amber-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(38_92%_50%/0.15)]"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 h-9 rounded-lg text-[11px] text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 font-medium transition-colors"
                     onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating}
                   >
-                    {accelerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
+                    {accelerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <FastForward className="w-3 h-3" />}
                     Força Tarefa
                   </Button>
                   <Button
-                    variant="outline"
-                    className="gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(270_60%_50%/0.15)]"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 h-9 rounded-lg text-[11px] text-purple-400/80 hover:text-purple-300 hover:bg-purple-500/10 font-medium transition-colors"
                     onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || cycle.phase === "completed"}
                   >
-                    {advancingPhase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SkipForward className="w-3.5 h-3.5" />}
+                    {advancingPhase ? <Loader2 className="w-3 h-3 animate-spin" /> : <SkipForward className="w-3 h-3" />}
                     Pular Dia
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 h-9 rounded-lg text-[11px] text-emerald-400/80 hover:text-emerald-300 hover:bg-emerald-500/10 font-medium transition-colors"
+                    onClick={handleTestAutosave}
+                    disabled={testingAutosave}
+                  >
+                    {testingAutosave ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    Auto Save
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 h-9 rounded-lg text-[11px] text-violet-400/80 hover:text-violet-300 hover:bg-violet-500/10 font-medium transition-colors"
+                    onClick={handleTestCommunity}
+                    disabled={testingCommunity}
+                  >
+                    {testingCommunity ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    Comunitário
+                  </Button>
                 </div>
-              )}
-
-              {/* TEMPORARY: Test Auto Save button */}
-              {cycle.is_running && (
-                <Button
-                  variant="outline"
-                  className="w-full gap-1.5 h-10 rounded-xl text-xs border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/12 hover:text-emerald-300 font-bold backdrop-blur-sm"
-                  onClick={handleTestAutosave}
-                  disabled={testingAutosave}
-                >
-                  {testingAutosave ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  🧪 Testar Auto Save
-                </Button>
-              )}
-
-              {/* Test Community button */}
-              {cycle.is_running && (
-                <Button
-                  variant="outline"
-                  className="w-full gap-1.5 h-10 rounded-xl text-xs border-purple-500/25 text-purple-400 hover:bg-purple-500/12 hover:text-purple-300 font-bold backdrop-blur-sm"
-                  onClick={handleTestCommunity}
-                  disabled={testingCommunity}
-                >
-                  {testingCommunity ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  🧪 Testar Comunitário
-                </Button>
               )}
             </div>
           )}
