@@ -385,7 +385,7 @@ const CampaignDetail = () => {
     return (
       <div className="text-center py-20 text-muted-foreground">
         Campanha não encontrada.
-        <Button variant="link" onClick={() => navigate("/dashboard/campaign-list")}>Voltar</Button>
+        <Button variant="link" onClick={() => navigate("/backoffice/campaign-list")}>Voltar</Button>
       </div>
     );
   }
