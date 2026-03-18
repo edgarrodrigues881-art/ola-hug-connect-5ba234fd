@@ -83,7 +83,54 @@ const PendenciasTab = memo(() => {
     refetchInterval: 30000,
   });
 
-  // Group by message_type
+  // Fetch subscriptions for expiry alerts
+  const { data: subs = [] } = useQuery({
+    queryKey: ["pendencias-subscriptions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("id, user_id, plan_name, plan_price, expires_at");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60000,
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["pendencias-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60000,
+  });
+
+  const profileMap = useMemo(() => {
+    const m: Record<string, any> = {};
+    profiles.forEach((p: any) => { m[p.id] = p; });
+    return m;
+  }, [profiles]);
+
+  const getDaysLeft = (expiresAt: string | null) => {
+    if (!expiresAt) return null;
+    return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
+  };
+
+  const expired = useMemo(() =>
+    subs.filter((s: any) => { const d = getDaysLeft(s.expires_at); return d !== null && d <= 0; }),
+  [subs]);
+
+  const expiringSoon = useMemo(() =>
+    subs.filter((s: any) => { const d = getDaysLeft(s.expires_at); return d !== null && d > 0 && d <= 3; }),
+  [subs]);
+
+  const revenueExpired = expired.reduce((s: number, sub: any) => s + Number(sub.plan_price || 0), 0);
+  const revenueAtRisk = expiringSoon.reduce((s: number, sub: any) => s + Number(sub.plan_price || 0), 0);
+
+  // Group queue by message_type
   const grouped = useMemo(() => {
     if (queueItems.length === 0) return [];
     const groups: Record<string, any[]> = {};
@@ -106,72 +153,139 @@ const PendenciasTab = memo(() => {
     );
   }
 
-  if (queueItems.length === 0) {
+  const hasAlerts = expired.length > 0 || expiringSoon.length > 0;
+  const hasQueue = queueItems.length > 0;
+
+  if (!hasAlerts && !hasQueue) {
     return (
       <div className="text-center py-16">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
           <Check size={20} className="text-primary" />
         </div>
-        <p className="text-muted-foreground text-sm">Nenhuma mensagem pendente na fila</p>
-        <p className="text-muted-foreground/60 text-xs mt-1">As mensagens são geradas automaticamente pelo sistema</p>
+        <p className="text-muted-foreground text-sm">Nenhuma pendência</p>
+        <p className="text-muted-foreground/60 text-xs mt-1">Tudo em dia!</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5">
-          {queueItems.length} pendente{queueItems.length !== 1 ? "s" : ""}
-        </Badge>
-        <span className="text-[10px] text-muted-foreground">Atualiza automaticamente a cada 30s</span>
-      </div>
-
-      {grouped.map(([type, items]) => {
-        const config = MESSAGE_TYPE_CONFIG[type] || { label: type, icon: Mail, color: "text-muted-foreground" };
-        const Icon = config.icon;
-        return (
-          <div key={type} className="border border-border rounded-xl p-4 bg-card">
-            <div className="flex items-center gap-2 mb-3">
-              <Icon size={16} className={config.color} />
-              <h3 className="text-sm font-semibold text-foreground">{config.label}</h3>
-              <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge>
-            </div>
-            <div className="space-y-2">
-              {items.map((item: any) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground font-medium truncate">{item.client_name || item.client_email}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[11px] text-muted-foreground">{item.client_email}</span>
-                      {item.client_phone && (
-                        <>
-                          <span className="text-[11px] text-muted-foreground/40">·</span>
-                          <span className="text-[11px] text-muted-foreground">{item.client_phone}</span>
-                        </>
-                      )}
+    <div className="space-y-5">
+      {/* ═══ SUBSCRIPTION ALERTS ═══ */}
+      {hasAlerts && (
+        <div className="space-y-3">
+          {expired.length > 0 && (
+            <div className="border border-destructive/20 rounded-xl p-4 bg-destructive/5">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={15} className="text-destructive" />
+                <h3 className="text-sm font-semibold text-destructive">
+                  {expired.length} vencido{expired.length > 1 ? "s" : ""} · R$ {revenueExpired.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </h3>
+              </div>
+              <div className="space-y-1.5">
+                {expired.map((s: any) => {
+                  const p = profileMap[s.user_id];
+                  return (
+                    <div key={s.id} className="flex items-center justify-between bg-destructive/5 rounded-lg px-3 py-2 border border-destructive/10">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{p?.full_name || s.user_id.slice(0, 8)}</p>
+                        <p className="text-[11px] text-muted-foreground">{s.plan_name} · R$ {Number(s.plan_price).toFixed(2)}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] border-destructive/30 text-destructive">
+                        {Math.abs(getDaysLeft(s.expires_at) || 0)}d atrás
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    <span className="text-[11px] text-muted-foreground">{item.plan_name || "—"}</span>
-                    {item.expires_at && (
-                      <>
-                        <span className="text-[11px] text-muted-foreground/40">·</span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {new Date(item.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                        </span>
-                      </>
-                    )}
-                    <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500 bg-amber-500/5 ml-1">
-                      <Clock size={8} className="mr-0.5" /> Aguardando
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
+          )}
+
+          {expiringSoon.length > 0 && (
+            <div className="border border-primary/20 rounded-xl p-4 bg-primary/5">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={15} className="text-primary" />
+                <h3 className="text-sm font-semibold text-primary">
+                  {expiringSoon.length} vencendo · R$ {revenueAtRisk.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </h3>
+              </div>
+              <div className="space-y-1.5">
+                {expiringSoon.map((s: any) => {
+                  const p = profileMap[s.user_id];
+                  return (
+                    <div key={s.id} className="flex items-center justify-between bg-primary/5 rounded-lg px-3 py-2 border border-primary/10">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{p?.full_name || s.user_id.slice(0, 8)}</p>
+                        <p className="text-[11px] text-muted-foreground">{s.plan_name} · R$ {Number(s.plan_price).toFixed(2)}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                        {getDaysLeft(s.expires_at)}d restante{(getDaysLeft(s.expires_at) || 0) > 1 ? "s" : ""}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ MESSAGE QUEUE ═══ */}
+      {hasQueue && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5">
+              {queueItems.length} mensagem pendente{queueItems.length !== 1 ? "s" : ""}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">Atualiza a cada 30s</span>
           </div>
-        );
-      })}
+
+          {grouped.map(([type, items]) => {
+            const config = MESSAGE_TYPE_CONFIG[type] || { label: type, icon: Mail, color: "text-muted-foreground" };
+            const Icon = config.icon;
+            return (
+              <div key={type} className="border border-border rounded-xl p-4 bg-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <Icon size={16} className={config.color} />
+                  <h3 className="text-sm font-semibold text-foreground">{config.label}</h3>
+                  <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {items.map((item: any) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground font-medium truncate">{item.client_name || item.client_email}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground">{item.client_email}</span>
+                          {item.client_phone && (
+                            <>
+                              <span className="text-[11px] text-muted-foreground/40">·</span>
+                              <span className="text-[11px] text-muted-foreground">{item.client_phone}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        <span className="text-[11px] text-muted-foreground">{item.plan_name || "—"}</span>
+                        {item.expires_at && (
+                          <>
+                            <span className="text-[11px] text-muted-foreground/40">·</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(item.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                            </span>
+                          </>
+                        )}
+                        <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5 ml-1">
+                          <Clock size={8} className="mr-0.5" /> Aguardando
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 });
