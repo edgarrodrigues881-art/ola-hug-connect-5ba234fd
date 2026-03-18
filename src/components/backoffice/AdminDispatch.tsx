@@ -785,8 +785,10 @@ export default function AdminDispatch() {
               </div>
               <div className="bg-muted/20 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Conexão</p>
-                <p className="text-sm font-semibold text-foreground">{dispatchConnection?.label || "—"}</p>
-                <p className="text-[11px] text-muted-foreground">{dispatchConnection?.device_id ? "Configurada ✓" : "Sem dispositivo ⚠"}</p>
+                <p className="text-sm font-semibold text-foreground">{dispatchDeviceName}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {dispatchConnection?.device_id ? (dispatchDevice ? `${dispatchDeviceNumber} · ${dispatchDeviceConnected ? "Conectada ✓" : "Configurada ✓"}` : "Configurada ✓") : "Sem dispositivo ⚠"}
+                </p>
               </div>
             </div>
 
