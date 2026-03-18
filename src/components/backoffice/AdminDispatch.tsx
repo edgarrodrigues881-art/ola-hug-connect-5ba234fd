@@ -115,7 +115,7 @@ export default function AdminDispatch() {
   const [importSelectedIds, setImportSelectedIds] = useState<Set<string>>(new Set());
 
   // Manual state
-  const [manualInput, setManualInput] = useState("");
+  const manualFileRef = useRef<HTMLInputElement>(null);
   const [manualContacts, setManualContacts] = useState<ImportedContact[]>([]);
   const [importSelectAll, setImportSelectAll] = useState(true);
   const [importSearch, setImportSearch] = useState("");
@@ -325,6 +325,69 @@ export default function AdminDispatch() {
     setRawImport(null);
     setAudienceSource("imported");
     toast.success(`${contacts.length} contatos importados`);
+  };
+
+  // === Manual file import ===
+  const handleManualFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
+    const processRows = (rawRows: any[][]) => {
+      if (rawRows.length < 1) { toast.error("Arquivo vazio"); return; }
+      // Try to detect header row
+      const firstRow = rawRows[0].map((c: any) => String(c || "").toLowerCase().trim());
+      const hasHeader = firstRow.some(h => ["nome", "name", "numero", "phone", "telefone", "number", "celular", "whatsapp"].includes(h));
+      const dataRows = hasHeader ? rawRows.slice(1) : rawRows;
+      const headers = hasHeader ? firstRow : [];
+
+      let nameIdx = headers.findIndex(h => h.includes("nome") || h.includes("name"));
+      let phoneIdx = headers.findIndex(h => h.includes("numero") || h.includes("phone") || h.includes("telefone") || h.includes("number") || h.includes("celular") || h.includes("whatsapp"));
+
+      // If no header, assume first column is phone (or name;phone)
+      if (phoneIdx < 0) phoneIdx = headers.length > 1 ? 1 : 0;
+
+      const contacts: ImportedContact[] = [];
+      const seen = new Set<string>();
+      for (const row of dataRows) {
+        const rawPhone = String(row[phoneIdx] || "").trim();
+        if (!rawPhone) continue;
+        const phone = rawPhone.replace(/\D/g, "");
+        if (phone.length < 10 || seen.has(phone)) continue;
+        seen.add(phone);
+        const name = nameIdx >= 0 && nameIdx !== phoneIdx ? String(row[nameIdx] || "").trim() || "Contato" : "Contato";
+        contacts.push({ id: crypto.randomUUID(), name, phone });
+      }
+
+      if (contacts.length === 0) { toast.error("Nenhum número válido encontrado"); return; }
+      setManualContacts(prev => {
+        const existingPhones = new Set(prev.map(c => c.phone));
+        const newContacts = contacts.filter(c => !existingPhones.has(c.phone));
+        return [...prev, ...newContacts];
+      });
+      toast.success(`${contacts.length} contatos importados`);
+    };
+
+    if (ext === "xlsx" || ext === "xls") {
+      import("xlsx").then(XLSX => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const wb = XLSX.read(ev.target?.result, { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          processRows(XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]);
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter(Boolean);
+        processRows(lines.map(l => l.split(/[,;\t]/)));
+      };
+      reader.readAsText(file);
+    }
+    e.target.value = "";
   };
 
   // === Shared logic ===
@@ -727,72 +790,195 @@ export default function AdminDispatch() {
 
           {/* Manual source */}
           {audienceSource === "manual" && (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Digite os números (um por linha). Formato: <code className="text-primary/80">5511999998888</code> ou <code className="text-primary/80">Nome;5511999998888</code>
-              </p>
-              <Textarea
-                placeholder={"5511999998888\nJoão;5521988887777\nMaria;5531977776666"}
-                value={manualInput}
-                onChange={e => setManualInput(e.target.value)}
-                className="min-h-[180px] font-mono text-xs bg-card/50 border-border/60"
-              />
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => {
-                    const lines = manualInput.split("\n").map(l => l.trim()).filter(Boolean);
-                    const contacts: ImportedContact[] = [];
-                    const seen = new Set<string>();
-                    for (const line of lines) {
-                      const parts = line.split(/[;,\t]/);
-                      let name = "Contato";
-                      let phone = "";
-                      if (parts.length >= 2) {
-                        name = parts[0].trim() || "Contato";
-                        phone = parts[1].trim().replace(/\D/g, "");
-                      } else {
-                        phone = parts[0].trim().replace(/\D/g, "");
+            <div className="space-y-4">
+              {/* File + manual input area */}
+              <div className="border border-border/50 rounded-xl bg-card/30 overflow-hidden">
+                {/* Drag & drop / click to upload area */}
+                <input ref={manualFileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleManualFileImport} />
+                {manualContacts.length === 0 ? (
+                  <button
+                    onClick={() => manualFileRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5");
+                      const f = e.dataTransfer.files[0];
+                      if (f && manualFileRef.current) {
+                        const dt = new DataTransfer();
+                        dt.items.add(f);
+                        manualFileRef.current.files = dt.files;
+                        manualFileRef.current.dispatchEvent(new Event("change", { bubbles: true }));
                       }
-                      if (phone.length >= 10 && !seen.has(phone)) {
-                        seen.add(phone);
-                        contacts.push({ id: crypto.randomUUID(), name, phone });
-                      }
-                    }
-                    if (contacts.length === 0) {
-                      toast.error("Nenhum número válido encontrado");
-                      return;
-                    }
-                    setManualContacts(contacts);
-                    toast.success(`${contacts.length} contatos adicionados`);
-                  }}
-                >
-                  <Plus size={12} /> Adicionar ({manualInput.split("\n").filter(l => l.trim()).length} linhas)
-                </Button>
-                {manualContacts.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setManualContacts([]); setManualInput(""); }}
-                    className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                    }}
+                    className="w-full py-12 flex flex-col items-center gap-4 transition-all duration-200 hover:bg-muted/5 group cursor-pointer"
                   >
-                    <Trash2 size={12} /> Limpar ({manualContacts.length})
-                  </Button>
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload size={24} className="text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-foreground">Arraste sua planilha aqui</p>
+                      <p className="text-xs text-muted-foreground/50 mt-1">ou clique para selecionar — .xlsx, .xls, .csv</p>
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => manualFileRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5"); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("ring-2", "ring-primary/40", "bg-primary/5");
+                      const f = e.dataTransfer.files[0];
+                      if (f && manualFileRef.current) {
+                        const dt = new DataTransfer();
+                        dt.items.add(f);
+                        manualFileRef.current.files = dt.files;
+                        manualFileRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+                      }
+                    }}
+                    className="w-full py-5 flex flex-col items-center gap-2 transition-all duration-200 hover:bg-muted/5 group cursor-pointer border-b border-border/30"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload size={16} className="text-primary" />
+                    </div>
+                    <p className="text-xs font-medium text-foreground/70">Arraste ou clique para importar mais</p>
+                  </button>
                 )}
+
+                {/* Action bar */}
+                <div className="px-4 py-3 flex items-center gap-2 border-b border-border/30 bg-muted/10 flex-wrap">
+                  <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border/30" onClick={() => manualFileRef.current?.click()}>
+                    <Upload size={12} /> Planilha
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border/30" onClick={() => {
+                    setManualContacts(prev => [
+                      ...prev,
+                      { id: crypto.randomUUID(), name: "", phone: "" },
+                    ]);
+                  }}>
+                    <Plus size={12} /> Manual
+                  </Button>
+
+                  {manualContacts.length > 0 && (
+                    <>
+                      <div className="h-4 w-px bg-border/20 mx-1" />
+                      <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30 text-muted-foreground" onClick={() => {
+                        const seen = new Set<string>();
+                        const unique = manualContacts.filter(c => {
+                          const p = c.phone.replace(/\D/g, "");
+                          if (!p || seen.has(p)) return false;
+                          seen.add(p);
+                          return true;
+                        });
+                        const removed = manualContacts.length - unique.length;
+                        setManualContacts(unique);
+                        toast.success(`${removed} duplicado(s) removido(s)`);
+                      }}>
+                        Remover Duplicados
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border/30 text-muted-foreground" onClick={() => {
+                        const valid = manualContacts.filter(c => /^\d{10,15}$/.test(c.phone.replace(/\D/g, "")));
+                        const removed = manualContacts.length - valid.length;
+                        setManualContacts(valid);
+                        toast.success(`${removed} inválido(s) removido(s)`);
+                      }}>
+                        Remover Inválidos
+                      </Button>
+                    </>
+                  )}
+
+                  {manualContacts.length > 0 && (
+                    <span className="ml-auto text-[11px] text-muted-foreground/50 tabular-nums font-medium">
+                      {manualContacts.filter(c => /^\d{10,15}$/.test(c.phone.replace(/\D/g, ""))).length} válidos
+                      {(() => {
+                        const inv = manualContacts.filter(c => c.phone && !/^\d{10,15}$/.test(c.phone.replace(/\D/g, ""))).length;
+                        return inv > 0 ? <span className="text-amber-400/70 ml-1.5">· {inv} inválido{inv !== 1 ? "s" : ""}</span> : null;
+                      })()}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Editable contact table */}
               {manualContacts.length > 0 && (
-                <ScrollArea className="h-[200px] border border-border/50 rounded-xl bg-card/30">
-                  <div className="divide-y divide-border/30">
-                    {manualContacts.map(c => (
-                      <div key={c.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/10">
-                        <Checkbox checked className="shrink-0" />
-                        <p className="text-sm font-medium text-foreground truncate flex-1">{c.name}</p>
-                        <span className="text-[11px] font-mono text-muted-foreground/50">{formatPhone(c.phone)}</span>
-                      </div>
-                    ))}
+                <div className="border border-border/50 rounded-xl bg-card/30 overflow-hidden">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[350px]">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-card z-10">
+                        <tr className="border-b border-border/30">
+                          <th className="text-left px-4 py-3 text-muted-foreground/50 font-semibold text-[10px] w-10">#</th>
+                          <th className="text-left px-4 py-3 text-muted-foreground/50 font-semibold text-[10px] uppercase tracking-wider">Nome</th>
+                          <th className="text-left px-4 py-3 text-muted-foreground/50 font-semibold text-[10px] uppercase tracking-wider">Número</th>
+                          <th className="text-left px-4 py-3 text-muted-foreground/50 font-semibold w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {manualContacts.map((c, i) => {
+                          const isValid = /^\d{10,15}$/.test(c.phone.replace(/\D/g, ""));
+                          return (
+                            <tr key={c.id} className={cn(
+                              "border-b border-border/10 transition-colors",
+                              i % 2 === 0 ? "bg-transparent" : "bg-muted/5",
+                              "hover:bg-primary/5"
+                            )}>
+                              <td className="px-4 py-2 text-muted-foreground/30 tabular-nums text-[11px]">{i + 1}</td>
+                              <td className="px-4 py-1.5">
+                                <Input
+                                  value={c.name}
+                                  onChange={e => {
+                                    const next = [...manualContacts];
+                                    next[i] = { ...next[i], name: e.target.value };
+                                    setManualContacts(next);
+                                  }}
+                                  placeholder="Nome"
+                                  className="h-8 text-xs bg-transparent border-none p-0 focus-visible:ring-0"
+                                />
+                              </td>
+                              <td className="px-4 py-1.5">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={c.phone}
+                                    onChange={e => {
+                                      const next = [...manualContacts];
+                                      next[i] = { ...next[i], phone: e.target.value };
+                                      setManualContacts(next);
+                                    }}
+                                    placeholder="5511999998888"
+                                    className={cn("h-8 text-xs bg-transparent border-none p-0 font-mono focus-visible:ring-0", c.phone && !isValid && "text-amber-400")}
+                                  />
+                                  {c.phone && !isValid && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="Número inválido" />
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-1.5">
+                                <button
+                                  onClick={() => setManualContacts(prev => prev.filter(x => x.id !== c.id))}
+                                  className="text-muted-foreground/20 hover:text-destructive transition-colors p-1 rounded-md hover:bg-destructive/10"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </ScrollArea>
+
+                  <div className="flex items-center justify-between px-4 py-2.5 border-t border-border/20 bg-muted/5">
+                    <span className="text-[11px] text-muted-foreground/40 tabular-nums">{manualContacts.length} contatos</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setManualContacts([]); }}
+                      className="text-[11px] h-7 gap-1 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 size={12} /> Limpar tudo
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           )}
