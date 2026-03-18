@@ -134,7 +134,8 @@ const App = () => (
                           <Route path="warmup-v2" element={<WarmupInstances />} />
                           <Route path="warmup-v2/:deviceId" element={<WarmupInstanceDetail />} />
                           <Route path="autosave" element={<AutoSave />} />
-                          <Route path="auto-reply" element={<AutoReply />} />
+                          <Route path="auto-reply" element={<AutoReplyList />} />
+                          <Route path="auto-reply/:id" element={<AutoReply />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
