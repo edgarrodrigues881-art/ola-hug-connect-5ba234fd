@@ -555,7 +555,7 @@ const Campaigns = () => {
               if (data?.status === "queued") {
                 toast({ title: "Campanha na fila", description: data.message || "A instância está em uso. A campanha iniciará automaticamente." });
               }
-              navigate(`/dashboard/campaign/${newCampaign.id}`);
+              navigate(`/backoffice/campaign/${newCampaign.id}`);
             },
             onError: (err: any) => { toast({ title: "Erro no envio", description: err.message, variant: "destructive" }); },
           });
