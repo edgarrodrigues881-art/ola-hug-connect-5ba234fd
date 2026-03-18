@@ -26,11 +26,100 @@ function getSkipMessage(reason: string, incomingText: string) {
       return "A automação ativa está vinculada a outra instância.";
     case "no_trigger_match":
       return `A mensagem de teste "${incomingText}" não corresponde ao gatilho configurado.`;
-    case "device_not_found":
-      return "Instância não encontrada para processar o teste.";
+    case "missing_start_node":
+      return "A automação não possui nó inicial configurado.";
     default:
       return `Teste ignorado (${reason}).`;
   }
+}
+
+interface FlowNode {
+  id: string;
+  type: string;
+  data: {
+    trigger?: string;
+    keyword?: string;
+    text?: string;
+    buttons?: { id: string; label: string; targetNodeId?: string }[];
+    delaySeconds?: number;
+  };
+}
+
+interface FlowEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+function findNextNodes(nodeId: string, edges: FlowEdge[]): string[] {
+  return edges.filter((e) => e.source === nodeId).map((e) => e.target);
+}
+
+function findNodeById(nodeId: string, nodes: FlowNode[]) {
+  return nodes.find((node) => node.id === nodeId);
+}
+
+function matchesTrigger(startNode: FlowNode, messageText: string, isFirstMessage: boolean) {
+  const trigger = startNode.data.trigger || "any_message";
+
+  switch (trigger) {
+    case "any_message":
+    case "template":
+      return true;
+    case "keyword": {
+      const keyword = (startNode.data.keyword || "").trim().toLowerCase();
+      if (!keyword) return false;
+      const keywords = keyword.split(",").map((item) => item.trim()).filter(Boolean);
+      const msgLower = messageText.toLowerCase().trim();
+      return keywords.some((kw) => msgLower.includes(kw));
+    }
+    case "new_contact":
+    case "start_chat":
+      return isFirstMessage;
+    default:
+      return false;
+  }
+}
+
+function buildSimulationPreview(nodes: FlowNode[], edges: FlowEdge[], startNode: FlowNode) {
+  const visited = new Set<string>();
+  const messages: string[] = [];
+  let buttonsCount = 0;
+  let currentNodeId = startNode.id;
+  let maxSteps = 20;
+
+  while (currentNodeId && maxSteps-- > 0 && !visited.has(currentNodeId)) {
+    visited.add(currentNodeId);
+    const node = findNodeById(currentNodeId, nodes);
+    if (!node) break;
+
+    if (node.type === "messageNode" || (node.type === "startNode" && node.data.text)) {
+      const text = (node.data.text || "").trim();
+      if (text) messages.push(text);
+      if (node.data.buttons?.length) {
+        buttonsCount += node.data.buttons.length;
+        break;
+      }
+    }
+
+    if (node.type === "delayNode") {
+      // only simulate path, no waiting
+    }
+
+    if (node.type === "endNode") {
+      break;
+    }
+
+    const nextNodes = findNextNodes(node.id, edges);
+    currentNodeId = nextNodes[0] || "";
+  }
+
+  return {
+    stepsVisited: visited.size,
+    buttonsCount,
+    messagesCount: messages.length,
+    firstMessage: messages[0] || null,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -41,7 +130,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const webhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const authHeader = req.headers.get("authorization") ?? "";
@@ -80,7 +168,7 @@ Deno.serve(async (req) => {
 
     const { data: device } = await supabase
       .from("devices")
-      .select("id, status, uazapi_token, uazapi_base_url")
+      .select("id, status")
       .eq("id", deviceId)
       .eq("user_id", user.id)
       .single();
@@ -93,56 +181,58 @@ Deno.serve(async (req) => {
       return json({ error: "A instância selecionada está offline. Reconecte antes de testar." }, 400);
     }
 
-    if (!device.uazapi_token || !device.uazapi_base_url) {
-      return json({ error: "Instância sem configuração de API. Conecte-a primeiro." }, 400);
+    const { data: activeFlows } = await supabase
+      .from("autoreply_flows")
+      .select("id, name, nodes, edges, device_id, updated_at")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false });
+
+    if (!activeFlows?.length) {
+      return json({ error: getSkipMessage("no_active_flows", incomingText) }, 400);
     }
 
-    const webhookResponse = await fetch(`${supabaseUrl}/functions/v1/autoreply-webhook`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-device-id": deviceId,
-        ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}),
-      },
-      body: JSON.stringify({
-        event: "message",
-        device_id: deviceId,
-        data: {
-          from: phone,
-          text: incomingText,
-        },
-      }),
-    });
-
-    const responseText = await webhookResponse.text();
-    let payload: Record<string, any> = {};
-    try {
-      payload = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      payload = { raw: responseText };
+    const matchingFlows = activeFlows.filter((flow) => !flow.device_id || flow.device_id === deviceId);
+    if (!matchingFlows.length) {
+      return json({ error: getSkipMessage("no_matching_flows", incomingText) }, 400);
     }
 
-    if (!webhookResponse.ok || payload.error) {
-      return json(
-        {
-          error: payload.error || "Falha ao executar o teste",
-          details: payload.details || payload.raw || responseText || undefined,
-        },
-        webhookResponse.status >= 400 ? webhookResponse.status : 500,
-      );
+    const isFirstMessage = true;
+
+    for (const flow of matchingFlows) {
+      const nodes = Array.isArray(flow.nodes) ? (flow.nodes as unknown as FlowNode[]) : [];
+      const edges = Array.isArray(flow.edges) ? (flow.edges as unknown as FlowEdge[]) : [];
+      const startNode = nodes.find((node) => node.type === "startNode");
+
+      if (!startNode) {
+        continue;
+      }
+
+      if (!matchesTrigger(startNode, incomingText, isFirstMessage)) {
+        continue;
+      }
+
+      const preview = buildSimulationPreview(nodes, edges, startNode);
+      const previewText = preview.firstMessage
+        ? ` Primeira mensagem prevista: "${preview.firstMessage.slice(0, 120)}${preview.firstMessage.length > 120 ? "..." : ""}"`
+        : "";
+
+      return json({
+        success: true,
+        simulated: true,
+        phone,
+        trigger: incomingText,
+        flow_id: flow.id,
+        flow_name: flow.name,
+        steps_visited: preview.stepsVisited,
+        messages_count: preview.messagesCount,
+        buttons_count: preview.buttonsCount,
+        first_message: preview.firstMessage,
+        message: `Simulação concluída sem envio real.${previewText}`,
+      });
     }
 
-    if (payload.skipped) {
-      return json({ error: getSkipMessage(String(payload.reason || "unknown"), incomingText) }, 400);
-    }
-
-    return json({
-      success: true,
-      phone,
-      trigger: incomingText,
-      action: payload.action,
-      message: `Teste executado simulando uma mensagem recebida de ${phone}.`,
-    });
+    return json({ error: getSkipMessage("no_trigger_match", incomingText) }, 400);
   } catch (err) {
     console.error("test-autoreply error:", err);
     return json({ error: "Erro interno", details: err instanceof Error ? err.message : String(err) }, 500);
