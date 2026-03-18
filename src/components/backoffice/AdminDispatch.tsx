@@ -510,13 +510,14 @@ export default function AdminDispatch() {
       if (!resp.ok) throw new Error(data.error || "Erro ao disparar");
       setResult({ ok: data.enqueued || targets.length, fail: data.failed || 0 });
       setStep("done");
+      refetchHistory();
       toast.success(`Disparo enviado para ${data.enqueued || targets.length} destinatários`);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setDispatching(false);
     }
-  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, manualContacts, audienceSource, connectionPurpose]);
+  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, manualContacts, audienceSource, connectionPurpose, refetchHistory]);
 
   const resetAll = () => {
     setStep("audience");
