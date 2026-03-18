@@ -197,8 +197,20 @@ Deno.serve(async (req) => {
     const event = body.event || body.EventType || body.type || "";
     const msgData = body.data || body;
 
-    // Log raw payload for debugging (first 1200 chars)
-    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 1200)}`);
+    // Log raw payload for debugging (first 3000 chars)
+    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 3000)}`);
+    
+    // Log button-specific fields for debugging
+    const btnDebug = {
+      type: body.type, wa_type: body.wa_type, messageType: body.messageType,
+      selectedButtonId: body.selectedButtonId, selectedId: body.selectedId,
+      text: body.text?.substring?.(0, 50), messageBody: body.messageBody?.substring?.(0, 50),
+      body_body: body.body?.substring?.(0, 50),
+      fromMe: body.fromMe ?? body.isFromMe ?? body.wa_fromMe,
+      wasSentByApi: body.wasSentByApi ?? body.wa_sentByApi,
+      hasMessage: !!body.message, hasData: !!body.data,
+    };
+    console.log(`[autoreply] BTN_DEBUG: ${JSON.stringify(btnDebug)}`);
 
     // Extract message details
     let fromPhone = "";
@@ -267,7 +279,19 @@ Deno.serve(async (req) => {
         messageText = msg.conversation || msg.extendedTextMessage?.text || msg.text || msg.body || "";
       }
 
-      // UaZapi button response detection
+      // UaZapi button response detection - comprehensive check
+      // Check body.type first (UaZapi GO sends type="buttonsResponseMessage" alongside EventType="messages")
+      if (body.type === "buttonsResponseMessage" || body.type === "templateButtonReplyMessage" || 
+          body.wa_type === "buttonsResponseMessage" || body.wa_type === "templateButtonReplyMessage" ||
+          body.messageType === "buttonsResponseMessage" || body.messageType === "templateButtonReplyMessage") {
+        hasButtonResponse = true;
+        buttonResponseId = body.selectedButtonId || body.selectedId || body.buttonId || "";
+        if (!messageText) {
+          messageText = body.selectedDisplayText || body.title || body.text || body.messageBody || "";
+        }
+        console.log(`[autoreply] UaZapi button type detected via type/wa_type: btnId="${buttonResponseId}" text="${messageText}"`);
+      }
+
       if (body.selectedButtonId || body.selectedId) {
         buttonResponseId = body.selectedButtonId || body.selectedId || "";
         hasButtonResponse = true;
@@ -276,7 +300,7 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Also check for buttonsResponseMessage in body
+      // Also check for buttonsResponseMessage in body (nested)
       if (body.buttonsResponseMessage) {
         buttonResponseId = body.buttonsResponseMessage.selectedButtonId || buttonResponseId;
         messageText = body.buttonsResponseMessage.selectedDisplayText || messageText;
@@ -289,10 +313,20 @@ Deno.serve(async (req) => {
         messageText = body.templateButtonReplyMessage.selectedDisplayText || messageText;
         hasButtonResponse = true;
       }
-
-      // Check for type=button in UaZapi payload
-      if (body.type === "buttonsResponseMessage" || body.type === "templateButtonReplyMessage") {
-        hasButtonResponse = true;
+      
+      // Check nested message object for button responses
+      if (body.message) {
+        const msg = body.message;
+        if (msg.buttonsResponseMessage) {
+          buttonResponseId = msg.buttonsResponseMessage.selectedButtonId || buttonResponseId;
+          messageText = msg.buttonsResponseMessage.selectedDisplayText || messageText;
+          hasButtonResponse = true;
+        }
+        if (msg.templateButtonReplyMessage) {
+          buttonResponseId = msg.templateButtonReplyMessage.selectedId || buttonResponseId;
+          messageText = msg.templateButtonReplyMessage.selectedDisplayText || messageText;
+          hasButtonResponse = true;
+        }
       }
       
       console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} owner="${ownerPhone}" chatName="${chatName}"`);
@@ -353,7 +387,7 @@ Deno.serve(async (req) => {
 
     // Skip empty messages without button response (likely bot's own sent messages echoed back)
     if (!messageText && !hasButtonResponse) {
-      console.log("[autoreply] Skipping empty message without button response");
+      console.log(`[autoreply] Skipping empty message without button response. fromMe=${isFromMe} fromPhone=${fromPhone} bodyKeys=${Object.keys(body).join(",")}`);
       return json({ ok: true, skipped: true, reason: "empty_no_button" });
     }
 
