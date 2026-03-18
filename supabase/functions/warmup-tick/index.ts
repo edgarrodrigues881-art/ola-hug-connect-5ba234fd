@@ -2089,7 +2089,7 @@ async function handleTick(db: any) {
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_send_failed",
-              message: `Auto Save falhou: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || target._phone}`,
+              message: `Auto Save falhou: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/3 para ${target.contact_name || target._phone}`,
               meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: target._phone, error: retryErr },
             });
             throw new Error(`Auto Save: falha ao enviar msg ${mIdx + 1} para ${target._phone}. Erro: ${retryErr}`);
