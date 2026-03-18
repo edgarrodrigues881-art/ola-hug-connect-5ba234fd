@@ -434,6 +434,7 @@ const Campaigns = () => {
     toast({ title: "Formulário limpo", description: "Todos os campos foram resetados." });
   };
 
+  const PLAN_OPTIONS = ["Todos", "Sem plano", "Trial", "Start", "Pro", "Scale", "Elite"];
   const allTags = useMemo(() => Array.from(new Set(savedContacts.flatMap(c => c.tags || []))), [savedContacts]);
   const selectedDevicesData = devices.filter(d => selectedDevices.includes(d.id));
   const selectedDeviceData = selectedDevicesData[0];
