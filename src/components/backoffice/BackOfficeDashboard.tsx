@@ -417,7 +417,8 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
 
   // Sync activeTab when initialTab changes (route navigation)
   useEffect(() => {
-    if (initialTab && initialTab !== activeTab) setActiveTab(initialTab);
+    const target = initialTab || "overview";
+    if (target !== activeTab) setActiveTab(target);
   }, [initialTab]);
 
   const handleSelectClient = useCallback((u: AdminUser) => {
