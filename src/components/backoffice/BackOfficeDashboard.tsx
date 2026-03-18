@@ -13,6 +13,8 @@ import {
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 // Lazy load all tab components
 const AdminOverview = lazy(() => import("./AdminOverview"));
