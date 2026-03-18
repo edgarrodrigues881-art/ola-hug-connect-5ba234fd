@@ -3107,6 +3107,231 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── BULK DISPATCH (create dispatch + enqueue contacts + process inline) ───
+    if (action === "bulk-dispatch" && req.method === "POST") {
+      const body = await req.json();
+      const { targets, message_content, connection_purpose, min_delay_seconds, max_delay_seconds, pause_every_min, pause_every_max, pause_duration_min, pause_duration_max } = body;
+
+      if (!targets || !Array.isArray(targets) || targets.length === 0) throw new Error("Nenhum destinatário");
+      if (!message_content?.trim()) throw new Error("Mensagem vazia");
+
+      // Get dispatch device
+      const { data: connPurpose } = await adminClient
+        .from("admin_connection_purposes")
+        .select("device_id")
+        .eq("purpose", connection_purpose || "dispatch")
+        .maybeSingle();
+
+      let deviceToken = "";
+      let deviceBaseUrl = "";
+      if (connPurpose?.device_id) {
+        const { data: dev } = await adminClient
+          .from("devices")
+          .select("id, uazapi_token, uazapi_base_url, status")
+          .eq("id", connPurpose.device_id)
+          .maybeSingle();
+        if (dev) {
+          deviceToken = dev.uazapi_token || "";
+          deviceBaseUrl = (dev.uazapi_base_url || Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
+        }
+      }
+
+      // Create dispatch record
+      const { data: dispatch, error: dispErr } = await adminClient
+        .from("admin_dispatches")
+        .insert({
+          admin_id: user.id,
+          message_content,
+          connection_purpose: connection_purpose || "dispatch",
+          device_id: connPurpose?.device_id || null,
+          total_contacts: targets.length,
+          min_delay_seconds: min_delay_seconds || 5,
+          max_delay_seconds: max_delay_seconds || 15,
+          pause_every_min: pause_every_min || 10,
+          pause_every_max: pause_every_max || 20,
+          pause_duration_min: pause_duration_min || 30,
+          pause_duration_max: pause_duration_max || 120,
+          status: "running",
+          started_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (dispErr || !dispatch) throw new Error(dispErr?.message || "Erro ao criar disparo");
+
+      // Insert contacts
+      const contactRows = targets.map((t: any) => ({
+        dispatch_id: dispatch.id,
+        phone: String(t.phone || "").replace(/\D/g, ""),
+        name: t.name || "Contato",
+        user_id: t.user_id || null,
+        status: "pending",
+      }));
+      await adminClient.from("admin_dispatch_contacts").insert(contactRows);
+
+      // Process inline (send messages with delays)
+      let sent = 0;
+      let failed = 0;
+      const minD = min_delay_seconds || 5;
+      const maxD = max_delay_seconds || 15;
+      const pauseMin = pause_every_min || 10;
+      const pauseMax = pause_every_max || 20;
+      const pauseDMin = pause_duration_min || 30;
+      const pauseDMax = pause_duration_max || 120;
+      const pauseAt = pauseMin + Math.floor(Math.random() * (pauseMax - pauseMin + 1));
+      let msgsSincePause = 0;
+
+      // Fetch contacts
+      const { data: contacts } = await adminClient
+        .from("admin_dispatch_contacts")
+        .select("id, phone, name")
+        .eq("dispatch_id", dispatch.id)
+        .eq("status", "pending")
+        .order("created_at");
+
+      for (const contact of (contacts || [])) {
+        // Check if dispatch was paused/cancelled
+        const { data: currentDispatch } = await adminClient
+          .from("admin_dispatches")
+          .select("status")
+          .eq("id", dispatch.id)
+          .single();
+
+        if (currentDispatch?.status === "paused" || currentDispatch?.status === "cancelled") {
+          break;
+        }
+
+        if (!deviceToken || !deviceBaseUrl) {
+          await adminClient.from("admin_dispatch_contacts").update({
+            status: "failed",
+            error_message: "Sem dispositivo configurado",
+          }).eq("id", contact.id);
+          failed++;
+          continue;
+        }
+
+        try {
+          const phone = contact.phone.startsWith("55") ? contact.phone : `55${contact.phone}`;
+          const res = await fetch(`${deviceBaseUrl}/send/text`, {
+            method: "POST",
+            headers: { token: deviceToken, "Content-Type": "application/json" },
+            body: JSON.stringify({ number: phone, text: message_content }),
+          });
+
+          if (res.ok) {
+            await adminClient.from("admin_dispatch_contacts").update({
+              status: "sent",
+              sent_at: new Date().toISOString(),
+            }).eq("id", contact.id);
+            sent++;
+          } else {
+            const errBody = await res.text().catch(() => "Unknown");
+            await adminClient.from("admin_dispatch_contacts").update({
+              status: "failed",
+              error_message: `HTTP ${res.status}: ${errBody.substring(0, 200)}`,
+            }).eq("id", contact.id);
+            failed++;
+          }
+        } catch (e: any) {
+          await adminClient.from("admin_dispatch_contacts").update({
+            status: "failed",
+            error_message: e.message?.substring(0, 200) || "Erro desconhecido",
+          }).eq("id", contact.id);
+          failed++;
+        }
+
+        // Update dispatch counters
+        await adminClient.from("admin_dispatches").update({
+          sent_count: sent,
+          failed_count: failed,
+          updated_at: new Date().toISOString(),
+        }).eq("id", dispatch.id);
+
+        msgsSincePause++;
+
+        // Pause logic
+        if (msgsSincePause >= pauseAt && sent + failed < (contacts?.length || 0)) {
+          const pauseMs = (pauseDMin + Math.random() * (pauseDMax - pauseDMin)) * 1000;
+          await new Promise(r => setTimeout(r, pauseMs));
+          msgsSincePause = 0;
+        } else {
+          // Normal delay
+          const delay = (minD + Math.random() * (maxD - minD)) * 1000;
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+
+      // Mark dispatch as completed
+      const finalStatus = (await adminClient.from("admin_dispatches").select("status").eq("id", dispatch.id).single())?.data?.status;
+      if (finalStatus === "running") {
+        await adminClient.from("admin_dispatches").update({
+          status: "completed",
+          sent_count: sent,
+          failed_count: failed,
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("id", dispatch.id);
+      }
+
+      await logAction(adminClient, user.id, null, "bulk-dispatch",
+        `Disparo para ${targets.length} contatos: ${sent} enviados, ${failed} falhas`);
+
+      return new Response(JSON.stringify({ ok: true, dispatch_id: dispatch.id, enqueued: sent, failed }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DISPATCH STATUS ───
+    if (action === "dispatch-status" && req.method === "POST") {
+      const { dispatch_id } = await req.json();
+      const { data: disp } = await adminClient.from("admin_dispatches").select("*").eq("id", dispatch_id).single();
+      const { data: contacts } = await adminClient.from("admin_dispatch_contacts")
+        .select("id, phone, name, status, sent_at, error_message")
+        .eq("dispatch_id", dispatch_id)
+        .order("created_at");
+      return new Response(JSON.stringify({ dispatch: disp, contacts: contacts || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DISPATCH LIST ───
+    if (action === "dispatch-list") {
+      const { data: dispatches } = await adminClient
+        .from("admin_dispatches")
+        .select("id, admin_id, name, status, total_contacts, sent_count, failed_count, message_content, connection_purpose, started_at, completed_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return new Response(JSON.stringify({ dispatches: dispatches || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DISPATCH CONTROL (pause/resume/cancel) ───
+    if (action === "dispatch-control" && req.method === "POST") {
+      const { dispatch_id, command } = await req.json();
+      if (!dispatch_id || !command) throw new Error("dispatch_id e command obrigatórios");
+
+      const validCommands: Record<string, string> = {
+        pause: "paused",
+        resume: "running",
+        cancel: "cancelled",
+      };
+      const newStatus = validCommands[command];
+      if (!newStatus) throw new Error("Comando inválido");
+
+      await adminClient.from("admin_dispatches").update({
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+        ...(command === "cancel" ? { completed_at: new Date().toISOString() } : {}),
+      }).eq("id", dispatch_id);
+
+      await logAction(adminClient, user.id, null, `dispatch-${command}`, `Disparo ${dispatch_id} → ${newStatus}`);
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(
       JSON.stringify({ error: "Ação inválida" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import {
   Send, Loader2, CheckCircle2, Users, Filter, Search,
   FileText, ChevronRight, Smartphone, AlertTriangle, Eye,
-  Upload, FileSpreadsheet, ArrowRight, Trash2, X, Pencil, Plus
+  Upload, FileSpreadsheet, ArrowRight, Trash2, X, Pencil, Plus,
+  Pause, Play, XCircle, Clock, History, BarChart3
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
@@ -89,6 +90,7 @@ export default function AdminDispatch() {
   const { data: dashData } = useAdminDashboard();
   const users = dashData?.users || [];
 
+  const [viewMode, setViewMode] = useState<"compose" | "history">("compose");
   const [step, setStep] = useState<"audience" | "message" | "review" | "done">("audience");
   const [audienceSource, setAudienceSource] = useState<AudienceSource>("clients");
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>("all");
@@ -166,7 +168,50 @@ export default function AdminDispatch() {
     refetchOnWindowFocus: true,
   });
 
-  // === Client audience logic ===
+  // === Dispatch history ===
+  const { data: dispatchHistory = [], refetch: refetchHistory } = useQuery({
+    queryKey: ["admin-dispatch-history"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=dispatch-list`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      const data = await resp.json();
+      return data.dispatches || [];
+    },
+    refetchInterval: viewMode === "history" ? 5000 : false,
+  });
+
+  const dispatchControlMutation = useMutation({
+    mutationFn: async ({ dispatch_id, command }: { dispatch_id: string; command: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=dispatch-control`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ dispatch_id, command }),
+        }
+      );
+      if (!resp.ok) throw new Error("Erro ao controlar disparo");
+    },
+    onSuccess: () => {
+      refetchHistory();
+      toast.success("Disparo atualizado");
+    },
+  });
+
+
   const audienceUsers = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter(u => {
@@ -465,13 +510,14 @@ export default function AdminDispatch() {
       if (!resp.ok) throw new Error(data.error || "Erro ao disparar");
       setResult({ ok: data.enqueued || targets.length, fail: data.failed || 0 });
       setStep("done");
+      refetchHistory();
       toast.success(`Disparo enviado para ${data.enqueued || targets.length} destinatários`);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setDispatching(false);
     }
-  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, manualContacts, audienceSource, connectionPurpose]);
+  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, manualContacts, audienceSource, connectionPurpose, refetchHistory]);
 
   const resetAll = () => {
     setStep("audience");
@@ -503,18 +549,52 @@ export default function AdminDispatch() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-primary/10">
-          <Send size={20} className="text-primary" />
+      {/* Header + view toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <Send size={20} className="text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Enviar Mensagem</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Selecione clientes, escreva a mensagem e envie
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-foreground">Enviar Mensagem</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Selecione clientes, escreva a mensagem e envie
-          </p>
+        <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-lg border border-border/40">
+          <button
+            onClick={() => setViewMode("compose")}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+              viewMode === "compose" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Send size={12} /> Novo Disparo
+          </button>
+          <button
+            onClick={() => { setViewMode("history"); refetchHistory(); }}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+              viewMode === "history" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <History size={12} /> Histórico
+            {dispatchHistory.filter((d: any) => d.status === "running").length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </button>
         </div>
       </div>
+
+      {viewMode === "history" && (
+        <DispatchHistoryPanel
+          dispatches={dispatchHistory}
+          onControl={(id, cmd) => dispatchControlMutation.mutate({ dispatch_id: id, command: cmd })}
+          controlling={dispatchControlMutation.isPending}
+        />
+      )}
+
+      {viewMode === "compose" && (<>
+
 
       {/* Stepper */}
       <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/40 w-fit">
@@ -1252,11 +1332,16 @@ export default function AdminDispatch() {
           <CheckCircle2 size={48} className="mx-auto text-emerald-400" />
           <div>
             <p className="text-xl font-bold text-foreground">{result.ok} mensagen{result.ok !== 1 ? "s" : ""} enfileirada{result.ok !== 1 ? "s" : ""}</p>
-            {result.fail > 0 && <p className="text-sm text-red-400 mt-1">{result.fail} falha{result.fail !== 1 ? "s" : ""}</p>}
+            {result.fail > 0 && <p className="text-sm text-destructive mt-1">{result.fail} falha{result.fail !== 1 ? "s" : ""}</p>}
           </div>
-          <Button onClick={resetAll} className="gap-2">
-            <Send size={14} /> Novo Disparo
-          </Button>
+          <div className="flex items-center justify-center gap-3">
+            <Button onClick={resetAll} className="gap-2">
+              <Send size={14} /> Novo Disparo
+            </Button>
+            <Button variant="outline" onClick={() => { setViewMode("history"); refetchHistory(); }} className="gap-2">
+              <History size={14} /> Ver Histórico
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1314,6 +1399,120 @@ export default function AdminDispatch() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>)}
+    </div>
+  );
+}
+
+// ─── Dispatch History Panel ───
+function DispatchHistoryPanel({ dispatches, onControl, controlling }: {
+  dispatches: any[];
+  onControl: (id: string, cmd: string) => void;
+  controlling: boolean;
+}) {
+  const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+    running: { label: "Enviando", color: "text-emerald-400", icon: Play },
+    paused: { label: "Pausado", color: "text-yellow-400", icon: Pause },
+    completed: { label: "Concluído", color: "text-primary", icon: CheckCircle2 },
+    cancelled: { label: "Cancelado", color: "text-destructive", icon: XCircle },
+    pending: { label: "Pendente", color: "text-muted-foreground", icon: Clock },
+  };
+
+  if (dispatches.length === 0) {
+    return (
+      <div className="text-center py-16 space-y-3">
+        <History size={40} className="mx-auto text-muted-foreground/20" />
+        <p className="text-sm text-muted-foreground">Nenhum disparo realizado ainda</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {dispatches.map((d: any) => {
+        const cfg = statusConfig[d.status] || statusConfig.pending;
+        const Icon = cfg.icon;
+        const progress = d.total_contacts > 0 ? Math.round(((d.sent_count + d.failed_count) / d.total_contacts) * 100) : 0;
+        const isActive = d.status === "running" || d.status === "paused";
+
+        return (
+          <div key={d.id} className="bg-card/60 border border-border/50 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon size={16} className={cfg.color} />
+                <span className={cn("text-xs font-bold", cfg.color)}>{cfg.label}</span>
+                {d.status === "running" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+              </div>
+              <span className="text-[10px] text-muted-foreground/50">
+                {d.started_at ? new Date(d.started_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="space-y-1.5">
+              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                <div
+                  className={cn("h-full rounded-full transition-all duration-500",
+                    d.status === "running" ? "bg-emerald-400" :
+                    d.status === "completed" ? "bg-primary" :
+                    d.status === "cancelled" ? "bg-destructive/60" : "bg-yellow-400"
+                  )}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground/50">
+                <span className="tabular-nums">{d.sent_count + d.failed_count} / {d.total_contacts}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-emerald-400">✓ {d.sent_count}</span>
+                  {d.failed_count > 0 && <span className="text-destructive">✗ {d.failed_count}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Message preview */}
+            <p className="text-[11px] text-muted-foreground/60 line-clamp-2 bg-muted/10 rounded-lg px-3 py-2">
+              {d.message_content}
+            </p>
+
+            {/* Controls */}
+            {isActive && (
+              <div className="flex items-center gap-2 pt-1">
+                {d.status === "running" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] h-7 gap-1 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                    onClick={() => onControl(d.id, "pause")}
+                    disabled={controlling}
+                  >
+                    <Pause size={12} /> Pausar
+                  </Button>
+                )}
+                {d.status === "paused" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] h-7 gap-1 border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/10"
+                    onClick={() => onControl(d.id, "resume")}
+                    disabled={controlling}
+                  >
+                    <Play size={12} /> Retomar
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[11px] h-7 gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => onControl(d.id, "cancel")}
+                  disabled={controlling}
+                >
+                  <XCircle size={12} /> Cancelar
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
