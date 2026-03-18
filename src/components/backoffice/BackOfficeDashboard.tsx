@@ -416,7 +416,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "messages": return <AdminMessages />;
         case "conexao": return <AdminConexao />;
         case "dispatch-templates": return <AdminDispatchTemplates />;
-        case "dispatch": return <AdminDispatch />;
+        case "client-base": return <AdminClientBase />;
         case "dispatch-connections": return <AdminConnectionPurposes />;
         case "bo-campaigns": return <BOCampaigns />;
         case "bo-campaign-list": return <BOCampaignList />;
