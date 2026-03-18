@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Lock, LogOut, Loader2, Eye, EyeOff } from "lucide-react";
+import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
