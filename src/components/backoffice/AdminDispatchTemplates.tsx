@@ -457,14 +457,6 @@ export default function AdminDispatchTemplates() {
                     onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }} title="Preview">
                     <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
-                  <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
-                    onClick={() => { navigator.clipboard.writeText(t.content); toast.success("Copiado!"); }} title="Copiar">
-                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                  <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
-                    onClick={() => toggleMutation.mutate({ id: t.id, active: !t.is_active })} title={t.is_active ? "Desativar" : "Ativar"}>
-                    {t.is_active ? <ToggleRight className="w-3.5 h-3.5 text-primary" /> : <ToggleLeft className="w-3.5 h-3.5 text-muted-foreground" />}
-                  </button>
                   <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors" onClick={() => openEdit(t)} title="Editar">
                     <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
