@@ -117,7 +117,7 @@ export default function AdminConnectionPurposes() {
 
       {/* Purpose cards */}
       <div className="grid gap-3 sm:grid-cols-2">
-        {purposes.map(p => {
+        {purposes.filter(p => p.purpose !== "alerts").map(p => {
           const Icon = PURPOSE_ICONS[p.purpose] || Plug;
           const device = devices.find(d => d.id === p.device_id);
           const isConnected = device && ["Connected", "Ready", "authenticated"].includes(device.status);
