@@ -509,8 +509,14 @@ export default function AdminAnnouncements() {
             allow_close: true,
             allow_dismiss: false,
           }}
-          onClose={() => setPreviewOpen(false)}
-          onDismiss={() => setPreviewOpen(false)}
+          onClose={() => {
+            setPreviewOpen(false);
+            if (previewFromEditor) setCreating(true);
+          }}
+          onDismiss={() => {
+            setPreviewOpen(false);
+            if (previewFromEditor) setCreating(true);
+          }}
           isPreview
         />,
         document.body
