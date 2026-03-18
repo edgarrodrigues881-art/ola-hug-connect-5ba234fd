@@ -199,7 +199,7 @@ function FlowCanvas() {
   );
 
   const createNodeFromMenu = useCallback(
-    (type: "messageNode" | "endNode") => {
+    (type: "messageNode" | "endNode" | "delayNode") => {
       if (!dropMenu) return;
 
       const id = `${type}-${++nodeId}`;
@@ -207,6 +207,8 @@ function FlowCanvas() {
 
       if (type === "endNode") {
         data = { label: "Finalizar", action: "end_flow" };
+      } else if (type === "delayNode") {
+        data = { label: "Temporizador", delaySeconds: 5 };
       } else {
         data = {
           label: "Nova Mensagem",
