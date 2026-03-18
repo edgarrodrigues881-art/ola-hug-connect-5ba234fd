@@ -413,6 +413,9 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "dispatch-templates": return <AdminDispatchTemplates />;
         case "dispatch": return <AdminDispatch />;
         case "dispatch-connections": return <AdminConnectionPurposes />;
+        case "bo-campaigns": return <BOCampaigns />;
+        case "bo-campaign-list": return <BOCampaignList />;
+        case "bo-campaign-detail": return <BOCampaignDetail />;
         case "logs": return <AdminLogs />;
         case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
         case "groups-pool": return <AdminGroupsPool />;
