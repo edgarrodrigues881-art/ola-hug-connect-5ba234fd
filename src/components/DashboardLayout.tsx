@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Trash2, Sun, Moon } from "lucide-react";
@@ -13,12 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo-new.png";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { AnnouncementManager } from "@/components/AnnouncementManager";
 import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useFeatureControls } from "@/hooks/useFeatureControls";
+import { MaintenanceModal } from "@/components/MaintenanceModal";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
