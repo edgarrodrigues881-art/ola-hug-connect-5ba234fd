@@ -18,11 +18,12 @@ import "@xyflow/react/dist/style.css";
 import { StartNode } from "@/components/autoreply/StartNode";
 import { MessageNode } from "@/components/autoreply/MessageNode";
 import { EndNode } from "@/components/autoreply/EndNode";
+import { DelayNode } from "@/components/autoreply/DelayNode";
 import { FlowSidebar } from "@/components/autoreply/FlowSidebar";
 import { EditPanel } from "@/components/autoreply/EditPanel";
 import { FlowHeader } from "@/components/autoreply/FlowHeader";
 import type { FlowNodeData } from "@/components/autoreply/types";
-import { MessageSquare, Square } from "lucide-react";
+import { MessageSquare, Square, Timer } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 const nodeTypes = {
   startNode: StartNode,
   messageNode: MessageNode,
+  delayNode: DelayNode,
   endNode: EndNode,
 };
 
@@ -197,7 +199,7 @@ function FlowCanvas() {
   );
 
   const createNodeFromMenu = useCallback(
-    (type: "messageNode" | "endNode") => {
+    (type: "messageNode" | "endNode" | "delayNode") => {
       if (!dropMenu) return;
 
       const id = `${type}-${++nodeId}`;
@@ -205,6 +207,8 @@ function FlowCanvas() {
 
       if (type === "endNode") {
         data = { label: "Finalizar", action: "end_flow" };
+      } else if (type === "delayNode") {
+        data = { label: "Temporizador", delaySeconds: 5 };
       } else {
         data = {
           label: "Nova Mensagem",
@@ -268,6 +272,8 @@ function FlowCanvas() {
         data = { label: "Início", trigger: "any_message", keyword: "" };
       } else if (type === "endNode") {
         data = { label: "Finalizar", action: "end_flow" };
+      } else if (type === "delayNode") {
+        data = { label: "Temporizador", delaySeconds: 5 };
       } else {
         data = {
           label: "Nova Mensagem",
@@ -401,6 +407,15 @@ function FlowCanvas() {
                       <MessageSquare className="w-3.5 h-3.5 text-primary" />
                     </div>
                     Mensagem
+                  </button>
+                  <button
+                    onClick={() => createNodeFromMenu("delayNode")}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-amber-500/10 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                      <Timer className="w-3.5 h-3.5 text-amber-500" />
+                    </div>
+                    Temporizador
                   </button>
                   <button
                     onClick={() => createNodeFromMenu("endNode")}
