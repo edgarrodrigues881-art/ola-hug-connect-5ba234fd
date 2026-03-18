@@ -705,7 +705,7 @@ async function doRegisterWebhook(device: any) {
     });
 
     const text = await res.text();
-    console.log(`[autoreply] Webhook registered for device ${device_id}: ${res.status} ${text}`);
+    console.log(`[autoreply] Webhook registered for device ${device.id}: ${res.status} ${text}`);
 
     return json({ ok: true, webhook_url: webhookUrl });
   } catch (err) {
