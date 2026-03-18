@@ -572,7 +572,8 @@ Deno.serve(async (req) => {
             is_running: false, phase: "paused", previous_phase: c.phase,
             last_error: "Auto-pausado: instância desconectada",
           }).eq("id", c.id);
-          svc.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", c.id).eq("status", "pending").then(() => {});
+          // MUST await to prevent race condition with resume
+          await svc.from("warmup_jobs").update({ status: "cancelled" }).eq("cycle_id", c.id).eq("status", "pending");
         }
       }
     }

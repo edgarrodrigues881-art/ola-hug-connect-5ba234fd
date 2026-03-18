@@ -1206,6 +1206,52 @@ async function handleTick(db: any) {
     }
   }
 
+  // ── ORPHANED CYCLE RECOVERY: Running cycles with 0 pending jobs during operating hours ──
+  if (withinWindow) {
+    const { data: runningCycles } = await db.from("warmup_cycles")
+      .select("id, user_id, device_id, day_index, days_total, chip_state, phase, daily_interaction_budget_target, daily_interaction_budget_used")
+      .eq("is_running", true)
+      .not("phase", "in", '("completed","paused","error","pre_24h")')
+      .limit(100);
+
+    if (runningCycles?.length) {
+      // Get all cycle IDs that have at least one pending job
+      const cycleIds = runningCycles.map((c: any) => c.id);
+      const { data: pendingJobCycles } = await db.from("warmup_jobs")
+        .select("cycle_id")
+        .in("cycle_id", cycleIds)
+        .in("status", ["pending", "running"]);
+
+      const cyclesWithJobs = new Set((pendingJobCycles || []).map((j: any) => j.cycle_id));
+
+      for (const cycle of runningCycles) {
+        if (cyclesWithJobs.has(cycle.id)) continue;
+        // This cycle is running but has NO pending/running jobs — orphaned
+        if (cycle.daily_interaction_budget_used >= cycle.daily_interaction_budget_target) continue; // budget exhausted, normal
+
+        // Check device is connected before regenerating
+        const { data: dev } = await db.from("devices").select("status").eq("id", cycle.device_id).maybeSingle();
+        if (!dev || !CONNECTED_STATUSES.includes(dev.status)) continue;
+
+        console.log(`[warmup-tick] ORPHAN RECOVERY: cycle ${cycle.id} (${cycle.phase}, day ${cycle.day_index}) has 0 pending jobs, budget ${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target} — regenerating`);
+
+        // Regenerate today's jobs
+        await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, cycle.day_index, cycle.phase, cycle.chip_state, true);
+        await ensureNextDailyResetJob(db, { user_id: cycle.user_id, device_id: cycle.device_id }, cycle.id);
+        await ensureJoinGroupJobs(db, cycle.id, cycle.user_id, cycle.device_id);
+
+        await db.from("warmup_audit_logs").insert({
+          user_id: cycle.user_id,
+          device_id: cycle.device_id,
+          cycle_id: cycle.id,
+          level: "warning",
+          event_type: "orphan_recovery",
+          message: `Ciclo órfão recuperado: 0 jobs pendentes detectados. Reagendamento gerado. Budget: ${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target}`,
+        });
+      }
+    }
+  }
+
   // ── AUTO-RESUME: Reconnected devices auto-restart paused warmup cycles ──
   {
     const { data: pausedCyclesCheck } = await db.from("warmup_cycles")
