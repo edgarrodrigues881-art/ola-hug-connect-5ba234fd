@@ -48,6 +48,10 @@ function getDaysLeft(expiresAt: string | null): number | null {
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
+const BOCampaigns = lazy(() => import("@/pages/backoffice/BOCampaigns"));
+const BOCampaignList = lazy(() => import("@/pages/backoffice/BOCampaignList"));
+const BOCampaignDetail = lazy(() => import("@/pages/backoffice/BOCampaignDetail"));
+
 const NAV_ITEMS = [
   { id: "overview", label: "Visão Geral", shortLabel: "Home", icon: LayoutDashboard, group: "principal", badge: false },
   { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
@@ -55,9 +59,11 @@ const NAV_ITEMS = [
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
 
-  { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "principal", badge: false },
-  { id: "dispatch", label: "Disparar", shortLabel: "Disparar", icon: Send, group: "principal", badge: false },
-  { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "principal", badge: false },
+  { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
+  { id: "dispatch", label: "Disparar (Admin)", shortLabel: "Disparar", icon: Send, group: "disparo", badge: false },
+  { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "disparo", badge: false },
+  { id: "bo-campaigns", label: "Nova Campanha", shortLabel: "Campanha", icon: Megaphone, group: "campanhas", badge: false },
+  { id: "bo-campaign-list", label: "Campanhas", shortLabel: "Lista", icon: List, group: "campanhas", badge: false },
 
   { id: "groups-pool", label: "Grupo De Aquecimento", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
   { id: "tokens-global", label: "Tokens Globais", shortLabel: "Tokens", icon: Key, group: "sistema", badge: false },
