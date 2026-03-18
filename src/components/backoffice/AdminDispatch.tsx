@@ -232,38 +232,43 @@ export default function AdminDispatch() {
       {/* Step: Audience */}
       {step === "audience" && (
         <div className="space-y-4">
-          {/* Audience filter */}
-          <div className="flex items-center gap-3">
-            <Select value={audienceFilter} onValueChange={(v) => setAudienceFilter(v as AudienceFilter)}>
-              <SelectTrigger className="h-9 w-64 bg-card/50 border-border/60 text-sm">
-                <Filter size={14} className="mr-2 text-muted-foreground/50" />
-                <SelectValue placeholder="Filtrar audiência" />
-              </SelectTrigger>
-              <SelectContent>
-                {AUDIENCE_OPTIONS.map(opt => {
-                  const count = users.filter(u => {
-                    const d = getDaysLeft(u.plan_expires_at);
-                    switch (opt.value) {
-                      case "all": return true;
-                      case "active": return u.status === "active";
-                      case "expired": return d !== null && d <= 0;
-                      case "expiring": return d !== null && d > 0 && d <= 3;
-                      case "trial": return u.plan_name === "Trial";
-                      case "start": return u.plan_name === "Start";
-                      case "pro": return u.plan_name === "Pro";
-                      case "scale": return u.plan_name === "Scale";
-                      case "elite": return u.plan_name === "Elite";
-                      default: return true;
-                    }
-                  }).length;
-                  return (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label} ({count})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          {/* Category filter chips */}
+          <div className="flex flex-wrap gap-1.5">
+            {AUDIENCE_OPTIONS.map(opt => {
+              const count = users.filter(u => {
+                const d = getDaysLeft(u.plan_expires_at);
+                switch (opt.value) {
+                  case "all": return true;
+                  case "active": return u.status === "active";
+                  case "expired": return d !== null && d <= 0;
+                  case "expiring": return d !== null && d > 0 && d <= 3;
+                  case "trial": return u.plan_name === "Trial";
+                  case "start": return u.plan_name === "Start";
+                  case "pro": return u.plan_name === "Pro";
+                  case "scale": return u.plan_name === "Scale";
+                  case "elite": return u.plan_name === "Elite";
+                  default: return true;
+                }
+              }).length;
+              if (count === 0 && opt.value !== "all") return null;
+              const isActive = audienceFilter === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setAudienceFilter(opt.value)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                    isActive
+                      ? "bg-primary/15 text-primary border-primary/40"
+                      : "bg-card/50 border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                  <span className={`text-[10px] font-mono ${isActive ? "text-primary" : "text-muted-foreground/50"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search + Select All */}
