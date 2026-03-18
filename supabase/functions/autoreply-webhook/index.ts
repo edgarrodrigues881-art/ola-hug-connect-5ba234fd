@@ -193,6 +193,9 @@ Deno.serve(async (req) => {
     const event = body.event || body.type || "";
     const msgData = body.data || body;
 
+    // Log raw payload for debugging (first 800 chars)
+    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 800)}`);
+
     // Extract message details
     let fromPhone = "";
     let messageText = "";
@@ -200,6 +203,7 @@ Deno.serve(async (req) => {
     let isFromMe = false;
     let instanceToken = "";
     let deviceHeaderId = "";
+    let hasButtonResponse = false;
 
     // Try to get instance identifiers from headers/body
     instanceToken = (
@@ -247,14 +251,17 @@ Deno.serve(async (req) => {
       if (msg.buttonsResponseMessage) {
         buttonResponseId = msg.buttonsResponseMessage.selectedButtonId || "";
         messageText = msg.buttonsResponseMessage.selectedDisplayText || messageText;
+        hasButtonResponse = true;
       }
       if (msg.templateButtonReplyMessage) {
         buttonResponseId = msg.templateButtonReplyMessage.selectedId || "";
         messageText = msg.templateButtonReplyMessage.selectedDisplayText || messageText;
+        hasButtonResponse = true;
       }
       if (msg.listResponseMessage) {
         buttonResponseId = msg.listResponseMessage.singleSelectReply?.selectedRowId || "";
         messageText = msg.listResponseMessage.title || messageText;
+        hasButtonResponse = true;
       }
     } else if (msgData.body || msgData.text || msgData.messageBody) {
       messageText = msgData.body || msgData.text || msgData.messageBody || "";
@@ -263,15 +270,20 @@ Deno.serve(async (req) => {
     // Also check for button response at top level (some UaZapi versions)
     if (!buttonResponseId) {
       buttonResponseId = msgData.selectedButtonId || msgData.buttonId || body.selectedButtonId || "";
+      if (buttonResponseId) hasButtonResponse = true;
     }
 
-    // Skip messages from ourselves or group messages
-    if (isFromMe || !fromPhone || fromPhone.includes("g.us")) {
-      return json({ ok: true, skipped: true, reason: "self_or_group" });
+    // Skip group messages but ALLOW fromMe if it's a button response (user clicked our button)
+    if (!fromPhone || fromPhone.includes("g.us")) {
+      return json({ ok: true, skipped: true, reason: "group_or_empty" });
+    }
+    if (isFromMe && !hasButtonResponse) {
+      return json({ ok: true, skipped: true, reason: "self_message" });
     }
 
     // Skip non-message events
     if (event && !event.includes("message") && !event.includes("Message") && event !== "") {
+      console.log(`[autoreply] Skipping non-message event: "${event}"`);
       return json({ ok: true, skipped: true, reason: "non_message_event" });
     }
 
@@ -755,8 +767,9 @@ async function doRegisterWebhook(device: any) {
     url: webhookUrl,
     enabled: true,
     events: ["messages"],
-    excludeMessages: ["wasSentByApi"],
+    excludeMessages: [],
     addUrlEvents: true,
+    addUrlTypesMessages: true,
     headers: webhookHeaders,
   };
 
