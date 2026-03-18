@@ -1984,18 +1984,26 @@ async function handleTick(db: any) {
         const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
 
+        // Daily rotation: use day_index as offset to rotate through contacts
+        const dayOffset = (cycle.day_index || 0) * 5; // shift by 5 contacts each day
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
-          .filter((c: any) => c._phone.length >= 10)
-          .slice(0, 5);
-
+          .filter((c: any) => c._phone.length >= 10);
+        
         if (autosavePool.length === 0) {
           bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Nenhum contato Auto Save válido/ativo" });
           break;
         }
 
-        let selectedIndex = ((rIdx % autosavePool.length) + autosavePool.length) % autosavePool.length;
-        const target = autosavePool[selectedIndex];
+        // Rotate: pick 5 contacts starting from dayOffset position (wraps around)
+        const rotatedPool: typeof autosavePool = [];
+        for (let i = 0; i < Math.min(5, autosavePool.length); i++) {
+          const idx = (dayOffset + i) % autosavePool.length;
+          rotatedPool.push(autosavePool[idx]);
+        }
+
+        let selectedIndex = ((rIdx % rotatedPool.length) + rotatedPool.length) % rotatedPool.length;
+        const target = rotatedPool[selectedIndex];
 
         // ── VALIDATION STEP (msg_index=0 only): Pre-validate before sending anything ──
         if (mIdx === 0) {
