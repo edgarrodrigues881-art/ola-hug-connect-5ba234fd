@@ -17,7 +17,7 @@ interface Props {
   name: string;
   onNameChange: (n: string) => void;
   isActive: boolean;
-  onToggleActive: () => void;
+  onToggleActive: (checked: boolean) => void;
   onSave: () => void;
   saving?: boolean;
   deviceId: string | null;
