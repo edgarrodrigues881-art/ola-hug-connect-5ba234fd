@@ -188,6 +188,9 @@ Deno.serve(async (req) => {
     if (body.action === "register_webhook") {
       return await handleRegisterWebhook(supabase, body, req);
     }
+    if (body.action === "disable_webhook") {
+      return await handleDisableWebhook(supabase, body, req);
+    }
 
     // ── Parse incoming message from UaZapi webhook ──
     const event = body.event || body.EventType || body.type || "";
@@ -405,10 +408,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Anti-loop cooldown: prevent processing same contact more than once per 3 seconds ──
+    // ── Anti-loop cooldown: prevent processing same contact/message more than once per 30 seconds ──
     const { data: recentSession } = await supabase
       .from("autoreply_sessions")
-      .select("last_message_at")
+      .select("last_message_at, current_node_id")
       .eq("device_id", deviceId)
       .eq("contact_phone", fromPhone)
       .order("updated_at", { ascending: false })
@@ -418,7 +421,7 @@ Deno.serve(async (req) => {
     if (recentSession?.last_message_at) {
       const lastMs = new Date(recentSession.last_message_at).getTime();
       const nowMs = Date.now();
-      if (nowMs - lastMs < 3000) {
+      if (nowMs - lastMs < 30000) {
         console.log(`[autoreply] Anti-loop cooldown: ${nowMs - lastMs}ms since last message`);
         return json({ ok: true, skipped: true, reason: "cooldown" });
       }
@@ -842,6 +845,44 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
   }
 
   return await doRegisterWebhook(device);
+}
+
+async function handleDisableWebhook(supabase: any, body: any, req: Request) {
+  const { device_id } = body;
+  const authHeader = req.headers.get("authorization") ?? "";
+  const bearerToken = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(bearerToken);
+  if (authErr || !user) return json({ error: "Not authenticated" }, 401);
+
+  const { data: device } = await supabase
+    .from("devices")
+    .select("id, uazapi_token, uazapi_base_url")
+    .eq("id", device_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!device?.uazapi_token || !device?.uazapi_base_url) {
+    return json({ error: "Device not configured" }, 400);
+  }
+
+  const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const webhookUrl = `${supabaseUrl}/functions/v1/autoreply-webhook`;
+  const headers: Record<string, string> = { "Content-Type": "application/json", token: device.uazapi_token };
+
+  try {
+    const putRes = await fetch(`${baseUrl}/webhook`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ url: webhookUrl, enabled: false, events: ["messages"] }),
+    });
+    const putText = await putRes.text();
+    console.log(`[autoreply] DISABLE PUT /webhook: ${putRes.status} ${putText.substring(0, 300)}`);
+  } catch (err) {
+    console.log(`[autoreply] Disable webhook failed: ${err}`);
+  }
+
+  return json({ ok: true, disabled: true });
 }
 
 async function doRegisterWebhook(device: any) {
