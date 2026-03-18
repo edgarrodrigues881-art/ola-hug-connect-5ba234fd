@@ -2314,10 +2314,11 @@ async function handleTick(db: any) {
 
           await db.from("community_pairs").update({ meta: nextMeta }).eq("id", selectedPair.id);
 
-          await db.from("warmup_cycles").update({
-            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-          }).eq("id", cycle.id);
-          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+          // Atomic budget increment
+          const { data: budgetResult3 } = await db.rpc("increment_warmup_budget", {
+            p_cycle_id: cycle.id, p_increment: 1, p_unique_recipient: false,
+          });
+          if (budgetResult3) cycle.daily_interaction_budget_used = budgetResult3.used;
 
           if (hasNextTurn && nextCycle) {
             const replyDelaySeconds = randInt(8, 35);
