@@ -424,7 +424,7 @@ export default function AdminDispatch() {
           return (
             <button
               key={s}
-              onClick={() => { if (isDone || isActive) setStep(s as any); }}
+              onClick={() => setStep(s as any)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 isActive
                   ? "bg-primary text-primary-foreground shadow-sm"
