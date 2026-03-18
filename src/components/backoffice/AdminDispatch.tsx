@@ -751,8 +751,22 @@ export default function AdminDispatch() {
             ) : selectedTemplate ? (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Preview do modelo</label>
-                <div className="bg-muted/30 border border-border/40 rounded-lg p-4">
+                <div className="bg-muted/30 border border-border/40 rounded-lg p-4 space-y-3">
+                  {selectedTemplateMedia.length > 0 && (
+                    <div className="rounded-lg border border-border/30 bg-card/60 px-3 py-6 text-center text-xs text-muted-foreground">
+                      📎 {selectedTemplateMedia.length} mídia{selectedTemplateMedia.length > 1 ? "s" : ""} anexada{selectedTemplateMedia.length > 1 ? "s" : ""}
+                    </div>
+                  )}
                   <p className="text-sm whitespace-pre-wrap text-foreground">{selectedTemplate.content}</p>
+                  {selectedTemplateButtons.length > 0 && (
+                    <div className="space-y-2 border-t border-border/30 pt-3">
+                      {selectedTemplateButtons.map((btn: any, i: number) => (
+                        <div key={i} className="rounded-md border border-border/30 bg-card/60 px-3 py-2 text-center text-xs font-medium text-primary">
+                          {btn.text || `Botão ${i + 1}`}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}
