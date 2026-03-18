@@ -656,7 +656,11 @@ const WarmupInstances = () => {
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("devices").select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at").eq("user_id", user!.id).order("created_at", { ascending: true });
+      const { data, error } = await supabase
+        .from("devices")
+        .select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at, updated_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []).sort((a, b) => {
         const onlineStatuses = ["Connected", "Ready", "authenticated"];
