@@ -1,5 +1,4 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useCallback, useRef, useMemo } from "react";
 import {
   ReactFlow,
   Controls,
@@ -48,30 +47,13 @@ const defaultNodes: Node<FlowNodeData>[] = [
 
 const defaultEdges: Edge[] = [];
 
-function getInitialData(): { nodes: Node<FlowNodeData>[]; edges: Edge[]; name: string } {
-  try {
-    const raw = sessionStorage.getItem("autoreply_template");
-    if (raw) {
-      sessionStorage.removeItem("autoreply_template");
-      const parsed = JSON.parse(raw);
-      return {
-        nodes: parsed.nodes || defaultNodes,
-        edges: parsed.edges || defaultEdges,
-        name: parsed.name || "Minha Automação",
-      };
-    }
-  } catch {}
-  return { nodes: defaultNodes, edges: defaultEdges, name: "Minha Automação" };
-}
-
 let nodeId = 100;
 
 function FlowCanvas() {
-  const initial = useMemo(() => getInitialData(), []);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [flowName, setFlowName] = useState(initial.name);
+  const [flowName, setFlowName] = useState("Minha Automação");
   const [isActive, setIsActive] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -154,14 +136,15 @@ function FlowCanvas() {
       const node = nodes.find((n) => n.id === id);
       if (!node) return;
       const newId = `${node.type}-${++nodeId}`;
+      const nodeData = node.data as FlowNodeData;
       const newNode: Node<FlowNodeData> = {
         ...node,
         id: newId,
         position: { x: node.position.x + 50, y: node.position.y + 50 },
         data: {
-          ...node.data,
-          label: `${node.data.label} (cópia)`,
-          buttons: node.data.buttons?.map((b) => ({ ...b, id: `btn-${++nodeId}` })),
+          ...nodeData,
+          label: `${nodeData.label} (cópia)`,
+          buttons: nodeData.buttons?.map((b) => ({ ...b, id: `btn-${++nodeId}` })),
         },
         selected: false,
       };
