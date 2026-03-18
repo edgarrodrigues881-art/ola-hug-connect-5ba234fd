@@ -30,7 +30,7 @@ const AdminMessages = lazy(() => import("./AdminMessages"));
 const AdminConexao = lazy(() => import("./AdminConexao"));
 const AdminTokensGlobal = lazy(() => import("./AdminTokensGlobal"));
 const AdminDispatchTemplates = lazy(() => import("./AdminDispatchTemplates"));
-const AdminDispatch = lazy(() => import("./AdminDispatch"));
+const AdminClientBase = lazy(() => import("./AdminClientBase"));
 const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
