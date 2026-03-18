@@ -77,19 +77,19 @@ function matchesTrigger(startNode: FlowNode, messageText: string, isFirstMessage
   }
 }
 
-/** Collect all message nodes to send in order, following the flow graph */
 function collectFlowMessages(nodes: FlowNode[], edges: FlowEdge[], startNode: FlowNode) {
   const visited = new Set<string>();
   const messages: { text: string; imageUrl?: string; imageCaption?: string; delay?: number; buttons?: { id: string; label: string }[] }[] = [];
   let currentNodeId = startNode.id;
+  let terminalNodeId = startNode.id;
   let maxSteps = 30;
 
   while (currentNodeId && maxSteps-- > 0 && !visited.has(currentNodeId)) {
     visited.add(currentNodeId);
     const node = findNodeById(currentNodeId, nodes);
     if (!node) break;
+    terminalNodeId = node.id;
 
-    // Collect message from messageNode or startNode with text
     if (node.type === "messageNode" || (node.type === "startNode" && node.data.text)) {
       const text = (node.data.text || "").trim();
       if (text || node.data.imageUrl) {
@@ -101,12 +101,7 @@ function collectFlowMessages(nodes: FlowNode[], edges: FlowEdge[], startNode: Fl
           buttons: node.data.buttons?.length ? node.data.buttons : undefined,
         });
       }
-      // If node has buttons, stop traversal (user needs to pick)
       if (node.data.buttons?.length) break;
-    }
-
-    if (node.type === "delayNode") {
-      // We'll add the delay to the next message
     }
 
     if (node.type === "endNode") break;
@@ -115,7 +110,7 @@ function collectFlowMessages(nodes: FlowNode[], edges: FlowEdge[], startNode: Fl
     currentNodeId = nextNodes[0] || "";
   }
 
-  return messages;
+  return { messages, terminalNodeId };
 }
 
 function isValidDraftFlow(draftFlow: DraftFlowPayload | null | undefined) {
@@ -130,14 +125,33 @@ async function sendMessage(
   imageUrl?: string,
   buttons?: { id: string; label: string }[]
 ) {
+  const cleanPhone = phone.replace(/\D/g, "");
   const url = `${baseUrl}/send/text`;
-  const payload: Record<string, unknown> = { number: phone, text };
+  const payload: Record<string, unknown> = { number: cleanPhone, text };
+
+  if (buttons?.length) {
+    const menuPayload: Record<string, unknown> = {
+      number: cleanPhone,
+      type: "button",
+      text,
+      choices: buttons.slice(0, 3).map((b) => `${b.label}|${b.id}`),
+    };
+    if (imageUrl) menuPayload.imageButton = imageUrl;
+    console.log(`[test-autoreply] Sending menu/buttons to ${cleanPhone}`);
+    const resp = await fetch(`${baseUrl}/send/menu`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(menuPayload),
+    });
+    const body = await resp.text();
+    console.log(`[test-autoreply] Menu response: ${resp.status} ${body.slice(0, 200)}`);
+    return { ok: resp.ok, status: resp.status, body };
+  }
 
   if (imageUrl) {
-    // Send as image with caption
     const imgUrl = `${baseUrl}/send/image`;
-    const imgPayload = { number: phone, image: imageUrl, caption: text || "" };
-    console.log(`[test-autoreply] Sending image to ${phone}`);
+    const imgPayload = { number: cleanPhone, image: imageUrl, caption: text || "" };
+    console.log(`[test-autoreply] Sending image to ${cleanPhone}`);
     const resp = await fetch(imgUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", token },
@@ -148,39 +162,7 @@ async function sendMessage(
     return { ok: resp.ok, status: resp.status, body };
   }
 
-  if (buttons?.length) {
-    // Send with buttons
-    const btnUrl = `${baseUrl}/send/buttons`;
-    const btnPayload = {
-      number: phone,
-      title: "",
-      text,
-      footer: "",
-      buttons: buttons.slice(0, 3).map((b) => ({ text: b.label })),
-    };
-    console.log(`[test-autoreply] Sending buttons to ${phone}`);
-    const resp = await fetch(btnUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token },
-      body: JSON.stringify(btnPayload),
-    });
-    const body = await resp.text();
-    console.log(`[test-autoreply] Buttons response: ${resp.status} ${body.slice(0, 200)}`);
-    // If buttons endpoint fails, fallback to plain text
-    if (!resp.ok) {
-      console.log(`[test-autoreply] Buttons failed, falling back to text`);
-      const resp2 = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token },
-        body: JSON.stringify(payload),
-      });
-      const body2 = await resp2.text();
-      return { ok: resp2.ok, status: resp2.status, body: body2 };
-    }
-    return { ok: resp.ok, status: resp.status, body };
-  }
-
-  console.log(`[test-autoreply] Sending text to ${phone}`);
+  console.log(`[test-autoreply] Sending text to ${cleanPhone}`);
   const resp = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", token },
@@ -223,6 +205,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const deviceId = body.device_id as string | undefined;
+    const flowId = body.flow_id as string | undefined;
     const incomingText = String(body.incoming_text || body.message_text || "").trim();
     const draftFlow = (body.draft_flow || null) as DraftFlowPayload | null;
 
@@ -230,11 +213,14 @@ Deno.serve(async (req) => {
       return json({ error: "Selecione uma instância antes de testar" }, 400);
     }
 
+    if (!flowId) {
+      return json({ error: "Salve a automação antes de testar os botões" }, 400);
+    }
+
     if (!incomingText) {
       return json({ error: "Defina uma mensagem de entrada para simular o teste" }, 400);
     }
 
-    // Get user's phone from profile
     const { data: profile } = await supabase
       .from("profiles")
       .select("phone")
@@ -250,7 +236,6 @@ Deno.serve(async (req) => {
       return json({ error: "O telefone do perfil é inválido para o teste" }, 400);
     }
 
-    // Get device with credentials
     const { data: device } = await supabase
       .from("devices")
       .select("id, status, uazapi_token, uazapi_base_url")
@@ -265,7 +250,6 @@ Deno.serve(async (req) => {
       return json({ error: "A instância selecionada está offline. Reconecte antes de testar." }, 400);
     }
 
-    // Get token - device's own or from pool
     let apiToken = device.uazapi_token;
     let baseUrl = device.uazapi_base_url;
 
@@ -278,9 +262,7 @@ Deno.serve(async (req) => {
         .limit(1)
         .single();
 
-      if (poolToken) {
-        apiToken = poolToken.token;
-      }
+      if (poolToken) apiToken = poolToken.token;
     }
 
     if (!baseUrl) {
@@ -293,108 +275,109 @@ Deno.serve(async (req) => {
 
     const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
 
-    // Find matching flow
-    const flowsToTest = isValidDraftFlow(draftFlow)
-      ? [{
-          id: "draft-flow",
-          name: draftFlow?.name || "Rascunho",
-          device_id: deviceId,
-          nodes: draftFlow?.nodes || [],
-          edges: draftFlow?.edges || [],
-        }]
-      : await (async () => {
-          const { data: activeFlows } = await supabase
-            .from("autoreply_flows")
-            .select("id, name, nodes, edges, device_id, updated_at")
-            .eq("user_id", user!.id)
-            .eq("is_active", true)
-            .order("updated_at", { ascending: false });
+    const { data: persistedFlow } = await supabase
+      .from("autoreply_flows")
+      .select("id, name, nodes, edges, device_id, is_active")
+      .eq("id", flowId)
+      .eq("user_id", user.id)
+      .single();
 
-          if (!activeFlows?.length) return [];
-          return activeFlows.filter((flow: any) => !flow.device_id || flow.device_id === deviceId);
-        })();
-
-    if (!flowsToTest.length) {
-      return json({ error: "Nenhuma automação ativa para esta instância." }, 400);
+    if (!persistedFlow) {
+      return json({ error: "Fluxo não encontrado para teste" }, 404);
     }
 
-    const isFirstMessage = true;
-
-    for (const flow of flowsToTest) {
-      const nodes = Array.isArray(flow.nodes) ? (flow.nodes as unknown as FlowNode[]) : [];
-      const edges = Array.isArray(flow.edges) ? (flow.edges as unknown as FlowEdge[]) : [];
-      const startNode = nodes.find((node) => node.type === "startNode");
-
-      if (!startNode) continue;
-      if (!matchesTrigger(startNode, incomingText, isFirstMessage)) continue;
-
-      // Collect messages to send
-      const messages = collectFlowMessages(nodes, edges, startNode);
-
-      if (messages.length === 0) {
-        return json({
-          error: "O fluxo não possui mensagens para enviar. Adicione blocos de mensagem após o início.",
-        }, 400);
-      }
-
-      console.log(`[test-autoreply] Sending ${messages.length} message(s) to ${phone} via flow "${flow.name}"`);
-
-      let sentCount = 0;
-      let lastError = "";
-
-      for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i];
-
-        // Add delay between messages (min 1s between sends)
-        if (i > 0) {
-          const delayMs = Math.max((msg.delay || 1) * 1000, 1000);
-          await sleep(Math.min(delayMs, 10000)); // cap at 10s for test
+    const flow = isValidDraftFlow(draftFlow)
+      ? {
+          id: persistedFlow.id,
+          name: draftFlow?.name || persistedFlow.name,
+          device_id: persistedFlow.device_id,
+          nodes: draftFlow?.nodes || persistedFlow.nodes,
+          edges: draftFlow?.edges || persistedFlow.edges,
         }
+      : persistedFlow;
 
-        try {
-          const result = await sendMessage(
-            cleanBaseUrl,
-            apiToken,
-            phone,
-            msg.text,
-            msg.imageUrl,
-            msg.buttons
-          );
+    const nodes = Array.isArray(flow.nodes) ? (flow.nodes as unknown as FlowNode[]) : [];
+    const edges = Array.isArray(flow.edges) ? (flow.edges as unknown as FlowEdge[]) : [];
+    const startNode = nodes.find((node) => node.type === "startNode");
 
-          if (result.ok) {
-            sentCount++;
-          } else {
-            lastError = `Erro ${result.status}: ${result.body.slice(0, 100)}`;
-            console.error(`[test-autoreply] Send failed: ${lastError}`);
-          }
-        } catch (err: any) {
-          lastError = err.message || String(err);
-          console.error(`[test-autoreply] Send exception: ${lastError}`);
-        }
-      }
+    if (!startNode) {
+      return json({ error: "Fluxo sem nó inicial" }, 400);
+    }
+    if (!matchesTrigger(startNode, incomingText, true)) {
+      return json({ error: `A mensagem "${incomingText}" não corresponde ao gatilho configurado.` }, 400);
+    }
 
-      if (sentCount === 0) {
-        return json({
-          error: "Falha ao enviar mensagem de teste",
-          details: lastError,
-        }, 500);
-      }
+    const { messages, terminalNodeId } = collectFlowMessages(nodes, edges, startNode);
 
-      return json({
-        success: true,
-        phone,
-        trigger: incomingText,
+    if (messages.length === 0) {
+      return json({ error: "O fluxo não possui mensagens para enviar. Adicione blocos de mensagem após o início." }, 400);
+    }
+
+    await supabase
+      .from("autoreply_sessions")
+      .delete()
+      .eq("device_id", deviceId)
+      .eq("contact_phone", phone)
+      .eq("flow_id", flow.id);
+
+    const initialNodeId = startNode.data.text ? startNode.id : terminalNodeId;
+
+    const { error: sessionError } = await supabase
+      .from("autoreply_sessions")
+      .insert({
         flow_id: flow.id,
-        flow_name: flow.name,
-        messages_sent: sentCount,
-        messages_total: messages.length,
-        message: `Teste enviado com sucesso! ${sentCount} mensagem${sentCount > 1 ? "s" : ""} enviada${sentCount > 1 ? "s" : ""} para ${phone}.`,
+        device_id: deviceId,
+        user_id: user.id,
+        contact_phone: phone,
+        current_node_id: initialNodeId,
+        status: "active",
+        last_message_at: new Date().toISOString(),
       });
+
+    if (sessionError) {
+      return json({ error: "Falha ao preparar a sessão de teste", details: sessionError.message }, 500);
+    }
+
+    console.log(`[test-autoreply] Sending ${messages.length} message(s) to ${phone} via flow "${flow.name}"`);
+
+    let sentCount = 0;
+    let lastError = "";
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (i > 0) {
+        const delayMs = Math.max((msg.delay || 1) * 1000, 1000);
+        await sleep(Math.min(delayMs, 10000));
+      }
+
+      try {
+        const result = await sendMessage(cleanBaseUrl, apiToken, phone, msg.text, msg.imageUrl, msg.buttons);
+        if (result.ok) {
+          sentCount++;
+        } else {
+          lastError = `Erro ${result.status}: ${result.body.slice(0, 100)}`;
+          console.error(`[test-autoreply] Send failed: ${lastError}`);
+        }
+      } catch (err: any) {
+        lastError = err.message || String(err);
+        console.error(`[test-autoreply] Send exception: ${lastError}`);
+      }
+    }
+
+    if (sentCount === 0) {
+      return json({ error: "Falha ao enviar mensagem de teste", details: lastError }, 500);
     }
 
     return json({
-      error: `A mensagem "${incomingText}" não corresponde ao gatilho configurado.`,
-    }, 400);
+      success: true,
+      phone,
+      trigger: incomingText,
+      flow_id: flow.id,
+      flow_name: flow.name,
+      messages_sent: sentCount,
+      messages_total: messages.length,
+      message: `Teste enviado com sucesso! ${sentCount} mensagem${sentCount > 1 ? "s" : ""} enviada${sentCount > 1 ? "s" : ""} para ${phone}.`,
+    });
   } catch (err) {
     console.error("[test-autoreply] error:", err);
     return json({ error: "Erro interno", details: err instanceof Error ? err.message : String(err) }, 500);

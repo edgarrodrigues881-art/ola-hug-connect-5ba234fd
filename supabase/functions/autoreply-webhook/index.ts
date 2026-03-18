@@ -246,89 +246,83 @@ Deno.serve(async (req) => {
 
     // ── UaZapi NATIVE format (EventType + chat object) ──
     if (body.EventType === "messages" && body.chat) {
+      const nestedMessage = body.message || {};
+
       // Skip messages sent by API (bot's own messages) - prevents loops
-      if (body.wasSentByApi === true || body.wa_sentByApi === true || body.sentByApi === true) {
+      if (
+        body.wasSentByApi === true ||
+        body.wa_sentByApi === true ||
+        body.sentByApi === true ||
+        nestedMessage.wasSentByApi === true
+      ) {
         console.log("[autoreply] Skipping wasSentByApi message (anti-loop)");
         return json({ ok: true, skipped: true, reason: "sent_by_api" });
       }
 
-      // Extract phone from chat object
-      const chatPhone = body.chat.phoneNumber || body.chat.phone || "";
+      const chatPhone = body.chat.phoneNumber || body.chat.phone || nestedMessage.sender_pn || "";
       const chatName = body.chat.lead_name || body.chat.name || body.chat.pushName || "";
-      const ownerPhone = (body.chat.owner || "").replace(/\D/g, "");
-      
+      const ownerPhone = (body.chat.owner || nestedMessage.owner || "").replace(/\D/g, "");
+
       if (chatPhone) {
         fromPhone = String(chatPhone).replace(/\D/g, "");
       }
-      
-      // If extracted phone matches the instance owner, it's a self-message
+
       if (ownerPhone && fromPhone && ownerPhone === fromPhone) {
         console.log(`[autoreply] Skipping: phone matches owner ${ownerPhone} (self-message)`);
         return json({ ok: true, skipped: true, reason: "owner_self_message" });
       }
 
-      // Detect fromMe from various UaZapi fields
-      isFromMe = body.isFromMe === true || body.fromMe === true || body.wa_fromMe === true;
+      isFromMe = body.isFromMe === true || body.fromMe === true || body.wa_fromMe === true || nestedMessage.fromMe === true;
 
-      // Extract message text - UaZapi native format
       messageText = body.text || body.messageBody || body.body || body.caption || "";
-      
-      // If message is in a nested message object
-      if (!messageText && body.message) {
-        const msg = body.message;
-        messageText = msg.conversation || msg.extendedTextMessage?.text || msg.text || msg.body || "";
+      if (!messageText && nestedMessage) {
+        const content = nestedMessage.content;
+        messageText =
+          nestedMessage.conversation ||
+          nestedMessage.text ||
+          nestedMessage.body ||
+          (typeof content === "string" ? content : "") ||
+          content?.text ||
+          nestedMessage.selectedDisplayText ||
+          "";
       }
 
-      // UaZapi button response detection - comprehensive check
-      // Check body.type first (UaZapi GO sends type="buttonsResponseMessage" alongside EventType="messages")
-      if (body.type === "buttonsResponseMessage" || body.type === "templateButtonReplyMessage" || 
-          body.wa_type === "buttonsResponseMessage" || body.wa_type === "templateButtonReplyMessage" ||
-          body.messageType === "buttonsResponseMessage" || body.messageType === "templateButtonReplyMessage") {
+      buttonResponseId =
+        body.selectedButtonId ||
+        body.selectedId ||
+        body.buttonId ||
+        nestedMessage.buttonOrListid ||
+        nestedMessage.selectedButtonId ||
+        nestedMessage.selectedId ||
+        nestedMessage.buttonId ||
+        "";
+
+      if (body.buttonsResponseMessage || body.templateButtonReplyMessage || nestedMessage.buttonsResponseMessage || nestedMessage.templateButtonReplyMessage || buttonResponseId) {
         hasButtonResponse = true;
-        buttonResponseId = body.selectedButtonId || body.selectedId || body.buttonId || "";
-        if (!messageText) {
-          messageText = body.selectedDisplayText || body.title || body.text || body.messageBody || "";
-        }
-        console.log(`[autoreply] UaZapi button type detected via type/wa_type: btnId="${buttonResponseId}" text="${messageText}"`);
       }
 
-      if (body.selectedButtonId || body.selectedId) {
-        buttonResponseId = body.selectedButtonId || body.selectedId || "";
-        hasButtonResponse = true;
-        if (!messageText) {
-          messageText = body.selectedDisplayText || body.title || "";
-        }
-      }
-      
-      // Also check for buttonsResponseMessage in body (nested)
       if (body.buttonsResponseMessage) {
         buttonResponseId = body.buttonsResponseMessage.selectedButtonId || buttonResponseId;
         messageText = body.buttonsResponseMessage.selectedDisplayText || messageText;
-        hasButtonResponse = true;
       }
 
-      // Check for templateButtonReplyMessage
       if (body.templateButtonReplyMessage) {
         buttonResponseId = body.templateButtonReplyMessage.selectedId || buttonResponseId;
         messageText = body.templateButtonReplyMessage.selectedDisplayText || messageText;
+      }
+
+      if (nestedMessage.buttonsResponseMessage) {
+        buttonResponseId = nestedMessage.buttonsResponseMessage.selectedButtonId || buttonResponseId;
+        messageText = nestedMessage.buttonsResponseMessage.selectedDisplayText || messageText;
         hasButtonResponse = true;
       }
-      
-      // Check nested message object for button responses
-      if (body.message) {
-        const msg = body.message;
-        if (msg.buttonsResponseMessage) {
-          buttonResponseId = msg.buttonsResponseMessage.selectedButtonId || buttonResponseId;
-          messageText = msg.buttonsResponseMessage.selectedDisplayText || messageText;
-          hasButtonResponse = true;
-        }
-        if (msg.templateButtonReplyMessage) {
-          buttonResponseId = msg.templateButtonReplyMessage.selectedId || buttonResponseId;
-          messageText = msg.templateButtonReplyMessage.selectedDisplayText || messageText;
-          hasButtonResponse = true;
-        }
+
+      if (nestedMessage.templateButtonReplyMessage) {
+        buttonResponseId = nestedMessage.templateButtonReplyMessage.selectedId || buttonResponseId;
+        messageText = nestedMessage.templateButtonReplyMessage.selectedDisplayText || messageText;
+        hasButtonResponse = true;
       }
-      
+
       console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} owner="${ownerPhone}" chatName="${chatName}"`);
     }
     // ── Baileys / Evolution API format (key.remoteJid) ──
@@ -373,7 +367,7 @@ Deno.serve(async (req) => {
 
     // Also check for button response at top level (any format)
     if (!buttonResponseId) {
-      buttonResponseId = msgData.selectedButtonId || msgData.buttonId || body.selectedButtonId || body.selectedId || "";
+      buttonResponseId = msgData.selectedButtonId || msgData.buttonId || msgData.buttonOrListid || body.selectedButtonId || body.selectedId || "";
       if (buttonResponseId) hasButtonResponse = true;
     }
 
@@ -485,7 +479,7 @@ Deno.serve(async (req) => {
     if (recentSession?.last_message_at) {
       const lastMs = new Date(recentSession.last_message_at).getTime();
       const nowMs = Date.now();
-      if (nowMs - lastMs < 30000) {
+      if (nowMs - lastMs < 30000 && !hasButtonResponse) {
         console.log(`[autoreply] Anti-loop cooldown: ${nowMs - lastMs}ms since last message`);
         return json({ ok: true, skipped: true, reason: "cooldown" });
       }

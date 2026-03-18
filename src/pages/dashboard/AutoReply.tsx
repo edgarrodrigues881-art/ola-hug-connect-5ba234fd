@@ -400,6 +400,7 @@ function FlowCanvas() {
   return (
     <div className="flow-builder-fullscreen flex flex-col h-full w-full overflow-hidden">
       <FlowHeader
+        flowId={flowId}
         name={flowName}
         onNameChange={setFlowName}
         isActive={isActive}
