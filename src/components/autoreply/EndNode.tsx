@@ -12,18 +12,26 @@ export function EndNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
   return (
     <div
-      className={`rounded-2xl border-2 bg-card shadow-lg min-w-[200px] transition-all duration-150
-        ${selected ? "border-rose-500 shadow-rose-500/20 shadow-xl" : "border-rose-500/30 hover:border-rose-500/60"}`}
+      className={`group rounded-2xl bg-card/95 backdrop-blur-sm min-w-[210px] transition-all duration-200 ease-out
+        ${selected
+          ? "shadow-[0_0_0_2px_hsl(0_84%_60%),0_8px_32px_-8px_hsl(0_84%_60%/0.25)] scale-[1.02]"
+          : "shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.08)] hover:shadow-[0_4px_20px_-6px_hsl(var(--foreground)/0.12)] hover:scale-[1.01] border border-border/40"
+        }`}
     >
-      <Handle type="target" position={Position.Left} id="in" className="!w-3 !h-3 !bg-rose-500 !border-2 !border-card" />
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-rose-500/5 rounded-t-2xl">
-        <div className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center">
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="in"
+        className="!w-3 !h-3 !bg-rose-500 !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(0_84%_60%/0.3)] !transition-all !duration-150 hover:!scale-125"
+      />
+      <div className="flex items-center gap-2.5 px-4 py-3.5">
+        <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center ring-1 ring-rose-500/20">
           <CircleStop className="w-4 h-4 text-rose-500" />
         </div>
-        <span className="font-semibold text-sm text-foreground">{d.label}</span>
-      </div>
-      <div className="px-4 py-3">
-        <p className="text-xs text-muted-foreground">{actionLabels[d.action || "end_flow"]}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-foreground leading-tight">{d.label}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{actionLabels[d.action || "end_flow"]}</p>
+        </div>
       </div>
     </div>
   );

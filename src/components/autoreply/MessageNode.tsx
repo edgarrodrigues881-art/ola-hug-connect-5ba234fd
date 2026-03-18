@@ -9,61 +9,76 @@ export function MessageNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`rounded-2xl border-2 bg-card shadow-lg min-w-[240px] max-w-[280px] transition-all duration-150
-        ${selected ? "border-primary shadow-primary/20 shadow-xl" : "border-primary/30 hover:border-primary/60"}`}
+      className={`group rounded-2xl bg-card/95 backdrop-blur-sm min-w-[250px] max-w-[280px] transition-all duration-200 ease-out
+        ${selected
+          ? "shadow-[0_0_0_2px_hsl(var(--primary)),0_8px_32px_-8px_hsl(var(--primary)/0.25)] scale-[1.02]"
+          : "shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.08)] hover:shadow-[0_4px_20px_-6px_hsl(var(--foreground)/0.12)] hover:scale-[1.01] border border-border/40"
+        }`}
     >
-      <Handle type="target" position={Position.Left} id="in" className="!w-3 !h-3 !bg-primary !border-2 !border-card" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="in"
+        className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)] !transition-all !duration-150 hover:!scale-125"
+      />
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-primary/5 rounded-t-2xl">
-        <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+      <div className="flex items-center gap-2.5 px-4 py-3.5">
+        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
           <MessageSquare className="w-4 h-4 text-primary" />
         </div>
-        <span className="font-semibold text-sm text-foreground truncate flex-1">{d.label}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-foreground leading-tight truncate">{d.label}</p>
+        </div>
         {d.delay && d.delay > 0 ? (
-          <span className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground/70 bg-muted/30 px-2 py-0.5 rounded-full">
             <Clock className="w-3 h-3" /> {d.delay}s
           </span>
         ) : null}
       </div>
 
-      {/* Body preview */}
-      <div className="px-4 py-3 space-y-2">
+      {/* Body */}
+      <div className="px-4 pb-3 space-y-1.5">
         {hasImage && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Image className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
+            <Image className="w-3 h-3" />
             <span>Imagem anexada</span>
           </div>
         )}
         {d.text && (
-          <p className="text-xs text-foreground/80 line-clamp-3 whitespace-pre-line leading-relaxed">
+          <p className="text-[11px] text-foreground/60 line-clamp-2 whitespace-pre-line leading-relaxed">
             {d.text.replace(/\{(\w+)\}/g, (_, v) => `«${v}»`)}
           </p>
         )}
       </div>
 
-      {/* Buttons with individual handles */}
+      {/* Buttons */}
       {hasButtons && (
-        <div className="border-t border-border/50 px-3 py-2 space-y-1.5">
+        <div className="border-t border-border/30 px-3 py-2.5 space-y-1.5">
           {d.buttons!.map((btn) => (
             <div key={btn.id} className="relative flex items-center">
-              <div className="flex-1 text-[11px] font-medium text-center py-1.5 px-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+              <div className="flex-1 text-[11px] font-medium text-center py-1.5 px-3 rounded-lg bg-primary/6 text-primary/80 border border-primary/10 transition-colors hover:bg-primary/10">
                 {btn.label}
               </div>
               <Handle
                 type="source"
                 position={Position.Right}
                 id={`btn-${btn.id}`}
-                className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-card !right-[-6px]"
+                className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-card !rounded-full !right-[-5px] !shadow-[0_0_4px_hsl(var(--primary)/0.25)] !transition-all !duration-150 hover:!scale-125"
               />
             </div>
           ))}
         </div>
       )}
 
-      {/* Default output if no buttons */}
+      {/* Default output */}
       {!hasButtons && (
-        <Handle type="source" position={Position.Right} id="out" className="!w-3 !h-3 !bg-primary !border-2 !border-card" />
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="out"
+          className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)] !transition-all !duration-150 hover:!scale-125"
+        />
       )}
     </div>
   );

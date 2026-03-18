@@ -46,27 +46,27 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
   };
 
   return (
-    <div className="w-[340px] shrink-0 border-l border-border bg-card overflow-y-auto">
+    <div className="w-[340px] shrink-0 border-l border-border/40 bg-card/50 backdrop-blur-sm overflow-y-auto animate-slide-in-right">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 bg-card z-10">
-        <h3 className="text-sm font-semibold text-foreground">Editar Bloco</h3>
-        <div className="flex items-center gap-1">
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDuplicate(node.id)}>
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/40 sticky top-0 bg-card/80 backdrop-blur-sm z-10">
+        <h3 className="text-[13px] font-semibold text-foreground">Editar Bloco</h3>
+        <div className="flex items-center gap-0.5">
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground/50 hover:text-foreground" onClick={() => onDuplicate(node.id)}>
             <Copy className="w-3.5 h-3.5" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDelete(node.id)}>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground/50 hover:text-destructive" onClick={() => onDelete(node.id)}>
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose}>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground/50 hover:text-foreground" onClick={onClose}>
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
 
-      <div className="p-4 space-y-5">
+      <div className="p-5 space-y-6">
         {/* Label */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Nome do bloco</Label>
+        <div className="space-y-2">
+          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Nome do bloco</Label>
           <Input
             value={d.label}
             onChange={(e) => onUpdate(node.id, { label: e.target.value })}
@@ -76,8 +76,8 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
 
         {/* Start node */}
         {isStart && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Gatilho</Label>
+          <div className="space-y-2">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Gatilho</Label>
             <Select value={d.trigger || "any_message"} onValueChange={(v) => onUpdate(node.id, { trigger: v as any })}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -100,8 +100,8 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
 
         {/* End node */}
         {isEnd && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Ação final</Label>
+          <div className="space-y-2">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Ação final</Label>
             <Select value={d.action || "end_flow"} onValueChange={(v) => onUpdate(node.id, { action: v as any })}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -117,20 +117,20 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
         {isMessage && (
           <>
             {/* Text */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mensagem</Label>
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Mensagem</Label>
               <Textarea
                 value={d.text || ""}
                 onChange={(e) => onUpdate(node.id, { text: e.target.value })}
                 className="min-h-[100px] text-sm resize-none"
                 placeholder="Digite a mensagem..."
               />
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {variables.map((v) => (
                   <button
                     key={v}
                     onClick={() => insertVariable(v)}
-                    className="text-[10px] font-mono px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
+                    className="text-[10px] font-mono px-2 py-1 rounded-lg bg-primary/6 text-primary/70 hover:bg-primary/12 hover:text-primary transition-colors border border-primary/10"
                   >
                     {v}
                   </button>
@@ -139,8 +139,8 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
             </div>
 
             {/* Image */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Imagem (URL)</Label>
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Imagem (URL)</Label>
               <Input
                 value={d.imageUrl || ""}
                 onChange={(e) => onUpdate(node.id, { imageUrl: e.target.value })}
@@ -149,7 +149,7 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
               />
               {d.imageUrl && (
                 <>
-                  <img src={d.imageUrl} alt="" className="w-full h-32 object-cover rounded-lg border border-border" />
+                  <img src={d.imageUrl} alt="" className="w-full h-32 object-cover rounded-xl border border-border/30" />
                   <Input
                     value={d.imageCaption || ""}
                     onChange={(e) => onUpdate(node.id, { imageCaption: e.target.value })}
@@ -161,8 +161,8 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
             </div>
 
             {/* Delay */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Delay antes do envio (segundos)</Label>
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Delay (segundos)</Label>
               <Input
                 type="number"
                 min={0}
@@ -173,22 +173,22 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
             </div>
 
             {/* Buttons */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Botões interativos</Label>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={addButton}>
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Botões interativos</Label>
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground/60 hover:text-foreground" onClick={addButton}>
                   <Plus className="w-3 h-3 mr-1" /> Adicionar
                 </Button>
               </div>
               {(d.buttons || []).map((btn, i) => (
                 <div key={btn.id} className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
+                  <span className="text-[10px] text-muted-foreground/30 w-4 shrink-0 text-right">{i + 1}</span>
                   <Input
                     value={btn.label}
                     onChange={(e) => updateButton(btn.id, e.target.value)}
                     className="h-8 text-xs flex-1"
                   />
-                  <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-destructive/60 hover:text-destructive" onClick={() => removeButton(btn.id)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-muted-foreground/30 hover:text-destructive" onClick={() => removeButton(btn.id)}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
@@ -196,8 +196,8 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
             </div>
 
             {/* Preview */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Preview da mensagem</Label>
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Preview</Label>
               <MessagePreview data={d} />
             </div>
           </>
