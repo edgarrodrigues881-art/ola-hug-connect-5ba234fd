@@ -50,11 +50,10 @@ const defaultEdges: Edge[] = [];
 let nodeId = 100;
 
 function FlowCanvas() {
-  const initial = useMemo(() => getInitialData(), []);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [flowName, setFlowName] = useState(initial.name);
+  const [flowName, setFlowName] = useState("Minha Automação");
   const [isActive, setIsActive] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
