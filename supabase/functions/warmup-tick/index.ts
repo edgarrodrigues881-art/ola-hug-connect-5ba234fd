@@ -1307,8 +1307,23 @@ async function handleTick(db: any) {
           updated_at: new Date().toISOString(),
         }).eq("id", cycle.id);
 
-        // Schedule today's jobs
-        await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, cycle.day_index, safePhase, chipState, true);
+        // Only schedule new jobs if daily budget is NOT already consumed
+        // AND we're within the operating window (no emergency window for auto-resume)
+        const { data: freshCycle } = await db.from("warmup_cycles")
+          .select("daily_interaction_budget_used, daily_interaction_budget_target")
+          .eq("id", cycle.id)
+          .maybeSingle();
+
+        const budgetUsed = freshCycle?.daily_interaction_budget_used || 0;
+        const budgetTarget = freshCycle?.daily_interaction_budget_target || 0;
+        const budgetExhausted = budgetTarget > 0 && budgetUsed >= budgetTarget;
+
+        if (!budgetExhausted) {
+          // Use forced=false to respect the 07:00-19:00 window (no emergency window on auto-resume)
+          await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, cycle.day_index, safePhase, chipState, false);
+        } else {
+          console.log(`[warmup-tick] AUTO-RESUME: cycle ${cycle.id} budget already consumed (${budgetUsed}/${budgetTarget}), skipping job scheduling`);
+        }
 
         // Ensure daily reset chain continues
         await ensureNextDailyResetJob(db, { user_id: cycle.user_id, device_id: cycle.device_id }, cycle.id);
