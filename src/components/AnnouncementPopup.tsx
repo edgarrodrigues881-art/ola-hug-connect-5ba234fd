@@ -204,8 +204,9 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
 
               {/* Main button — premium style */}
               <Button
-                onClick={handleButtonClick}
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/25 text-sm relative overflow-hidden group transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleButtonClick(); }}
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/25 text-sm relative overflow-hidden group transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] z-20"
               >
                 {/* Button shimmer */}
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
