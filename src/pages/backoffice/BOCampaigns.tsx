@@ -542,7 +542,7 @@ const Campaigns = () => {
           toast({
             title: "Campanha agendada!",
             description: `Será iniciada em ${new Date(scheduleDate).toLocaleString("pt-BR")}`,
-            action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/dashboard/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction>,
+            action: <ToastAction altText="Ver campanha" onClick={() => navigate(`/backoffice/campaign/${newCampaign.id}`)}>Ver campanha</ToastAction>,
           });
         } else {
           toast({
