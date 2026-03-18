@@ -84,7 +84,7 @@ className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !sha
           type="source"
           position={Position.Right}
           id="out"
-          className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)] !transition-all !duration-150 hover:!scale-125"
+className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
         />
       )}
     </div>
