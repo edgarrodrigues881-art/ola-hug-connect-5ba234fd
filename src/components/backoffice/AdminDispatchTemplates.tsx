@@ -490,21 +490,10 @@ export default function AdminDispatchTemplates() {
           </DialogHeader>
 
           <div className="px-6 py-5 space-y-5">
-            {/* Name + Category */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Nome do modelo</Label>
-                <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Lembrete de vencimento" className="h-11 text-sm bg-background/50 dark:bg-muted/20 border-border/30" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Categoria</Label>
-                <Select value={formCategory} onValueChange={setFormCategory}>
-                  <SelectTrigger className="h-11 bg-background/50 dark:bg-muted/20 border-border/30"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Nome do modelo</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Lembrete de vencimento" className="h-11 text-sm bg-background/50 dark:bg-muted/20 border-border/30" />
             </div>
 
             {/* Message Editor */}
