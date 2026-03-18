@@ -277,6 +277,24 @@ async function scheduleDayJobs(
     console.log(`[scheduleDayJobs] Using 2h emergency window`);
   }
 
+  // ── PRESERVE DAILY BUDGET ON RE-SCHEDULE ──
+  const { data: existingCycle } = await db.from("warmup_cycles")
+    .select("daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_used")
+    .eq("id", cycleId)
+    .maybeSingle();
+
+  const existingBudgetTarget = Math.max(existingCycle?.daily_interaction_budget_target || 0, 0);
+  const existingBudgetUsed = Math.max(existingCycle?.daily_interaction_budget_used || 0, 0);
+  const existingRecipientsUsed = existingCycle?.daily_unique_recipients_used || 0;
+  const remainingBudget = existingBudgetTarget > 0
+    ? Math.max(existingBudgetTarget - existingBudgetUsed, 0)
+    : null;
+
+  if (remainingBudget === 0) {
+    console.log(`[scheduleDayJobs] Budget already exhausted (${existingBudgetUsed}/${existingBudgetTarget}), skipping`);
+    return 0;
+  }
+
   // ── SCALE VOLUMES PROPORTIONALLY TO REMAINING WINDOW ──
   const windowRatio = Math.min(windowMs / FULL_WINDOW_MS, 1);
   const volumes = getVolumes(chipState, dayIndex, phase);
@@ -310,9 +328,8 @@ async function scheduleDayJobs(
   }
 
   // ── AUTOSAVE INTERACTIONS (scaled to window) ──
-  // Scale contacts proportionally to remaining window
   const scaledAutosaveContacts = Math.max(1, Math.floor(volumes.autosaveContacts * windowRatio));
-  const scaledAutosaveRounds = volumes.autosaveRounds; // keep rounds per contact fixed
+  const scaledAutosaveRounds = volumes.autosaveRounds;
   
   if (scaledAutosaveContacts > 0 && scaledAutosaveRounds > 0) {
     const asStartOffset = randInt(
@@ -363,43 +380,40 @@ async function scheduleDayJobs(
     }
   }
 
+  let jobsToInsert = jobs;
+  if (remainingBudget !== null && jobs.length > remainingBudget) {
+    jobsToInsert = jobs.slice(0, remainingBudget);
+    console.log(`[scheduleDayJobs] Trimming jobs to remaining budget: ${jobs.length} → ${jobsToInsert.length}`);
+  }
+
   // [BUG 1+2 FIX] Phase transitions are now handled ENTIRELY by daily_reset in warmup-tick.
   // Removed enable_autosave/enable_community end-of-day jobs to avoid:
   // - Wasted first day (jobs fire at end of window, no time for interactions)
   // - Duplicate pair creation between enable_community and daily_reset
 
   // Insert jobs in batches
-  if (jobs.length > 0) {
-    for (let i = 0; i < jobs.length; i += 100) {
-      await db.from("warmup_jobs").insert(jobs.slice(i, i + 100));
+  if (jobsToInsert.length > 0) {
+    for (let i = 0; i < jobsToInsert.length; i += 100) {
+      await db.from("warmup_jobs").insert(jobsToInsert.slice(i, i + 100));
     }
   }
 
-  // Update cycle budget without resetting what has already been consumed today
-  const totalInteractions = jobs.filter(j =>
-    ["group_interaction", "autosave_interaction", "community_interaction"].includes(j.job_type)
-  ).length;
+  const totalInteractions = jobsToInsert.length;
+  const nextBudgetTarget = existingBudgetTarget > 0 ? existingBudgetTarget : totalInteractions;
 
-  const { data: existingCycle } = await db.from("warmup_cycles")
-    .select("daily_interaction_budget_used, daily_unique_recipients_used")
-    .eq("id", cycleId)
-    .maybeSingle();
+  if (nextBudgetTarget > 0) {
+    await db.from("warmup_cycles").update({
+      daily_interaction_budget_target: nextBudgetTarget,
+      daily_interaction_budget_min: Math.floor(nextBudgetTarget * 0.8),
+      daily_interaction_budget_max: Math.ceil(nextBudgetTarget * 1.2),
+      daily_interaction_budget_used: existingBudgetUsed,
+      daily_unique_recipients_used: existingRecipientsUsed,
+      updated_at: new Date().toISOString(),
+    }).eq("id", cycleId);
+  }
 
-  const existingBudgetUsed = existingCycle?.daily_interaction_budget_used || 0;
-  const existingRecipientsUsed = existingCycle?.daily_unique_recipients_used || 0;
-  const totalBudgetTarget = existingBudgetUsed + totalInteractions;
-
-  await db.from("warmup_cycles").update({
-    daily_interaction_budget_target: totalBudgetTarget,
-    daily_interaction_budget_min: Math.floor(totalBudgetTarget * 0.8),
-    daily_interaction_budget_max: Math.ceil(totalBudgetTarget * 1.2),
-    daily_interaction_budget_used: existingBudgetUsed,
-    daily_unique_recipients_used: existingRecipientsUsed,
-    updated_at: new Date().toISOString(),
-  }).eq("id", cycleId);
-
-  console.log(`[scheduleDayJobs] Day ${dayIndex} (${phase}, ${chipState}): ${jobs.length} jobs scheduled`);
-  return jobs.length;
+  console.log(`[scheduleDayJobs] Day ${dayIndex} (${phase}, ${chipState}): ${jobsToInsert.length} jobs scheduled`);
+  return jobsToInsert.length;
 }
 
 // ══════════════════════════════════════════════════════════
