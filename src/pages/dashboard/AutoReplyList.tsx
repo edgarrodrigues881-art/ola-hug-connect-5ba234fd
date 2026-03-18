@@ -51,6 +51,36 @@ export default function AutoReplyList() {
     enabled: !!user,
   });
 
+  const { data: devices } = useQuery({
+    queryKey: ["devices-list", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("devices")
+        .select("id, name, number, status")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const deviceMap = useMemo(() => {
+    const map = new Map<string, { name: string; number: string | null; status: string }>();
+    devices?.forEach((d) => map.set(d.id, { name: d.name, number: d.number, status: d.status }));
+    return map;
+  }, [devices]);
+
+  const deviceMutation = useMutation({
+    mutationFn: async ({ id, device_id }: { id: string; device_id: string | null }) => {
+      const { error } = await supabase.from("autoreply_flows").update({ device_id } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      toast.success("Instância atualizada");
+    },
+  });
+
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase.from("autoreply_flows").update({ is_active }).eq("id", id);
