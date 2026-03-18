@@ -602,14 +602,11 @@ Deno.serve(async (req) => {
           if (now < new Date(c.first_24h_ends_at)) phase = "pre_24h";
           if (["error", "paused"].includes(phase)) phase = "groups_only";
 
-          // Check if daily budget is already consumed — if so, just resume state without scheduling new jobs
-          const budgetUsed = c.daily_interaction_budget_used || 0;
-          const budgetTarget = c.daily_interaction_budget_target || 0;
-          const budgetExhausted = budgetTarget > 0 && budgetUsed >= budgetTarget;
-
+          // On reconnection, ALWAYS defer to tomorrow's daily_reset — never schedule jobs immediately.
+          // This prevents re-warming a chip that was already warmed today or creating duplicate jobs.
           await svc.from("warmup_cycles").update({
             is_running: true, phase, previous_phase: null, last_error: null,
-            next_run_at: budgetExhausted ? null : now.toISOString(),
+            next_run_at: null, // No immediate scheduling
           }).eq("id", c.id);
 
           // Ensure a daily_reset job exists so the cycle advances to the next day
@@ -630,11 +627,7 @@ Deno.serve(async (req) => {
             });
           }
 
-          if (budgetExhausted) {
-            console.log(`[sync-devices] Cycle ${c.id} resumed but budget exhausted (${budgetUsed}/${budgetTarget}) — no new jobs`);
-          } else {
-            console.log(`[sync-devices] Cycle ${c.id} resumed to phase=${phase}, budget ${budgetUsed}/${budgetTarget}`);
-          }
+          console.log(`[sync-devices] Cycle ${c.id} resumed to phase=${phase} — deferred to tomorrow's daily_reset`);
         }
       }
     }
