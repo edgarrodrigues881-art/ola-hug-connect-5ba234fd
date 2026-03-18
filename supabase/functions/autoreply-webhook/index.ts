@@ -662,6 +662,8 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
 
   try {
     // UaZapi V2: POST /webhook/set
+    const webhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
+
     const res = await fetch(`${baseUrl}/webhook/set`, {
       method: "POST",
       headers: {
@@ -671,7 +673,11 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
       body: JSON.stringify({
         url: webhookUrl,
         events: ["messages.upsert"],
-        headers: { token: device.uazapi_token },
+        headers: {
+          token: device.uazapi_token,
+          "x-device-id": device.id,
+          ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}),
+        },
       }),
     });
 
