@@ -66,6 +66,7 @@ const NAV_ITEMS = [
 
 const GROUP_LABELS: Record<string, string> = {
   principal: "Principal",
+  disparo: "Disparo",
   gestao: "Gestão",
   operacao: "Operação",
   sistema: "Sistema",
