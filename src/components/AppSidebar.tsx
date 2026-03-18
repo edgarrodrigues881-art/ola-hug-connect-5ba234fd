@@ -404,7 +404,7 @@ export function AppSidebar() {
                   <NavLink
                     to="/dashboard/my-plan"
                     className={cn(
-                      "sidebar-nav-item relative flex items-center rounded-[10px] text-[13px] transition-[color,opacity] duration-[120ms] ease-out group/plan",
+                      "plan-gold-btn sidebar-nav-item relative flex items-center text-[13px] transition-[color,opacity] duration-[120ms] ease-out group/plan",
                       collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 pr-3.5 py-[10px]',
                       isActive("/dashboard/my-plan")
                         ? 'text-foreground font-semibold'
@@ -412,8 +412,6 @@ export function AppSidebar() {
                     )}
                     activeClassName=""
                   >
-                    {/* Animated sliding gold border */}
-                    <span className="plan-gold-border" />
                     {isActive("/dashboard/my-plan") && !collapsed && (
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-amber-400 z-10" />
                     )}
