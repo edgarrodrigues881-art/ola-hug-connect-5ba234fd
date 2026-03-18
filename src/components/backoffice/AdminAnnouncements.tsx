@@ -74,6 +74,7 @@ export default function AdminAnnouncements() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewFromEditor, setPreviewFromEditor] = useState(false);
   const [previewData, setPreviewData] = useState<typeof defaultForm | null>(null);
 
   const { data: announcements = [], isLoading } = useQuery({
@@ -175,9 +176,11 @@ export default function AdminAnnouncements() {
     saveMutation.mutate({ id: editing?.id, data: payload });
   };
 
-  const openPreview = (data: typeof defaultForm) => {
+  const openPreview = (data: typeof defaultForm, fromEditor = false) => {
     setPreviewData(data);
+    setPreviewFromEditor(fromEditor);
     setPreviewOpen(true);
+    if (fromEditor) setCreating(false);
   };
 
   const displayModeLabels: Record<string, string> = {
@@ -479,7 +482,7 @@ export default function AdminAnnouncements() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => openPreview(form)} className="border-border gap-1.5">
+            <Button variant="outline" onClick={() => openPreview(form, true)} className="border-border gap-1.5">
               <Eye size={14} /> Preview
             </Button>
             <Button variant="outline" onClick={closeForm} className="border-border">Cancelar</Button>
@@ -506,8 +509,14 @@ export default function AdminAnnouncements() {
             allow_close: true,
             allow_dismiss: false,
           }}
-          onClose={() => setPreviewOpen(false)}
-          onDismiss={() => setPreviewOpen(false)}
+          onClose={() => {
+            setPreviewOpen(false);
+            if (previewFromEditor) setCreating(true);
+          }}
+          onDismiss={() => {
+            setPreviewOpen(false);
+            if (previewFromEditor) setCreating(true);
+          }}
           isPreview
         />,
         document.body
