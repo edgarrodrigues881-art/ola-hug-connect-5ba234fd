@@ -65,6 +65,7 @@ const NAV_ITEMS = [
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
   { id: "auto-templates", label: "Modelo Automático", shortLabel: "Auto", icon: Sparkles, group: "principal", badge: false },
   { id: "announcements", label: "Aviso", shortLabel: "Aviso", icon: Megaphone, group: "principal", badge: false },
+  { id: "feature-controls", label: "Controle de Funções", shortLabel: "Funções", icon: ToggleLeft, group: "principal", badge: false },
 
   { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
   { id: "client-base", label: "Base de Contatos", shortLabel: "Contatos", icon: Users, group: "disparo", badge: false },
