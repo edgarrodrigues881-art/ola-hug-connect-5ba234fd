@@ -100,6 +100,10 @@ export default function AdminDispatch() {
   const [connectionPurpose, setConnectionPurpose] = useState("dispatch");
   const [minDelay, setMinDelay] = useState(5);
   const [maxDelay, setMaxDelay] = useState(15);
+  const [pauseEveryMin, setPauseEveryMin] = useState(10);
+  const [pauseEveryMax, setPauseEveryMax] = useState(20);
+  const [pauseDurationMin, setPauseDurationMin] = useState(30);
+  const [pauseDurationMax, setPauseDurationMax] = useState(120);
   const [dispatching, setDispatching] = useState(false);
   const [result, setResult] = useState<{ ok: number; fail: number } | null>(null);
 
