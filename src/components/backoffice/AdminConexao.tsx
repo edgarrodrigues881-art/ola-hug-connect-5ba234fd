@@ -72,6 +72,36 @@ export default function AdminConexao() {
   const isConnected = device?.status === "Connected" || device?.status === "Ready" || device?.status === "authenticated";
   const hasCredentials = !!(device?.uazapi_token && device?.uazapi_base_url);
 
+  const ensureAdminReportDevice = async () => {
+    if (deviceId && device) return deviceId;
+
+    const { data: session } = await supabase.auth.getSession();
+    const token = session?.session?.access_token;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-devices`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "create-report" }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.error || "Erro ao preparar instância admin");
+    }
+
+    const newDeviceId = result?.device?.id;
+    if (!newDeviceId) {
+      throw new Error("Instância admin não retornou um identificador válido");
+    }
+
+    await Promise.all([
+      upsertSetting("wa_report_device_id", newDeviceId),
+      queryClient.invalidateQueries({ queryKey: ["admin-conexao-settings"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-conexao-device"] }),
+    ]);
+
+    return newDeviceId;
+  };
+
   const openConnectDialog = () => {
     setQrDialogOpen(true);
     setConnectStep("choose");
@@ -84,13 +114,13 @@ export default function AdminConexao() {
   };
 
   const startQrConnect = async () => {
-    if (!deviceId || !device) return;
     setQrLoading(true);
     setQrCodeBase64("");
     setQrConnected(false);
     setConnectError("");
 
     try {
+      const ensuredDeviceId = await ensureAdminReportDevice();
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
       const res = await fetch(
@@ -98,21 +128,21 @@ export default function AdminConexao() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "connect", deviceId }),
+          body: JSON.stringify({ action: "connect", deviceId: ensuredDeviceId }),
         }
       );
       const result = await res.json();
       if (result.base64 || result.qr) {
         setQrCodeBase64(result.base64 || result.qr);
-        startCountdownAndPoll(deviceId);
+        startCountdownAndPoll(ensuredDeviceId);
       } else if (result.pairing_code) {
         setPairingCode(result.pairing_code);
         setConnectMethod("code");
       } else {
         setConnectError(result.error || "Erro ao gerar QR Code");
       }
-    } catch {
-      setConnectError("Erro de conexão");
+    } catch (error) {
+      setConnectError(error instanceof Error ? error.message : "Erro de conexão");
     } finally {
       setQrLoading(false);
     }
@@ -303,13 +333,13 @@ export default function AdminConexao() {
     );
   }
 
-  if (!deviceId) {
+  if (!deviceId && !deviceLoading) {
     return (
       <div className="text-center py-16">
         <Plug size={40} className="mx-auto mb-3 text-muted-foreground/40" />
-        <p className="text-sm text-muted-foreground">Nenhum dispositivo de envio configurado.</p>
+        <p className="text-sm text-muted-foreground">A instância principal ainda não foi preparada.</p>
         <p className="text-xs text-muted-foreground/60 mt-1">
-          Configure <code className="bg-muted px-1 rounded">wa_report_device_id</code> em community_settings.
+          Clique em <code className="bg-muted px-1 rounded">Conectar WhatsApp</code> para recriar a conexão admin automaticamente.
         </p>
       </div>
     );
