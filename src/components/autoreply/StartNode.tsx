@@ -37,11 +37,11 @@ export function StartNode({ data, selected }: NodeProps) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-foreground leading-tight">
-            {isTemplate ? "Template" : d.label}
+          <p className="text-[13px] font-semibold text-foreground leading-tight truncate">
+            {isTemplate ? (d.templateName || "Template") : d.label}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-            {isTemplate && d.templateName ? d.templateName : triggerLabels[d.trigger || "keyword"]}
+            {isTemplate ? "Template" : triggerLabels[d.trigger || "keyword"]}
           </p>
         </div>
       </div>
