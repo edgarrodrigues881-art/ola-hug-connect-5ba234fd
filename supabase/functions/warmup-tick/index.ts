@@ -1470,9 +1470,9 @@ async function handleTick(db: any) {
         return false;
       }
       const used = cycle.daily_interaction_budget_used || 0;
-      const max = cycle.daily_interaction_budget_max || cycle.daily_interaction_budget_target || 500;
-      if (used >= max) {
-        await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget atingido: ${used}/${max}` }).eq("id", job.id);
+      const limit = cycle.daily_interaction_budget_target || 500;
+      if (used >= limit) {
+        await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget atingido: ${used}/${limit}` }).eq("id", job.id);
         return false;
       }
     }
