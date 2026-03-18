@@ -1368,7 +1368,12 @@ async function handleTick(db: any) {
     batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
     batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
     batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
-    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id", "user_id", uniqueUserIds, q => q.eq("is_active", true).order("id", { ascending: true })),
+    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id, created_at, updated_at", "user_id", uniqueUserIds, q =>
+      q.eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+    ),
     batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status, group_name, invite_link", "device_id", uniqueDeviceIds),
     db.from("warmup_groups").select("id, link, name").then((r: any) => r.data || []),
     getImagePool(db),
@@ -1393,6 +1398,19 @@ async function handleTick(db: any) {
   autosaveArr.forEach((c: any) => {
     if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
     autosaveMap[c.user_id].push(c);
+  });
+  Object.values(autosaveMap).forEach((contacts: any[]) => {
+    contacts.sort((a, b) => {
+      const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime();
+      const bUpdated = new Date(b.updated_at || b.created_at || 0).getTime();
+      if (aUpdated !== bUpdated) return bUpdated - aUpdated;
+
+      const aCreated = new Date(a.created_at || 0).getTime();
+      const bCreated = new Date(b.created_at || 0).getTime();
+      if (aCreated !== bCreated) return bCreated - aCreated;
+
+      return String(b.id || "").localeCompare(String(a.id || ""));
+    });
   });
   const instanceGroupsMap: Record<string, any[]> = {};
   instanceGroupsArr.forEach((ig: any) => {
