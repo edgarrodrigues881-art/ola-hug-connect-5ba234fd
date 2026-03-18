@@ -423,7 +423,7 @@ Deno.serve(async (req) => {
     const isReportDevice = device?.login_type === "report_wa";
 
     // ── Plan check ──
-    if (!["deleteInstance", "status", "getBaseUrl", "logout"].includes(action) && !isReportDevice) {
+    if (!["deleteInstance", "status", "getBaseUrl", "logout", "listGroups", "sendText"].includes(action) && !isReportDevice) {
       const { data: activeSub } = await svc
         .from("subscriptions").select("expires_at")
         .eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
