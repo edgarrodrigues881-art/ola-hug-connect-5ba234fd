@@ -12,13 +12,19 @@
   border-radius: 10px;
   overflow: hidden;
   pointer-events: none;
+  z-index: 1;
 }
 
 .plan-gold-border::before {
   content: '';
   position: absolute;
-  inset: -50%;
-  background: conic-gradient(from 0deg, #fbbf24, #f59e0b, transparent 30%, transparent 70%, #fbbf24, #f59e0b);
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  margin-left: -100%;
+  margin-top: -100%;
+  background: conic-gradient(from 0deg, #fbbf24, #f59e0b, transparent 25%, transparent 75%, #fbbf24, #f59e0b);
   animation: gold-border-spin 3s linear infinite;
 }
 
@@ -28,6 +34,12 @@
   inset: 1.5px;
   border-radius: 9px;
   background: hsl(var(--sidebar-background, var(--background)));
+}
+
+/* Override SidebarMenuButton hover for Meu Plano */
+.plan-gold-wrap [data-sidebar="menu-button"]:hover {
+  background: transparent !important;
+}
 }
 
 #lovable-badge {
