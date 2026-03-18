@@ -69,23 +69,25 @@ interface DayVolumes {
 }
 
 function getDailyBudget(): number {
-  return randInt(50, 120);
+  return randInt(30, 70);
 }
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // ULTRA CONSERVADOR — máximo 1 par para evitar bans
-  return 1;
+  // Conservador — 1 par para unstable, 2 para new/recovered
+  if (chipState === "unstable") return 1;
+  return Math.min(2, daysSinceCommunity + 1);
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // ULTRA CONSERVADOR — máximo 1 burst por par por dia
-  return 1;
+  // 2-4 bursts por par por dia para garantir que conversas progridam
+  if (chipState === "unstable") return 2;
+  return Math.min(4, daysSinceCommunity + 2);
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -95,18 +97,16 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   };
   if (["pre_24h", "completed", "paused", "error"].includes(phase)) return v;
 
-  // Grupos SEMPRE recebem o orçamento total (50-120)
+  // Grupos: orçamento reduzido para evitar flood (30-70)
   v.groupMsgs = getDailyBudget();
 
-  // Autosave como BÔNUS extra (10-15 interações) quando fase permitir
-  // [BUG 6 FIX] Removed community_light (dead code - getPhaseForDay never returns it)
+  // Autosave: 5 contatos × 3 msgs = 15 msgs/dia (máximo 3 msgs por contato)
   if (["autosave_enabled", "community_enabled"].includes(phase)) {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 5; // 5 contatos × 5 msgs = 25 msgs/dia
+    v.autosaveRounds = 3; // Max 3 msgs por contato
   }
 
-  // Community: progressão segura — volume total < 350 msgs/dia
-  // Cada burst = 3-7 msgs de uma vez (conversa real)
+  // Community: 2-4 bursts por par para garantir conversas completas
   if (phase === "community_enabled") {
     v.communityPeers = getCommunityPeers(dayIndex, chipState);
     v.communityMsgsPerPeer = getCommunityBurstsPerPeer(dayIndex, chipState);
@@ -1470,9 +1470,9 @@ async function handleTick(db: any) {
         return false;
       }
       const used = cycle.daily_interaction_budget_used || 0;
-      const max = cycle.daily_interaction_budget_max || cycle.daily_interaction_budget_target || 500;
-      if (used >= max) {
-        await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget atingido: ${used}/${max}` }).eq("id", job.id);
+      const limit = cycle.daily_interaction_budget_target || 500;
+      if (used >= limit) {
+        await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget atingido: ${used}/${limit}` }).eq("id", job.id);
         return false;
       }
     }
@@ -1984,18 +1984,26 @@ async function handleTick(db: any) {
         const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
 
+        // Daily rotation: use day_index as offset to rotate through contacts
+        const dayOffset = (cycle.day_index || 0) * 5; // shift by 5 contacts each day
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
-          .filter((c: any) => c._phone.length >= 10)
-          .slice(0, 5);
-
+          .filter((c: any) => c._phone.length >= 10);
+        
         if (autosavePool.length === 0) {
           bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Nenhum contato Auto Save válido/ativo" });
           break;
         }
 
-        let selectedIndex = ((rIdx % autosavePool.length) + autosavePool.length) % autosavePool.length;
-        const target = autosavePool[selectedIndex];
+        // Rotate: pick 5 contacts starting from dayOffset position (wraps around)
+        const rotatedPool: typeof autosavePool = [];
+        for (let i = 0; i < Math.min(5, autosavePool.length); i++) {
+          const idx = (dayOffset + i) % autosavePool.length;
+          rotatedPool.push(autosavePool[idx]);
+        }
+
+        let selectedIndex = ((rIdx % rotatedPool.length) + rotatedPool.length) % rotatedPool.length;
+        const target = rotatedPool[selectedIndex];
 
         // ── VALIDATION STEP (msg_index=0 only): Pre-validate before sending anything ──
         if (mIdx === 0) {
@@ -2081,7 +2089,7 @@ async function handleTick(db: any) {
             bufferAudit({
               user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
               level: "warn", event_type: "autosave_send_failed",
-              message: `Auto Save falhou: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || target._phone}`,
+              message: `Auto Save falhou: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/3 para ${target.contact_name || target._phone}`,
               meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: target._phone, error: retryErr },
             });
             throw new Error(`Auto Save: falha ao enviar msg ${mIdx + 1} para ${target._phone}. Erro: ${retryErr}`);
@@ -2107,7 +2115,7 @@ async function handleTick(db: any) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: contato ${selectedIndex + 1}/${autosavePool.length}, msg ${mIdx + 1}/5 para ${target.contact_name || sentPhone}`,
+          message: `Auto Save: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/3 para ${target.contact_name || sentPhone}`,
           meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name },
         });
         break;
