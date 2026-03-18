@@ -2157,11 +2157,14 @@ async function handleTick(db: any) {
           });
         } catch { /* duplicate OK */ }
 
-        await db.from("warmup_cycles").update({
-          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-          daily_unique_recipients_used: (cycle.daily_unique_recipients_used || 0) + (mIdx === 0 ? 1 : 0),
-        }).eq("id", cycle.id);
-        cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+        // Atomic budget increment
+        const { data: budgetResult2 } = await db.rpc("increment_warmup_budget", {
+          p_cycle_id: cycle.id, p_increment: 1, p_unique_recipient: mIdx === 0,
+        });
+        if (budgetResult2) {
+          cycle.daily_interaction_budget_used = budgetResult2.used;
+          cycle.daily_unique_recipients_used = budgetResult2.recipients_used;
+        }
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
