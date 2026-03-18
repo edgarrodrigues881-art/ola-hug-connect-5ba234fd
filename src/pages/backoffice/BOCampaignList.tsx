@@ -122,7 +122,7 @@ const CampaignList = () => {
             <Button
               size="sm"
               className="gap-1.5 text-xs bg-primary hover:bg-primary/90 shadow-sm"
-              onClick={() => navigate("/dashboard/campaigns")}
+              onClick={() => navigate("/backoffice/campaigns")}
             >
               <Plus className="w-3.5 h-3.5" /> Nova Campanha
             </Button>
