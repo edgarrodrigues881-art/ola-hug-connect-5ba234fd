@@ -2777,7 +2777,7 @@ async function handleTick(db: any) {
         const first24hEnd = new Date(cycle.first_24h_ends_at);
         if (Date.now() < first24hEnd.getTime() && cycle.phase === "pre_24h") {
           const deferred = new Date(first24hEnd);
-          deferred.setUTCHours(3, 5, 0, 0);
+          deferred.setUTCHours(9, 50, 0, 0);
           if (deferred.getTime() <= first24hEnd.getTime()) deferred.setUTCDate(deferred.getUTCDate() + 1);
 
           await db.from("warmup_jobs").update({ status: "pending", run_at: deferred.toISOString(), last_error: "" }).eq("id", job.id);
