@@ -41,7 +41,7 @@ export function StartNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="out"
-        className="!w-3 !h-3 !bg-emerald-500 !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(142_71%_45%/0.3)]"
+        className="!w-4 !h-4 !bg-emerald-500 !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(142_71%_45%/0.3)]"
       />
     </div>
   );
