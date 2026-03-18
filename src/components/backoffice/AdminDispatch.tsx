@@ -734,6 +734,46 @@ export default function AdminDispatch() {
               </div>
             ) : null}
 
+            {/* Delay config */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Intervalo entre envios (segundos)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Mínimo</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={minDelay}
+                    onChange={e => {
+                      const v = Number(e.target.value);
+                      setMinDelay(v);
+                      if (v > maxDelay) setMaxDelay(v);
+                    }}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Máximo</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={maxDelay}
+                    onChange={e => {
+                      const v = Number(e.target.value);
+                      setMaxDelay(v);
+                      if (v < minDelay) setMinDelay(v);
+                    }}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground/50">
+                Cada mensagem será enviada com um atraso aleatório entre {minDelay}s e {maxDelay}s
+              </p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Conexão para envio</label>
               <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/50 bg-card/60 px-3 py-2">
