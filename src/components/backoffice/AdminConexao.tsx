@@ -541,13 +541,25 @@ export default function AdminConexao() {
                       </Button>
                     </div>
                   ) : (
-                    /* Default: loading state — always show something */
-                    <div className="py-10 flex flex-col items-center gap-3">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                    <div className="py-12 flex flex-col items-center gap-4 animate-fade-in">
+                      <div className="relative w-20 h-20">
+                        {/* Outer spinning ring */}
+                        <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" style={{ animationDuration: '1.2s' }} />
+                        {/* Inner icon */}
+                        <div className="absolute inset-2 rounded-full bg-primary/10 flex items-center justify-center">
+                          <QrCode size={28} className="text-primary animate-pulse" />
+                        </div>
                       </div>
-                      <p className="text-sm font-medium text-foreground">Gerando QR Code...</p>
-                      <p className="text-[11px] text-muted-foreground">Conectando à API automaticamente</p>
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-foreground">Gerando QR Code</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">Provisionando API automaticamente...</p>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
                     </div>
                   )}
                 </div>
