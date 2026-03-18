@@ -86,8 +86,25 @@ export default function AutoReplyList() {
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase.from("autoreply_flows").update({ is_active }).eq("id", id);
       if (error) throw error;
+
+      // When activating, register webhook on the device's UaZapi instance
+      if (is_active) {
+        const flow = flows?.find((f) => f.id === id);
+        if (flow?.device_id) {
+          try {
+            await supabase.functions.invoke("autoreply-webhook", {
+              body: { action: "register_webhook", device_id: flow.device_id },
+            });
+          } catch (e) {
+            console.warn("Webhook registration failed:", e);
+          }
+        }
+      }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      toast.success(vars.is_active ? "Automação ativada" : "Automação desativada");
+    },
   });
 
   const deleteMutation = useMutation({
