@@ -415,7 +415,7 @@ export default function AdminDispatch() {
               disabled={!messageContent.trim()}
               className="gap-2"
             >
-              Próximo: Revisar <ChevronRight size={14} />
+              Próximo: Enviar <ChevronRight size={14} />
             </Button>
           </div>
         </div>
