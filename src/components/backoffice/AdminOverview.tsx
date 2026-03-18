@@ -153,29 +153,6 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
 
   return (
     <div className="space-y-6">
-      {/* ═══ ALERTS ═══ */}
-      {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
-        <div className="flex flex-wrap gap-2">
-          {expired.length > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-semibold">
-              <AlertTriangle size={13} />
-              {expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}
-            </div>
-          )}
-          {expiringSoon.length > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold">
-              <AlertTriangle size={13} />
-              {expiringSoon.length} vencendo · {fmt(revenueAtRisk)}
-            </div>
-          )}
-          {serverOccupancy >= 80 && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold">
-              <BarChart3 size={13} />
-              Servidor {serverOccupancy}%
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ═══ FINANCEIRO SECTION ═══ */}
       <section className="bg-card rounded-xl border border-border p-4 sm:p-5 space-y-4">
