@@ -428,6 +428,60 @@ export type Database = {
           },
         ]
       }
+      autoreply_sessions: {
+        Row: {
+          contact_phone: string
+          created_at: string
+          current_node_id: string
+          device_id: string
+          flow_id: string
+          id: string
+          last_message_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_phone: string
+          created_at?: string
+          current_node_id: string
+          device_id: string
+          flow_id: string
+          id?: string
+          last_message_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_phone?: string
+          created_at?: string
+          current_node_id?: string
+          device_id?: string
+          flow_id?: string
+          id?: string
+          last_message_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autoreply_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autoreply_sessions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "autoreply_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_contacts: {
         Row: {
           campaign_id: string
