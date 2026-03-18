@@ -96,8 +96,7 @@ export default function AutoReplyList() {
         if (!device) {
           throw new Error("NO_DEVICE");
         }
-        const connectedStatuses = ["connected", "Connected", "Ready", "authenticated"];
-        if (!connectedStatuses.includes(device.status)) {
+        if (!onlineStatuses.has(device.status)) {
           throw new Error("DEVICE_OFFLINE");
         }
       }
