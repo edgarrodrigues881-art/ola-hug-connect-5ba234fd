@@ -310,20 +310,22 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
           ))}
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
-              {/* Logo with golden ring */}
-              <div className="relative">
-                <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
-                <div className="relative z-10 p-[2px] rounded-xl bg-gradient-to-br from-primary via-primary/60 to-primary">
-                  <img src={logoNew} alt="DG Logo" className="w-10 h-10 rounded-[10px] block" />
+              {/* Logo with golden ring + glow */}
+              <div className="relative shrink-0">
+                <div className="absolute -inset-1 rounded-2xl bg-primary/25 blur-md" />
+                <div className="relative z-10 p-[2.5px] rounded-2xl bg-gradient-to-br from-primary via-primary/50 to-primary shadow-lg shadow-primary/10">
+                  <img src={logoNew} alt="DG Logo" className="w-12 h-12 rounded-[13px] block" />
                 </div>
               </div>
-              <div>
-                <h1 className="text-sm font-bold tracking-tight">
+              <div className="leading-tight">
+                <h1 className="text-[13px] font-extrabold tracking-tight leading-tight">
                   <span className="text-primary">DG</span>{" "}
-                  <span className="text-foreground">CONTINGÊNCIA</span>{" "}
-                  <span className="text-primary">PRO</span>
+                  <span className="text-foreground">CONTINGÊNCIA</span>
                 </h1>
-                <p className="text-[10px] text-muted-foreground">Painel Administrativo</p>
+                <h1 className="text-[13px] font-extrabold tracking-[0.15em] text-primary leading-tight">
+                  PRO
+                </h1>
+                <p className="text-[9px] text-muted-foreground mt-0.5">Painel Administrativo</p>
               </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-muted-foreground hover:text-foreground">
