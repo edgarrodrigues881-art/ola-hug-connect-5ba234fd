@@ -1398,17 +1398,14 @@ async function handleTick(db: any) {
     if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
     autosaveMap[c.user_id].push(c);
   });
+  // Sort by created_at ASC for stable rotation — newest contacts are at the END
+  // so dayOffset rotation naturally picks different contacts each day
   Object.values(autosaveMap).forEach((contacts: any[]) => {
     contacts.sort((a, b) => {
-      const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime();
-      const bUpdated = new Date(b.updated_at || b.created_at || 0).getTime();
-      if (aUpdated !== bUpdated) return bUpdated - aUpdated;
-
       const aCreated = new Date(a.created_at || 0).getTime();
       const bCreated = new Date(b.created_at || 0).getTime();
-      if (aCreated !== bCreated) return bCreated - aCreated;
-
-      return String(b.id || "").localeCompare(String(a.id || ""));
+      if (aCreated !== bCreated) return aCreated - bCreated;
+      return String(a.id || "").localeCompare(String(b.id || ""));
     });
   });
   const instanceGroupsMap: Record<string, any[]> = {};
