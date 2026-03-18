@@ -88,33 +88,39 @@ export type Database = {
       admin_dispatch_templates: {
         Row: {
           admin_id: string
+          buttons: Json
           category: string
           content: string
           created_at: string
           id: string
           is_active: boolean
+          media_url: string | null
           name: string
           updated_at: string
           variables: Json
         }
         Insert: {
           admin_id: string
+          buttons?: Json
           category?: string
           content: string
           created_at?: string
           id?: string
           is_active?: boolean
+          media_url?: string | null
           name: string
           updated_at?: string
           variables?: Json
         }
         Update: {
           admin_id?: string
+          buttons?: Json
           category?: string
           content?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          media_url?: string | null
           name?: string
           updated_at?: string
           variables?: Json
