@@ -8,6 +8,7 @@ import {
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key
 } from "lucide-react";
+import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
