@@ -465,6 +465,7 @@ Deno.serve(async (req) => {
       .eq("is_active", true);
 
     if (!flows || flows.length === 0) {
+      console.log(`[autoreply] SKIP: No active flows for user ${userId}`);
       return json({ ok: true, skipped: true, reason: "no_active_flows" });
     }
 
