@@ -388,9 +388,11 @@ export default function AdminDispatch() {
     setAudienceSource("clients");
   };
 
-  const dispatchConnection = connections.find((c: any) => c.purpose === connectionPurpose);
-
-  const audienceLabel = audienceSource === "imported"
+  const dispatchConnection = connections.find((c) => c.purpose === connectionPurpose);
+  const dispatchDevice = dispatchConnection?.device ?? null;
+  const dispatchDeviceName = dispatchDevice?.profile_name || dispatchDevice?.name || dispatchConnection?.label || "Disparos manuais";
+  const dispatchDeviceNumber = formatPhone(dispatchDevice?.number);
+  const dispatchDeviceConnected = !!dispatchDevice && ["Connected", "Ready", "authenticated"].includes(dispatchDevice.status);
     ? `Lista importada (${importedContacts.length})`
     : AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label || "Clientes";
 
