@@ -84,6 +84,22 @@ export default function AutoReplyList() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      // When activating, verify device is assigned and connected
+      if (is_active) {
+        const flow = flows?.find((f) => f.id === id);
+        if (!flow?.device_id) {
+          throw new Error("NO_DEVICE");
+        }
+        const device = deviceMap.get(flow.device_id);
+        if (!device) {
+          throw new Error("NO_DEVICE");
+        }
+        const connectedStatuses = ["connected", "Connected", "Ready", "authenticated"];
+        if (!connectedStatuses.includes(device.status)) {
+          throw new Error("DEVICE_OFFLINE");
+        }
+      }
+
       const { error } = await supabase.from("autoreply_flows").update({ is_active }).eq("id", id);
       if (error) throw error;
 
@@ -104,6 +120,15 @@ export default function AutoReplyList() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
       toast.success(vars.is_active ? "Automação ativada" : "Automação desativada");
+    },
+    onError: (err: any) => {
+      if (err.message === "NO_DEVICE") {
+        toast.error("Selecione uma instância antes de ativar a automação");
+      } else if (err.message === "DEVICE_OFFLINE") {
+        toast.error("A instância selecionada está desconectada. Reconecte antes de ativar.");
+      } else {
+        toast.error("Erro ao alterar status da automação");
+      }
     },
   });
 
