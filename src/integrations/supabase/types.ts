@@ -348,6 +348,98 @@ export type Database = {
           },
         ]
       }
+      announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          admin_id: string
+          allow_close: boolean
+          allow_dismiss: boolean
+          button_action: string
+          button_link: string | null
+          button_text: string
+          created_at: string
+          description: string
+          display_mode: string
+          end_date: string | null
+          id: string
+          image_url: string | null
+          internal_name: string
+          is_active: boolean
+          show_logo: boolean
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          allow_close?: boolean
+          allow_dismiss?: boolean
+          button_action?: string
+          button_link?: string | null
+          button_text?: string
+          created_at?: string
+          description?: string
+          display_mode?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          internal_name?: string
+          is_active?: boolean
+          show_logo?: boolean
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          allow_close?: boolean
+          allow_dismiss?: boolean
+          button_action?: string
+          button_link?: string | null
+          button_text?: string
+          created_at?: string
+          description?: string
+          display_mode?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          internal_name?: string
+          is_active?: boolean
+          show_logo?: boolean
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       auto_message_templates: {
         Row: {
           buttons: Json
