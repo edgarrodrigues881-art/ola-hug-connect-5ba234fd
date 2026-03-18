@@ -358,7 +358,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
                 <Flame className="w-2.5 h-2.5 text-primary/60" />
-                Dia {cycle.day_index} · {phaseShort[cycle.phase] || cycle.phase} · {cycle.day_index}-{cycle.days_total}d
+                Dia {cycle.day_index}/{cycle.days_total}
               </p>
               <span className={cn(
                 "inline-flex items-center px-1.5 py-[1px] rounded text-[8px] font-bold uppercase tracking-wider",
