@@ -256,6 +256,26 @@ export default function AutoReplyList() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <Select
+                      value={(flow as any).device_id || "none"}
+                      onValueChange={(v) => deviceMutation.mutate({ id: flow.id, device_id: v === "none" ? null : v })}
+                    >
+                      <SelectTrigger className="w-[160px] h-8 text-xs bg-card/60 border-border/30 gap-1.5">
+                        <Smartphone className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                        <SelectValue placeholder="Instância" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem instância</SelectItem>
+                        {devices?.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${d.status === "connected" ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                              <span className="truncate">{d.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Switch
                       checked={flow.is_active}
                       onCheckedChange={(val) => toggleMutation.mutate({ id: flow.id, is_active: val })}
