@@ -588,13 +588,10 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
                       key={item.id}
                       onClick={() => {
                         const routes: Record<string, string> = {
-                          overview: "/backoffice",
                           "bo-campaigns": "/backoffice/campaigns",
                           "bo-campaign-list": "/backoffice/campaign-list",
                         };
-                        if (routes[item.id]) {
-                          navigate(routes[item.id]);
-                        }
+                        navigate(routes[item.id] || "/backoffice");
                         setActiveTab(item.id); setSidebarOpen(false);
                       }}
                       className={`
