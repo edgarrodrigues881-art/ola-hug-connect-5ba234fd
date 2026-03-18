@@ -113,15 +113,13 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
 
             {/* Close button */}
             {announcement.allow_close && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, type: "spring" }}
-                onClick={handleClose}
-                className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-muted/60 hover:bg-muted border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110"
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleClose(); }}
+                className="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-muted/60 hover:bg-muted border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 cursor-pointer"
               >
                 <X size={14} />
-              </motion.button>
+              </button>
             )}
 
             <div className="px-7 pt-7 pb-3 space-y-5 relative z-10">
