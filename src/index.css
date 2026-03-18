@@ -36,9 +36,12 @@
   background: hsl(var(--sidebar-background, var(--background)));
 }
 
-/* Override SidebarMenuButton hover for Meu Plano */
-.plan-gold-wrap [data-sidebar="menu-button"]:hover {
+/* Override SidebarMenuButton hover/active for Meu Plano */
+.plan-gold-wrap [data-sidebar="menu-button"]:hover,
+.plan-gold-wrap [data-sidebar="menu-button"][data-active="true"],
+.plan-gold-wrap [data-sidebar="menu-button"]:focus-visible {
   background: transparent !important;
+  color: inherit !important;
 }
 
 #lovable-badge {
