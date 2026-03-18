@@ -323,6 +323,19 @@ export default function AdminDispatch() {
   // === Shared logic ===
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
   const messageContent = templateId === "custom" ? customMessage : selectedTemplate?.content || "";
+  const selectedTemplateButtons = Array.isArray((selectedTemplate as any)?.buttons)
+    ? (selectedTemplate as any).buttons.filter((btn: any) => btn?.text)
+    : [];
+  const selectedTemplateMedia = (() => {
+    const raw = (selectedTemplate as any)?.media_url;
+    if (!raw) return [] as any[];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [{ url: raw }];
+    }
+  })();
 
   const handleDispatch = useCallback(async () => {
     if (!messageContent.trim()) { toast.error("Selecione ou escreva uma mensagem"); return; }
@@ -738,8 +751,22 @@ export default function AdminDispatch() {
             ) : selectedTemplate ? (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Preview do modelo</label>
-                <div className="bg-muted/30 border border-border/40 rounded-lg p-4">
+                <div className="bg-muted/30 border border-border/40 rounded-lg p-4 space-y-3">
+                  {selectedTemplateMedia.length > 0 && (
+                    <div className="rounded-lg border border-border/30 bg-card/60 px-3 py-6 text-center text-xs text-muted-foreground">
+                      📎 {selectedTemplateMedia.length} mídia{selectedTemplateMedia.length > 1 ? "s" : ""} anexada{selectedTemplateMedia.length > 1 ? "s" : ""}
+                    </div>
+                  )}
                   <p className="text-sm whitespace-pre-wrap text-foreground">{selectedTemplate.content}</p>
+                  {selectedTemplateButtons.length > 0 && (
+                    <div className="space-y-2 border-t border-border/30 pt-3">
+                      {selectedTemplateButtons.map((btn: any, i: number) => (
+                        <div key={i} className="rounded-md border border-border/30 bg-card/60 px-3 py-2 text-center text-xs font-medium text-primary">
+                          {btn.text || `Botão ${i + 1}`}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -896,34 +923,26 @@ export default function AdminDispatch() {
             {/* WhatsApp-style message preview */}
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-2">Prévia da Mensagem</p>
-              <div className="bg-[#0b1418] rounded-xl p-4 max-w-sm mx-auto">
-                <div className="bg-[#005c4b] rounded-lg p-3 ml-auto max-w-[90%]">
-                  {selectedTemplate?.media_url && (
-                    <div className="mb-2 rounded overflow-hidden bg-black/20 flex items-center justify-center h-32 text-xs text-white/40">
-                      📎 Mídia anexada
-                    </div>
-                  )}
-                  <p className="text-[13px] whitespace-pre-wrap text-white leading-relaxed">{messageContent || "(mensagem vazia)"}</p>
-                  {/* Buttons */}
-                  {(() => {
-                    const buttons = templateId !== "custom" && selectedTemplate
-                      ? (selectedTemplate as any).buttons || (selectedTemplate as any).variables?.buttons
-                      : [];
-                    const btnArray = Array.isArray(buttons) ? buttons : [];
-                    if (btnArray.length === 0) return null;
-                    return (
+                <div className="bg-[#0b1418] rounded-xl p-4 max-w-sm mx-auto">
+                  <div className="bg-[#005c4b] rounded-lg p-3 ml-auto max-w-[90%]">
+                    {selectedTemplateMedia.length > 0 && (
+                      <div className="mb-2 rounded overflow-hidden bg-black/20 flex items-center justify-center h-32 text-xs text-white/40">
+                        📎 {selectedTemplateMedia.length} mídia{selectedTemplateMedia.length > 1 ? "s" : ""}
+                      </div>
+                    )}
+                    <p className="text-[13px] whitespace-pre-wrap text-white leading-relaxed">{messageContent || "(mensagem vazia)"}</p>
+                    {selectedTemplateButtons.length > 0 && (
                       <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
-                        {btnArray.map((btn: any, i: number) => (
+                        {selectedTemplateButtons.map((btn: any, i: number) => (
                           <div key={i} className="text-center py-1.5 rounded bg-white/5 text-[12px] text-[#53bdeb] font-medium">
                             {btn.text || btn.label || btn.title || `Botão ${i + 1}`}
                           </div>
                         ))}
                       </div>
-                    );
-                  })()}
-                  <p className="text-[10px] text-white/40 text-right mt-1">agora</p>
+                    )}
+                    <p className="text-[10px] text-white/40 text-right mt-1">agora</p>
+                  </div>
                 </div>
-              </div>
             </div>
           </div>
 

@@ -28,6 +28,8 @@ interface DispatchTemplate {
   category: string;
   content: string;
   variables: string[];
+  media_url?: string | null;
+  buttons?: Array<{ type?: "reply" | "url" | "phone"; text?: string; value?: string }>;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -154,6 +156,8 @@ export default function AdminDispatchTemplates() {
             category: payload.category,
             content: payload.content,
             variables,
+            media_url: payload.media_url ?? null,
+            buttons: payload.buttons || [],
             updated_at: new Date().toISOString(),
           })
           .eq("id", payload.id);
@@ -167,6 +171,8 @@ export default function AdminDispatchTemplates() {
             category: payload.category,
             content: payload.content,
             variables,
+            media_url: payload.media_url ?? null,
+            buttons: payload.buttons || [],
           });
         if (error) throw error;
       }
@@ -234,8 +240,8 @@ export default function AdminDispatchTemplates() {
     setFormMessages(msgs);
     setActiveMessageTab(0);
     setRotationMode(t.content.includes("|&&|") ? "all" : "random");
-    setFormMediaFiles([]);
-    setFormButtons([]);
+    setFormMediaFiles(parseMediaFiles(t.media_url || null));
+    setFormButtons((t.buttons || []).map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
     setDialogOpen(true);
   };
 
@@ -314,7 +320,17 @@ export default function AdminDispatchTemplates() {
     const combinedContent = allMessages.length > 1
       ? (rotationMode === "random" ? allMessages.join("|||") : allMessages.join("|&&|"))
       : allMessages[0] || "";
-    saveMutation.mutate({ name: formName, category: formCategory, content: combinedContent, id: editingId || undefined });
+    const mediaValue = formMediaFiles.length > 0
+      ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name, sendMode: f.sendMode })))
+      : undefined;
+    saveMutation.mutate({
+      name: formName,
+      category: formCategory,
+      content: combinedContent,
+      media_url: mediaValue,
+      buttons: formButtons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      id: editingId || undefined,
+    });
   };
 
   const addButton = (type: "reply" | "url" | "phone") => {
@@ -436,7 +452,7 @@ export default function AdminDispatchTemplates() {
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
                   <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
-                    onClick={() => { setPreviewTemplate({ ...t, buttons: [] }); setPreviewOpen(true); }} title="Preview">
+                    onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }} title="Preview">
                     <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                   <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/60 transition-colors"
