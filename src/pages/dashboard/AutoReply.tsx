@@ -352,6 +352,7 @@ function FlowCanvas() {
         deviceId={deviceId}
         onDeviceChange={setDeviceId}
         nodes={nodes}
+        edges={edges as { id: string; source: string; target: string }[]}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <FlowSidebar />

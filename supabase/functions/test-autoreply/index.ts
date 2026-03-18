@@ -51,6 +51,12 @@ interface FlowEdge {
   target: string;
 }
 
+interface DraftFlowPayload {
+  name?: string;
+  nodes?: FlowNode[];
+  edges?: FlowEdge[];
+}
+
 function findNextNodes(nodeId: string, edges: FlowEdge[]): string[] {
   return edges.filter((e) => e.source === nodeId).map((e) => e.target);
 }
@@ -103,13 +109,7 @@ function buildSimulationPreview(nodes: FlowNode[], edges: FlowEdge[], startNode:
       }
     }
 
-    if (node.type === "delayNode") {
-      // only simulate path, no waiting
-    }
-
-    if (node.type === "endNode") {
-      break;
-    }
+    if (node.type === "endNode") break;
 
     const nextNodes = findNextNodes(node.id, edges);
     currentNodeId = nextNodes[0] || "";
@@ -123,9 +123,13 @@ function buildSimulationPreview(nodes: FlowNode[], edges: FlowEdge[], startNode:
   };
 }
 
+function isValidDraftFlow(draftFlow: DraftFlowPayload | null | undefined) {
+  return !!draftFlow && Array.isArray(draftFlow.nodes) && Array.isArray(draftFlow.edges) && draftFlow.nodes.length > 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -135,14 +139,24 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) {
+
+    let user = null;
+    const claimsResult = await supabase.auth.getClaims(token);
+    user = claimsResult.data?.claims ? { id: claimsResult.data.claims.sub as string } : null;
+
+    if (!user) {
+      const userResult = await supabase.auth.getUser(token);
+      user = userResult.data.user;
+    }
+
+    if (!user) {
       return json({ error: "Não autenticado" }, 401);
     }
 
     const body = await req.json();
     const deviceId = body.device_id as string | undefined;
     const incomingText = String(body.incoming_text || body.message_text || "").trim();
+    const draftFlow = (body.draft_flow || null) as DraftFlowPayload | null;
 
     if (!deviceId) {
       return json({ error: "Selecione uma instância antes de testar" }, 400);
@@ -182,36 +196,39 @@ Deno.serve(async (req) => {
       return json({ error: "A instância selecionada está offline. Reconecte antes de testar." }, 400);
     }
 
-    const { data: activeFlows } = await supabase
-      .from("autoreply_flows")
-      .select("id, name, nodes, edges, device_id, updated_at")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false });
+    const flowsToTest = isValidDraftFlow(draftFlow)
+      ? [{
+          id: "draft-flow",
+          name: draftFlow?.name || "Rascunho",
+          device_id: deviceId,
+          nodes: draftFlow?.nodes || [],
+          edges: draftFlow?.edges || [],
+        }]
+      : await (async () => {
+          const { data: activeFlows } = await supabase
+            .from("autoreply_flows")
+            .select("id, name, nodes, edges, device_id, updated_at")
+            .eq("user_id", user.id)
+            .eq("is_active", true)
+            .order("updated_at", { ascending: false });
 
-    if (!activeFlows?.length) {
+          if (!activeFlows?.length) return [];
+          return activeFlows.filter((flow) => !flow.device_id || flow.device_id === deviceId);
+        })();
+
+    if (!flowsToTest.length) {
       return json({ error: getSkipMessage("no_active_flows", incomingText) }, 400);
-    }
-
-    const matchingFlows = activeFlows.filter((flow) => !flow.device_id || flow.device_id === deviceId);
-    if (!matchingFlows.length) {
-      return json({ error: getSkipMessage("no_matching_flows", incomingText) }, 400);
     }
 
     const isFirstMessage = true;
 
-    for (const flow of matchingFlows) {
+    for (const flow of flowsToTest) {
       const nodes = Array.isArray(flow.nodes) ? (flow.nodes as unknown as FlowNode[]) : [];
       const edges = Array.isArray(flow.edges) ? (flow.edges as unknown as FlowEdge[]) : [];
       const startNode = nodes.find((node) => node.type === "startNode");
 
-      if (!startNode) {
-        continue;
-      }
-
-      if (!matchesTrigger(startNode, incomingText, isFirstMessage)) {
-        continue;
-      }
+      if (!startNode) continue;
+      if (!matchesTrigger(startNode, incomingText, isFirstMessage)) continue;
 
       const preview = buildSimulationPreview(nodes, edges, startNode);
       const previewText = preview.firstMessage
