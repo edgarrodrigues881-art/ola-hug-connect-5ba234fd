@@ -14,6 +14,7 @@ import type { FlowNodeData } from "./types";
 import type { Node } from "@xyflow/react";
 
 interface Props {
+  flowId?: string | null;
   name: string;
   onNameChange: (n: string) => void;
   isActive: boolean;
@@ -29,7 +30,7 @@ interface Props {
 
 const onlineStatuses = new Set(["connected", "Connected", "Ready", "ready", "authenticated"]);
 
-export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange, nodes, edges = [], isDirty }: Props) {
+export function FlowHeader({ flowId, name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange, nodes, edges = [], isDirty }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [testing, setTesting] = useState(false);
