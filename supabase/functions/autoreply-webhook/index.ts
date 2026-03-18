@@ -755,8 +755,9 @@ async function doRegisterWebhook(device: any) {
     url: webhookUrl,
     enabled: true,
     events: ["messages"],
-    excludeMessages: ["wasSentByApi"],
+    excludeMessages: [],
     addUrlEvents: true,
+    addUrlTypesMessages: true,
     headers: webhookHeaders,
   };
 
