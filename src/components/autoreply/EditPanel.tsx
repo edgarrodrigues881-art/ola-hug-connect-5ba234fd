@@ -59,7 +59,7 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
   const selectModel = (template: Template) => {
     const buttons: FlowButton[] = (template.buttons || []).map((btn: any, i: number) => ({
       id: `btn-tpl-${++btnCounter}`,
-      label: typeof btn === "string" ? btn : btn.label || `Botão ${i + 1}`,
+      label: typeof btn === "string" ? btn : btn.label || btn.text || btn.title || `Botão ${i + 1}`,
       targetNodeId: "",
     }));
 
