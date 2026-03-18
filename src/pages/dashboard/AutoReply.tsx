@@ -207,7 +207,7 @@ function FlowCanvas() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] w-full overflow-hidden">
+    <div className="flow-builder-fullscreen flex flex-col h-full w-full overflow-hidden">
       <FlowHeader
         name={flowName}
         onNameChange={setFlowName}
