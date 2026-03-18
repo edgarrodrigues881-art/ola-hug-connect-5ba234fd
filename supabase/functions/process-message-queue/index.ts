@@ -1,4 +1,4 @@
-// Process Message Queue — sends pending messages via WhatsApp with random delays
+// Process Message Queue — sends pending messages via WhatsApp using DB templates + buttons
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -8,91 +8,115 @@ const corsHeaders = {
 
 const SUPORTE_NUMERO = "(62) 99419-2500";
 
-// ─── MESSAGE TEMPLATES BY TYPE ───
-function buildMessageByType(
-  type: string,
-  nome: string,
-  plano: string,
-  vencimento: string
-): string {
+const API_TIMEOUT_MS = 25_000;
+
+// ─── BUTTON TYPES ───
+interface TemplateButton {
+  id?: number;
+  type: "reply" | "url" | "phone";
+  text: string;
+  value: string;
+}
+
+// ─── FALLBACK TEMPLATES (used if DB template not found) ───
+function fallbackMessage(type: string, nome: string, plano: string, vencimento: string): string {
   switch (type) {
     case "WELCOME":
-      return (
-        `Olá ${nome}! 👋\n\n` +
-        `Seja bem-vindo ao DG CONTINGÊNCIA PRO.\n\n` +
-        `Seu teste gratuito de 3 dias já está ativo.\n\n` +
-        `📅 Vencimento: ${vencimento}\n\n` +
-        `Se precisar de ajuda, fale com nosso suporte:\n` +
-        `📞 ${SUPORTE_NUMERO}\n\n` +
-        `Bons envios! 🚀`
-      );
+      return `Olá ${nome}! 👋\n\nSeja bem-vindo ao DG CONTINGÊNCIA PRO.\n\nSeu teste gratuito de 3 dias já está ativo.\n\n📅 Vencimento: ${vencimento}\n\nSe precisar de ajuda, fale com nosso suporte:\n📞 ${SUPORTE_NUMERO}\n\nBons envios! 🚀`;
     case "DUE_3_DAYS":
-      return (
-        `Olá ${nome}! ⏳\n\n` +
-        `Seu plano ${plano} vence em 3 dias.\n\n` +
-        `Para evitar interrupção nas suas instâncias, recomendamos renovar antecipadamente.\n\n` +
-        `📅 Vencimento: ${vencimento}\n\n` +
-        `Se precisar de ajuda, fale com nosso suporte:\n` +
-        `📞 ${SUPORTE_NUMERO}`
-      );
+      return `Olá ${nome}! ⏳\n\nSeu plano ${plano} vence em 3 dias.\n\nPara evitar interrupção nas suas instâncias, recomendamos renovar antecipadamente.\n\n📅 Vencimento: ${vencimento}\n\nSe precisar de ajuda, fale com nosso suporte:\n📞 ${SUPORTE_NUMERO}`;
     case "DUE_TODAY":
-      return (
-        `Olá ${nome}! ⚠️\n\n` +
-        `Seu plano ${plano} vence HOJE.\n\n` +
-        `Sem renovação, suas instâncias poderão ser bloqueadas automaticamente.\n\n` +
-        `📅 Vencimento: ${vencimento}\n\n` +
-        `Renove para continuar utilizando a plataforma normalmente.\n\n` +
-        `Suporte:\n` +
-        `📞 ${SUPORTE_NUMERO}`
-      );
+      return `Olá ${nome}! ⚠️\n\nSeu plano ${plano} vence HOJE.\n\nSem renovação, suas instâncias poderão ser bloqueadas automaticamente.\n\n📅 Vencimento: ${vencimento}\n\nRenove para continuar utilizando a plataforma normalmente.\n\nSuporte:\n📞 ${SUPORTE_NUMERO}`;
     case "OVERDUE_1":
-      return (
-        `Olá ${nome}! 🚫\n\n` +
-        `Seu plano ${plano} venceu ontem.\n\n` +
-        `Suas instâncias estão temporariamente bloqueadas.\n\n` +
-        `Renove para voltar a utilizá-las imediatamente.\n\n` +
-        `Suporte:\n` +
-        `📞 ${SUPORTE_NUMERO}`
-      );
+      return `Olá ${nome}! 🚫\n\nSeu plano ${plano} venceu ontem.\n\nSuas instâncias estão temporariamente bloqueadas.\n\nRenove para voltar a utilizá-las imediatamente.\n\nSuporte:\n📞 ${SUPORTE_NUMERO}`;
     case "OVERDUE_7":
-      return (
-        `Olá ${nome}! 📢\n\n` +
-        `Seu plano está vencido há 7 dias.\n\n` +
-        `Ainda é possível reativar sua conta e continuar utilizando suas instâncias normalmente.\n\n` +
-        `Se precisar de ajuda com a renovação, fale com nosso suporte.\n\n` +
-        `📞 ${SUPORTE_NUMERO}`
-      );
+      return `Olá ${nome}! 📢\n\nSeu plano está vencido há 7 dias.\n\nAinda é possível reativar sua conta e continuar utilizando suas instâncias normalmente.\n\nSe precisar de ajuda com a renovação, fale com nosso suporte.\n\n📞 ${SUPORTE_NUMERO}`;
     case "OVERDUE_30":
-      return (
-        `Olá ${nome}! 🎁\n\n` +
-        `Já se passaram 30 dias desde o vencimento do seu plano.\n\n` +
-        `Para você voltar a utilizar a plataforma, liberamos uma condição especial de retorno.\n\n` +
-        `💸 Desconto exclusivo na renovação.\n\n` +
-        `Se quiser reativar sua conta, fale com nosso suporte.\n\n` +
-        `📞 ${SUPORTE_NUMERO}`
-      );
+      return `Olá ${nome}! 🎁\n\nJá se passaram 30 dias desde o vencimento do seu plano.\n\nPara você voltar a utilizar a plataforma, liberamos uma condição especial de retorno.\n\n💸 Desconto exclusivo na renovação.\n\nSe quiser reativar sua conta, fale com nosso suporte.\n\n📞 ${SUPORTE_NUMERO}`;
     default:
       return `Olá ${nome}, esta é uma mensagem do DG CONTINGÊNCIA PRO. Suporte: ${SUPORTE_NUMERO}`;
   }
 }
 
-// ─── SEND TEXT VIA UAZAPI ───
-async function sendText(
+// ─── REPLACE VARIABLES IN TEMPLATE ───
+function replaceVariables(content: string, nome: string, plano: string, vencimento: string): string {
+  return content
+    .replace(/\{\{nome\}\}/g, nome)
+    .replace(/\{\{plano\}\}/g, plano)
+    .replace(/\{\{vencimento\}\}/g, vencimento)
+    .replace(/\{\{suporte\}\}/g, SUPORTE_NUMERO);
+}
+
+// ─── BUILD MENU CHOICE (same logic as process-campaign) ───
+function buildMenuChoice(button: TemplateButton, index: number): string | null {
+  const text = (button.text || "").trim();
+  if (!text) return null;
+  if (button.type === "url") {
+    const url = (button.value || "").trim();
+    return url ? `${text}|url:${url}` : text;
+  }
+  if (button.type === "phone") {
+    const phone = (button.value || "").trim();
+    return phone ? `${text}|call:${phone}` : text;
+  }
+  const replyId = (button.value || `btn_${index}`).trim();
+  return `${text}|${replyId}`;
+}
+
+// ─── UAZAPI REQUEST ───
+async function uazapiRequest(baseUrl: string, token: string, endpoint: string, payload: any): Promise<any> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const url = `${baseUrl}${endpoint}`;
+  const headers: Record<string, string> = { token, "Content-Type": "application/json" };
+
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload), signal: controller.signal });
+  } catch (fetchErr: any) {
+    clearTimeout(timeoutId);
+    if (fetchErr?.name === "AbortError") throw new Error(`Timeout após ${API_TIMEOUT_MS / 1000}s`);
+    throw fetchErr;
+  }
+  clearTimeout(timeoutId);
+
+  const text = await res.text();
+  if (!res.ok) {
+    let errorMsg = `API error ${res.status}`;
+    try { const data = JSON.parse(text); errorMsg = data?.message || data?.error || text; } catch (_e) { errorMsg = text; }
+    throw new Error(errorMsg);
+  }
+  return JSON.parse(text);
+}
+
+// ─── SEND MESSAGE (text or with buttons via /send/menu) ───
+async function sendMessage(
   baseUrl: string,
   token: string,
   number: string,
-  text: string
+  text: string,
+  buttons: TemplateButton[]
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`${baseUrl}/send/text`, {
-      method: "POST",
-      headers: { token, "Content-Type": "application/json" },
-      body: JSON.stringify({ number, text }),
-    });
-    const data = await res.json();
-    if (res.ok) return { ok: true };
-    return { ok: false, error: JSON.stringify(data).slice(0, 200) };
-  } catch (e) {
+    const phone = number.replace(/\D/g, "");
+    const choices = buttons
+      .map((b, i) => buildMenuChoice(b, i))
+      .filter((c): c is string => Boolean(c));
+
+    if (choices.length > 0) {
+      // Send as interactive menu with buttons
+      await uazapiRequest(baseUrl, token, "/send/menu", {
+        number: phone,
+        type: "button",
+        text,
+        choices,
+      });
+    } else {
+      // Send as plain text
+      await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text });
+    }
+    return { ok: true };
+  } catch (e: any) {
     return { ok: false, error: e.message };
   }
 }
@@ -108,33 +132,6 @@ function typeLabel(type: string): string {
     OVERDUE_30: "Vencido há 30 dias",
   };
   return map[type] || type;
-}
-
-// ─── BUILD REPORT FOR ADMIN GROUP ───
-function buildReport(
-  status: string,
-  item: any,
-  vencimento: string,
-  messageText: string,
-  errorMsg?: string
-): string {
-  const statusLine = status === "sent"
-    ? "✅ *Status:* Enviado com sucesso"
-    : `❌ *Status:* Falha no envio\n⚠️ *Erro:* ${errorMsg || "Desconhecido"}`;
-
-  return (
-    `📋 *RELATÓRIO DG CONTINGÊNCIA PRO*\n\n` +
-    `${statusLine}\n\n` +
-    `👤 *Cliente:* ${item.client_name || "—"}\n` +
-    `📧 *Email:* ${item.client_email || "—"}\n` +
-    `📱 *Telefone:* ${item.client_phone || "—"}\n` +
-    `📦 *Plano:* ${item.plan_name || "—"}\n` +
-    `📅 *Vencimento:* ${vencimento}\n` +
-    `🏷️ *Tipo:* ${typeLabel(item.message_type)}\n\n` +
-    `─────────────────\n` +
-    `✉️ *Mensagem enviada:*\n\n` +
-    `${messageText}`
-  );
 }
 
 // ─── GET REPORT DEVICE CREDENTIALS + GROUP ───
@@ -197,9 +194,7 @@ function formatDateBR(dateStr: string): string {
 function isValidPhoneNumber(phone: string): boolean {
   const digits = phone.replace(/\D/g, "");
   const local = digits.startsWith("55") ? digits.slice(2) : digits;
-  // DDD (2 digits) + number (8-9 digits) = 10-11 digits
   if (local.length < 10 || local.length > 11) return false;
-  // DDD must be 11-99
   const ddd = parseInt(local.slice(0, 2), 10);
   if (ddd < 11 || ddd > 99) return false;
   return true;
@@ -208,6 +203,26 @@ function isValidPhoneNumber(phone: string): boolean {
 function randomDelay(minMs: number, maxMs: number): Promise<void> {
   const ms = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─── LOAD DB TEMPLATES ───
+async function loadTemplates(adminClient: any): Promise<Map<string, { content: string; buttons: TemplateButton[] }>> {
+  const { data, error } = await adminClient
+    .from("auto_message_templates")
+    .select("message_type, content, buttons, is_active")
+    .eq("is_active", true);
+
+  const map = new Map<string, { content: string; buttons: TemplateButton[] }>();
+  if (error || !data) {
+    console.error("[process-mq] Failed to load templates:", error?.message);
+    return map;
+  }
+  for (const tpl of data) {
+    const buttons: TemplateButton[] = Array.isArray(tpl.buttons) ? tpl.buttons : [];
+    map.set(tpl.message_type, { content: tpl.content, buttons });
+  }
+  console.log(`[process-mq] Loaded ${map.size} active templates from DB`);
+  return map;
 }
 
 Deno.serve(async (req) => {
@@ -241,8 +256,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Load templates from DB
+    const templates = await loadTemplates(adminClient);
+
     // Atomically claim pending messages using FOR UPDATE SKIP LOCKED
-    // This prevents parallel process-message-queue calls from processing the same messages
     const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 50 });
 
     if (claimErr) {
@@ -266,11 +283,10 @@ Deno.serve(async (req) => {
         pendingItems.push(item);
       }
     }
-    // Mark duplicates as failed (they were already claimed as 'sent', update to 'failed')
     if (duplicateIds.length > 0) {
       await adminClient
         .from("message_queue")
-        .update({ status: "failed" as any, error_message: "Duplicata removida automaticamente", updated_at: new Date().toISOString() })
+        .update({ status: "failed", error_message: "Duplicata removida automaticamente", updated_at: new Date().toISOString() })
         .in("id", duplicateIds);
       console.log(`[process-mq] Removed ${duplicateIds.length} duplicate messages`);
     }
@@ -292,7 +308,7 @@ Deno.serve(async (req) => {
 
       if (!phone) {
         await adminClient.from("message_queue").update({
-          status: "failed" as any, error_message: "Telefone não informado",
+          status: "failed", error_message: "Telefone não informado",
           sent_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }).eq("id", item.id);
         failed++;
@@ -301,7 +317,7 @@ Deno.serve(async (req) => {
 
       if (!isValidPhoneNumber(phone)) {
         await adminClient.from("message_queue").update({
-          status: "failed" as any, error_message: `Número inválido: ${phone}`,
+          status: "failed", error_message: `Número inválido: ${phone}`,
           sent_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }).eq("id", item.id);
         failed++;
@@ -310,42 +326,46 @@ Deno.serve(async (req) => {
 
       const number = phone.startsWith("55") ? phone : `55${phone}`;
       const vencimento = item.expires_at ? formatDateBR(item.expires_at) : "—";
-      const messageText = buildMessageByType(
-        item.message_type,
-        item.client_name || "Cliente",
-        item.plan_name || "—",
-        vencimento
-      );
+      const nome = item.client_name || "Cliente";
+      const plano = item.plan_name || "—";
 
-      // Send via WhatsApp
-      const result = await sendText(device.baseUrl, device.token, number, messageText);
+      // Build message from DB template or fallback
+      let messageText: string;
+      let buttons: TemplateButton[] = [];
+      const dbTemplate = templates.get(item.message_type);
+
+      if (dbTemplate) {
+        messageText = replaceVariables(dbTemplate.content, nome, plano, vencimento);
+        buttons = dbTemplate.buttons;
+        console.log(`[process-mq] Using DB template for ${item.message_type} (${buttons.length} buttons)`);
+      } else {
+        messageText = fallbackMessage(item.message_type, nome, plano, vencimento);
+        console.log(`[process-mq] Using fallback template for ${item.message_type}`);
+      }
+
+      // Send via WhatsApp (with buttons if configured)
+      const result = await sendMessage(device.baseUrl, device.token, number, messageText, buttons);
 
       if (result.ok) {
-        // Already claimed as 'sent', just update content + timestamp
         await adminClient.from("message_queue").update({
           message_content: messageText,
           sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq("id", item.id);
         sent++;
-        console.log(`[process-mq] ✅ Sent ${item.message_type} to ${item.client_name}`);
-
-        // Report de envio removido — admin só quer notificação de novos cadastros
+        console.log(`[process-mq] ✅ Sent ${item.message_type} to ${nome}${buttons.length > 0 ? ` (with ${buttons.length} buttons)` : ""}`);
       } else {
-        // Revert to failed
         await adminClient.from("message_queue").update({
-          status: "failed" as any,
+          status: "failed",
           error_message: result.error || "Erro desconhecido",
           sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq("id", item.id);
         failed++;
-        console.log(`[process-mq] ❌ Failed ${item.message_type} for ${item.client_name}: ${result.error}`);
-
-        // Report de falha removido — admin só quer notificação de novos cadastros
+        console.log(`[process-mq] ❌ Failed ${item.message_type} for ${nome}: ${result.error}`);
       }
 
-      // Random delay between 3-8 seconds to avoid mass sending
+      // Random delay between 3-8 seconds
       if (pendingItems.indexOf(item) < pendingItems.length - 1) {
         const delayMs = Math.floor(Math.random() * 5000) + 3000;
         console.log(`[process-mq] Waiting ${delayMs}ms before next...`);
@@ -359,7 +379,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, sent, failed, total: pendingItems.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (e) {
+  } catch (e: any) {
     console.error("[process-mq] Error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
