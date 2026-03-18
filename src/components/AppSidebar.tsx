@@ -23,6 +23,7 @@ import {
   FolderOpen,
   Pencil,
   Trash2,
+  Lock,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
