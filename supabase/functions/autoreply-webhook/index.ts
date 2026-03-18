@@ -188,6 +188,9 @@ Deno.serve(async (req) => {
     if (body.action === "register_webhook") {
       return await handleRegisterWebhook(supabase, body, req);
     }
+    if (body.action === "disable_webhook") {
+      return await handleDisableWebhook(supabase, body, req);
+    }
 
     // ── Parse incoming message from UaZapi webhook ──
     const event = body.event || body.EventType || body.type || "";
