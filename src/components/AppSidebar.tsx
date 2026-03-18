@@ -399,16 +399,16 @@ export function AppSidebar() {
               {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
               {/* Meu Plano - Premium animated button */}
-              <SidebarMenuItem>
+              <SidebarMenuItem className="plan-gold-wrap">
                 <SidebarMenuButton asChild tooltip="Meu Plano">
                   <NavLink
                     to="/dashboard/my-plan"
                     className={cn(
-                      "sidebar-nav-item relative flex items-center rounded-[10px] text-[13px] overflow-hidden transition-[background-color,color,opacity] duration-[120ms] ease-out group/plan",
+                      "sidebar-nav-item relative flex items-center rounded-[10px] text-[13px] transition-[color,opacity] duration-[120ms] ease-out group/plan",
                       collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : 'gap-[11px] px-3.5 pr-3.5 py-[10px]',
                       isActive("/dashboard/my-plan")
-                        ? 'bg-amber-500/10 text-foreground font-semibold'
-                        : 'text-muted-foreground font-medium hover:text-foreground hover:bg-amber-500/5'
+                        ? 'text-foreground font-semibold'
+                        : 'text-muted-foreground font-medium hover:text-amber-300'
                     )}
                     activeClassName=""
                   >
