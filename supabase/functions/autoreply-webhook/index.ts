@@ -479,7 +479,7 @@ Deno.serve(async (req) => {
     if (recentSession?.last_message_at) {
       const lastMs = new Date(recentSession.last_message_at).getTime();
       const nowMs = Date.now();
-      if (nowMs - lastMs < 30000) {
+      if (nowMs - lastMs < 30000 && !hasButtonResponse) {
         console.log(`[autoreply] Anti-loop cooldown: ${nowMs - lastMs}ms since last message`);
         return json({ ok: true, skipped: true, reason: "cooldown" });
       }

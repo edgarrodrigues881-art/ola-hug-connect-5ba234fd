@@ -51,6 +51,16 @@ export function FlowHeader({ flowId, name, onNameChange, isActive, onToggleActiv
   });
 
   const handleTest = async () => {
+    if (!flowId) {
+      toast.error("Salve a automação antes de testar os botões");
+      return;
+    }
+
+    if (isDirty) {
+      toast.error("Salve as alterações antes de testar os botões");
+      return;
+    }
+
     if (!deviceId) {
       toast.error("Selecione uma instância antes de testar");
       return;
@@ -90,6 +100,7 @@ export function FlowHeader({ flowId, name, onNameChange, isActive, onToggleActiv
     try {
       const { data, error } = await supabase.functions.invoke("test-autoreply", {
         body: {
+          flow_id: flowId,
           device_id: deviceId,
           incoming_text: incomingText,
           draft_flow: {
