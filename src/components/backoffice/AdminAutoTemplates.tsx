@@ -56,7 +56,7 @@ const AdminAutoTemplates = () => {
         .select("*")
         .order("message_type");
       if (error) throw error;
-      return (data || []) as AutoTemplate[];
+      return (data || []) as unknown as AutoTemplate[];
     },
   });
 
