@@ -80,9 +80,10 @@ const AdminAutoTemplates = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, content, is_active }: { id: string; content?: string; is_active?: boolean }) => {
+    mutationFn: async ({ id, content, buttons, is_active }: { id: string; content?: string; buttons?: TemplateButton[]; is_active?: boolean }) => {
       const updates: any = { updated_at: new Date().toISOString(), updated_by: session?.user?.id };
       if (content !== undefined) updates.content = content;
+      if (buttons !== undefined) updates.buttons = buttons;
       if (is_active !== undefined) updates.is_active = is_active;
       const { error } = await (supabase
         .from("auto_message_templates" as any)
