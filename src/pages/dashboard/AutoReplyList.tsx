@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, BotMessageSquare, Pencil, Copy, Trash2, MoreHorizontal,
   Zap, Clock, Search, Filter, GitBranch, MousePointerClick,
-  FileText, Loader2
+  FileText, Loader2, Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
