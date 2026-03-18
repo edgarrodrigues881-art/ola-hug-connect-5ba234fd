@@ -2011,18 +2011,34 @@ async function handleTick(db: any) {
         const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
 
-        // Daily rotation: use day_index as offset to rotate through contacts
-        const dayOffset = (cycle.day_index || 0) * 5; // shift by 5 contacts each day
+        if (mIdx >= 3) {
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Auto Save limitado a 3 mensagens por contato" })
+            .eq("id", job.id);
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "warn",
+            event_type: "autosave_job_cancelled",
+            message: `Job Auto Save excedente cancelado (recipient_index=${rIdx}, msg_index=${mIdx})`,
+          });
+          return false;
+        }
+
+        const autosaveStartDay = getGroupsEndDay(chipState) + 1;
+        const autosaveDayIndex = Math.max(0, (cycle.day_index || autosaveStartDay) - autosaveStartDay);
+        const dayOffset = autosaveDayIndex * 5;
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
           .filter((c: any) => c._phone.length >= 10);
-        
+
         if (autosavePool.length === 0) {
           bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Nenhum contato Auto Save válido/ativo" });
           break;
         }
 
-        // Rotate: pick 5 contacts starting from dayOffset position (wraps around)
+        // Prioriza contatos mais novos/atualizados e rotaciona 5 por dia a partir do 1º dia de Auto Save
         const rotatedPool: typeof autosavePool = [];
         for (let i = 0; i < Math.min(5, autosavePool.length); i++) {
           const idx = (dayOffset + i) % autosavePool.length;
