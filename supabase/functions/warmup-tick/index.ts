@@ -319,17 +319,26 @@ async function scheduleDayJobs(
     await db.from("warmup_jobs").insert(jobs.slice(i, i + 100));
   }
 
-  // Update budget
+  // Update budget without resetting what has already been consumed today
   const interactionCount = jobs.filter(j =>
     ["group_interaction", "autosave_interaction", "community_interaction"].includes(j.job_type)
   ).length;
 
+  const { data: existingCycle } = await db.from("warmup_cycles")
+    .select("daily_interaction_budget_used, daily_unique_recipients_used")
+    .eq("id", cycleId)
+    .maybeSingle();
+
+  const existingBudgetUsed = existingCycle?.daily_interaction_budget_used || 0;
+  const existingRecipientsUsed = existingCycle?.daily_unique_recipients_used || 0;
+  const totalBudgetTarget = existingBudgetUsed + interactionCount;
+
   await db.from("warmup_cycles").update({
-    daily_interaction_budget_target: interactionCount,
-    daily_interaction_budget_min: Math.floor(interactionCount * 0.8),
-    daily_interaction_budget_max: Math.ceil(interactionCount * 1.2),
-    daily_interaction_budget_used: 0,
-    daily_unique_recipients_used: 0,
+    daily_interaction_budget_target: totalBudgetTarget,
+    daily_interaction_budget_min: Math.floor(totalBudgetTarget * 0.8),
+    daily_interaction_budget_max: Math.ceil(totalBudgetTarget * 1.2),
+    daily_interaction_budget_used: existingBudgetUsed,
+    daily_unique_recipients_used: existingRecipientsUsed,
     updated_at: new Date().toISOString(),
   }).eq("id", cycleId);
 
@@ -1359,7 +1368,12 @@ async function handleTick(db: any) {
     batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
     batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
     batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
-    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id", "user_id", uniqueUserIds, q => q.eq("is_active", true).order("id", { ascending: true })),
+    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id, created_at, updated_at", "user_id", uniqueUserIds, q =>
+      q.eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+    ),
     batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status, group_name, invite_link", "device_id", uniqueDeviceIds),
     db.from("warmup_groups").select("id, link, name").then((r: any) => r.data || []),
     getImagePool(db),
@@ -1384,6 +1398,19 @@ async function handleTick(db: any) {
   autosaveArr.forEach((c: any) => {
     if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
     autosaveMap[c.user_id].push(c);
+  });
+  Object.values(autosaveMap).forEach((contacts: any[]) => {
+    contacts.sort((a, b) => {
+      const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime();
+      const bUpdated = new Date(b.updated_at || b.created_at || 0).getTime();
+      if (aUpdated !== bUpdated) return bUpdated - aUpdated;
+
+      const aCreated = new Date(a.created_at || 0).getTime();
+      const bCreated = new Date(b.created_at || 0).getTime();
+      if (aCreated !== bCreated) return bCreated - aCreated;
+
+      return String(b.id || "").localeCompare(String(a.id || ""));
+    });
   });
   const instanceGroupsMap: Record<string, any[]> = {};
   instanceGroupsArr.forEach((ig: any) => {
@@ -1984,18 +2011,34 @@ async function handleTick(db: any) {
         const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
 
-        // Daily rotation: use day_index as offset to rotate through contacts
-        const dayOffset = (cycle.day_index || 0) * 5; // shift by 5 contacts each day
+        if (mIdx >= 3) {
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Auto Save limitado a 3 mensagens por contato" })
+            .eq("id", job.id);
+          bufferAudit({
+            user_id: job.user_id,
+            device_id: job.device_id,
+            cycle_id: job.cycle_id,
+            level: "warn",
+            event_type: "autosave_job_cancelled",
+            message: `Job Auto Save excedente cancelado (recipient_index=${rIdx}, msg_index=${mIdx})`,
+          });
+          return false;
+        }
+
+        const autosaveStartDay = getGroupsEndDay(chipState) + 1;
+        const autosaveDayIndex = Math.max(0, (cycle.day_index || autosaveStartDay) - autosaveStartDay);
+        const dayOffset = autosaveDayIndex * 5;
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
           .filter((c: any) => c._phone.length >= 10);
-        
+
         if (autosavePool.length === 0) {
           bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Nenhum contato Auto Save válido/ativo" });
           break;
         }
 
-        // Rotate: pick 5 contacts starting from dayOffset position (wraps around)
+        // Prioriza contatos mais novos/atualizados e rotaciona 5 por dia a partir do 1º dia de Auto Save
         const rotatedPool: typeof autosavePool = [];
         for (let i = 0; i < Math.min(5, autosavePool.length); i++) {
           const idx = (dayOffset + i) % autosavePool.length;
@@ -2326,12 +2369,16 @@ async function handleTick(db: any) {
         });
 
         if (!uniquePairs.length) {
+          const retryAt = new Date(Date.now() + randInt(300, 900) * 1000).toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "pending", run_at: retryAt, last_error: "Nenhum par ativo para conversar" })
+            .eq("id", job.id);
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "community_no_pairs",
             message: "Nenhum par ativo para conversar",
           });
-          break;
+          return false;
         }
 
         // ── Classificar pares por prioridade ──
@@ -2385,13 +2432,17 @@ async function handleTick(db: any) {
         }
 
         if (!scored.length) {
+          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "pending", run_at: retryAt, last_error: "Todos os pares ocupados ou em cooldown" })
+            .eq("id", job.id);
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "community_all_busy",
             message: "Todos os pares ocupados ou em cooldown — nada a fazer agora",
             meta: { total_pairs: uniquePairs.length },
           });
-          break;
+          return false;
         }
 
         // Ordenar: prioridade 1 > 2 > 3, depois por tempo sem contato
@@ -2426,6 +2477,14 @@ async function handleTick(db: any) {
             result: pickedResult, candidates: scored.length, total_pairs: uniquePairs.length,
           },
         });
+
+        if (pickedResult !== "ok") {
+          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "pending", run_at: retryAt, last_error: `Comunidade sem envio efetivo: ${pickedResult}` })
+            .eq("id", job.id);
+          return false;
+        }
 
         break;
       }
