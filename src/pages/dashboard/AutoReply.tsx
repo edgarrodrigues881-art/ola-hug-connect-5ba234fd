@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
   ReactFlow,
   Controls,
@@ -23,6 +23,10 @@ import { EditPanel } from "@/components/autoreply/EditPanel";
 import { FlowHeader } from "@/components/autoreply/FlowHeader";
 import type { FlowNodeData } from "@/components/autoreply/types";
 import { MessageSquare, Square } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 const nodeTypes = {
   startNode: StartNode,
@@ -60,15 +64,86 @@ interface DropMenu {
 }
 
 function FlowCanvas() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isNew = id === "new";
+  const [flowId, setFlowId] = useState<string | null>(isNew ? null : id || null);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [flowName, setFlowName] = useState("Minha Automação");
   const [isActive, setIsActive] = useState(false);
   const [dropMenu, setDropMenu] = useState<DropMenu | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(isNew);
   const pendingConnection = useRef<{ source: string; sourceHandle: string } | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+
+  // Load existing flow
+  useEffect(() => {
+    if (isNew || !flowId || !user) { setLoaded(true); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("autoreply_flows")
+        .select("*")
+        .eq("id", flowId)
+        .single();
+      if (error || !data) {
+        toast.error("Fluxo não encontrado");
+        navigate("/dashboard/auto-reply");
+        return;
+      }
+      setFlowName(data.name);
+      setIsActive(data.is_active);
+      if (Array.isArray(data.nodes) && data.nodes.length > 0) {
+        setNodes(data.nodes as any);
+      }
+      if (Array.isArray(data.edges)) {
+        setEdges(data.edges as any);
+      }
+      setLoaded(true);
+    })();
+  }, [flowId, isNew, user]);
+
+  const handleSave = useCallback(async () => {
+    if (!user) { toast.error("Faça login para salvar"); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        name: flowName,
+        is_active: isActive,
+        nodes: nodes as any,
+        edges: edges as any,
+        user_id: user.id,
+      };
+
+      if (flowId) {
+        const { error } = await supabase
+          .from("autoreply_flows")
+          .update({ name: payload.name, is_active: payload.is_active, nodes: payload.nodes, edges: payload.edges })
+          .eq("id", flowId);
+        if (error) throw error;
+        toast.success("Fluxo salvo com sucesso!");
+      } else {
+        const { data, error } = await supabase
+          .from("autoreply_flows")
+          .insert(payload)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setFlowId(data.id);
+        navigate(`/dashboard/auto-reply/${data.id}`, { replace: true });
+        toast.success("Fluxo criado com sucesso!");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || "erro desconhecido"));
+    } finally {
+      setSaving(false);
+    }
+  }, [user, flowId, flowName, isActive, nodes, edges, navigate]);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedNodeId) || null,
@@ -248,6 +323,14 @@ function FlowCanvas() {
     [nodes, setNodes]
   );
 
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-sm text-muted-foreground/50">Carregando fluxo...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flow-builder-fullscreen flex flex-col h-full w-full overflow-hidden">
       <FlowHeader
@@ -255,6 +338,8 @@ function FlowCanvas() {
         onNameChange={setFlowName}
         isActive={isActive}
         onToggleActive={() => setIsActive(!isActive)}
+        onSave={handleSave}
+        saving={saving}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <FlowSidebar />
@@ -286,7 +371,7 @@ function FlowCanvas() {
             />
           </ReactFlow>
 
-          {/* Drop menu – appears when user releases a connection on empty canvas */}
+          {/* Drop menu */}
           {dropMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setDropMenu(null)} />

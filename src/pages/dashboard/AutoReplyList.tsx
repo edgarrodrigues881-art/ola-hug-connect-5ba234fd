@@ -1,147 +1,117 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, BotMessageSquare, Pencil, Copy, Trash2, MoreHorizontal,
-  Zap, Clock, Search, Filter, GitBranch, MousePointerClick, Play,
-  FileText
+  Zap, Clock, Search, Filter, GitBranch, MousePointerClick,
+  FileText, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-interface AutoReplyModel {
-  id: string;
-  name: string;
-  description: string;
-  trigger: string;
-  isActive: boolean;
-  updatedAt: Date;
-  steps: number;
-  buttons: number;
-  lastRun: Date | null;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 const triggerLabels: Record<string, string> = {
   any_message: "Qualquer mensagem",
   keyword: "Palavra-chave",
   new_contact: "Novo contato",
   start_chat: "Início de atendimento",
+  template: "Template",
 };
-
-const initialModels: AutoReplyModel[] = [
-  {
-    id: "1",
-    name: "Boas-vindas principal",
-    description: "Mensagem de boas-vindas com opções de atendimento",
-    trigger: "keyword",
-    isActive: true,
-    updatedAt: new Date(),
-    steps: 4,
-    buttons: 3,
-    lastRun: new Date(Date.now() - 3600000),
-  },
-  {
-    id: "2",
-    name: "Fora do horário",
-    description: "Resposta automática para mensagens fora do expediente",
-    trigger: "any_message",
-    isActive: false,
-    updatedAt: new Date(Date.now() - 86400000 * 2),
-    steps: 2,
-    buttons: 1,
-    lastRun: new Date(Date.now() - 86400000 * 3),
-  },
-  {
-    id: "3",
-    name: "Promoção de lançamento",
-    description: "Fluxo de divulgação para novos contatos",
-    trigger: "new_contact",
-    isActive: true,
-    updatedAt: new Date(Date.now() - 86400000),
-    steps: 6,
-    buttons: 4,
-    lastRun: null,
-  },
-];
 
 export default function AutoReplyList() {
   const navigate = useNavigate();
-  const [models, setModels] = useState<AutoReplyModel[]>(initialModels);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [renameId, setRenameId] = useState<string | null>(null);
-  const [renameName, setRenameName] = useState("");
+
+  const { data: flows, isLoading } = useQuery({
+    queryKey: ["autoreply_flows", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("autoreply_flows")
+        .select("*")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from("autoreply_flows").update({ is_active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("autoreply_flows").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      toast.success("Automação excluída");
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: original, error: fetchErr } = await supabase
+        .from("autoreply_flows").select("*").eq("id", id).single();
+      if (fetchErr || !original) throw fetchErr;
+      const { error } = await supabase.from("autoreply_flows").insert({
+        user_id: user!.id,
+        name: `${original.name} (cópia)`,
+        is_active: false,
+        nodes: original.nodes,
+        edges: original.edges,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      toast.success("Automação duplicada");
+    },
+  });
+
+  const models = flows || [];
 
   const filtered = useMemo(() => {
     return models.filter((m) => {
-      const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
-        m.description.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" ||
-        (statusFilter === "active" && m.isActive) ||
-        (statusFilter === "inactive" && !m.isActive);
+        (statusFilter === "active" && m.is_active) ||
+        (statusFilter === "inactive" && !m.is_active);
       return matchSearch && matchStatus;
     });
   }, [models, search, statusFilter]);
 
-  const toggleActive = (id: string) => {
-    setModels((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m))
-    );
-    const model = models.find((m) => m.id === id);
-    toast.success(model?.isActive ? "Modelo desativado" : "Modelo ativado");
+  const getFlowInfo = (flow: any) => {
+    const nodes = Array.isArray(flow.nodes) ? flow.nodes : [];
+    const steps = nodes.length;
+    const buttons = nodes.reduce((acc: number, n: any) => acc + (n.data?.buttons?.length || 0), 0);
+    const startNode = nodes.find((n: any) => n.type === "startNode");
+    const trigger = startNode?.data?.trigger || "keyword";
+    return { steps, buttons, trigger };
   };
 
-  const duplicateModel = (id: string) => {
-    const model = models.find((m) => m.id === id);
-    if (!model) return;
-    setModels((prev) => [...prev, {
-      ...model,
-      id: `${Date.now()}`,
-      name: `${model.name} (cópia)`,
-      isActive: false,
-      updatedAt: new Date(),
-    }]);
-    toast.success("Modelo duplicado");
-  };
-
-  const deleteModel = (id: string) => {
-    setModels((prev) => prev.filter((m) => m.id !== id));
-    toast.success("Modelo excluído");
-  };
-
-  const startRename = (model: AutoReplyModel) => {
-    setRenameId(model.id);
-    setRenameName(model.name);
-  };
-
-  const confirmRename = () => {
-    if (!renameId || !renameName.trim()) return;
-    setModels((prev) =>
-      prev.map((m) => (m.id === renameId ? { ...m, name: renameName.trim(), updatedAt: new Date() } : m))
-    );
-    setRenameId(null);
-    toast.success("Modelo renomeado");
-  };
-
-  const activeCount = models.filter((m) => m.isActive).length;
+  const activeCount = models.filter((m) => m.is_active).length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -168,7 +138,7 @@ export default function AutoReplyList() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
           <Input
-            placeholder="Buscar por nome ou descrição..."
+            placeholder="Buscar por nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-9 text-xs bg-card/60 border-border/30 focus:border-primary/40"
@@ -187,8 +157,12 @@ export default function AutoReplyList() {
         </Select>
       </div>
 
-      {/* Models list */}
-      {filtered.length === 0 && models.length > 0 ? (
+      {/* Loading */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" />
+        </div>
+      ) : filtered.length === 0 && models.length > 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Search className="w-8 h-8 text-muted-foreground/20 mb-4" />
           <p className="text-sm text-muted-foreground/50">Nenhuma automação encontrada</p>
@@ -209,86 +183,78 @@ export default function AutoReplyList() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((model) => (
-            <div
-              key={model.id}
-              className="group relative rounded-2xl bg-card/60 backdrop-blur-sm border border-border/30 hover:border-border/50 hover:bg-card/80 transition-all duration-200 overflow-hidden"
-            >
-              <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl transition-colors ${
-                model.isActive ? "bg-emerald-500" : "bg-transparent"
-              }`} />
-              <div className="flex items-start sm:items-center gap-4 px-5 py-4 pl-6">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 transition-colors mt-0.5 sm:mt-0 ${
-                  model.isActive ? "bg-emerald-500/10 ring-emerald-500/20" : "bg-muted/20 ring-border/30"
-                }`}>
-                  <BotMessageSquare className={`w-4 h-4 ${model.isActive ? "text-emerald-500" : "text-muted-foreground/40"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2.5 mb-1">
-                    {renameId === model.id ? (
-                      <form onSubmit={(e) => { e.preventDefault(); confirmRename(); }} className="flex items-center gap-2">
-                        <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} className="h-7 text-sm font-semibold w-48" autoFocus onBlur={confirmRename} />
-                      </form>
-                    ) : (
-                      <h3 className="text-sm font-semibold text-foreground truncate">{model.name}</h3>
-                    )}
-                    <Badge variant={model.isActive ? "default" : "secondary"} className={`text-[10px] px-2 py-0 h-5 font-medium shrink-0 ${
-                      model.isActive
-                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/15"
-                        : "bg-muted/30 text-muted-foreground/50 border-border/30 hover:bg-muted/40"
-                    }`}>
-                      {model.isActive ? "Ativo" : "Inativo"}
-                    </Badge>
+          {filtered.map((flow) => {
+            const { steps, buttons, trigger } = getFlowInfo(flow);
+            return (
+              <div
+                key={flow.id}
+                className="group relative rounded-2xl bg-card/60 backdrop-blur-sm border border-border/30 hover:border-border/50 hover:bg-card/80 transition-all duration-200 overflow-hidden"
+              >
+                <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl transition-colors ${
+                  flow.is_active ? "bg-emerald-500" : "bg-transparent"
+                }`} />
+                <div className="flex items-start sm:items-center gap-4 px-5 py-4 pl-6">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 transition-colors mt-0.5 sm:mt-0 ${
+                    flow.is_active ? "bg-emerald-500/10 ring-emerald-500/20" : "bg-muted/20 ring-border/30"
+                  }`}>
+                    <BotMessageSquare className={`w-4 h-4 ${flow.is_active ? "text-emerald-500" : "text-muted-foreground/40"}`} />
                   </div>
-                  {model.description && (
-                    <p className="text-xs text-muted-foreground/50 truncate mb-2">{model.description}</p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
-                      <Zap className="w-3 h-3 text-amber-500/60" /> {triggerLabels[model.trigger] || model.trigger}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
-                      <GitBranch className="w-3 h-3" /> {model.steps} etapa{model.steps !== 1 ? "s" : ""}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
-                      <MousePointerClick className="w-3 h-3" /> {model.buttons} botão{model.buttons !== 1 ? "ões" : ""}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
-                      <Play className="w-3 h-3" /> {model.lastRun ? format(model.lastRun, "dd MMM, HH:mm", { locale: ptBR }) : "Nunca executado"}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/30">
-                      <Clock className="w-3 h-3" /> {format(model.updatedAt, "dd MMM, HH:mm", { locale: ptBR })}
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <h3 className="text-sm font-semibold text-foreground truncate">{flow.name}</h3>
+                      <Badge variant={flow.is_active ? "default" : "secondary"} className={`text-[10px] px-2 py-0 h-5 font-medium shrink-0 ${
+                        flow.is_active
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/15"
+                          : "bg-muted/30 text-muted-foreground/50 border-border/30 hover:bg-muted/40"
+                      }`}>
+                        {flow.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
+                        <Zap className="w-3 h-3 text-amber-500/60" /> {triggerLabels[trigger] || trigger}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+                        <GitBranch className="w-3 h-3" /> {steps} bloco{steps !== 1 ? "s" : ""}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+                        <MousePointerClick className="w-3 h-3" /> {buttons} botão{buttons !== 1 ? "ões" : ""}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/30">
+                        <Clock className="w-3 h-3" /> {format(new Date(flow.updated_at), "dd MMM, HH:mm", { locale: ptBR })}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Switch checked={model.isActive} onCheckedChange={() => toggleActive(model.id)} className="scale-[0.85]" />
-                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-border/40 hover:border-primary/40 hover:text-primary transition-colors" onClick={() => navigate(`/dashboard/auto-reply/${model.id}`)}>
-                    <Pencil className="w-3 h-3" /> Editar
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground/40 hover:text-foreground">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem onClick={() => duplicateModel(model.id)}>
-                        <Copy className="w-3.5 h-3.5 mr-2" /> Duplicar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => startRename(model)}>
-                        <FileText className="w-3.5 h-3.5 mr-2" /> Renomear
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => deleteModel(model.id)} className="text-destructive focus:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Switch
+                      checked={flow.is_active}
+                      onCheckedChange={(val) => toggleMutation.mutate({ id: flow.id, is_active: val })}
+                      className="scale-[0.85]"
+                    />
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-border/40 hover:border-primary/40 hover:text-primary transition-colors" onClick={() => navigate(`/dashboard/auto-reply/${flow.id}`)}>
+                      <Pencil className="w-3 h-3" /> Editar
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground/40 hover:text-foreground">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => duplicateMutation.mutate(flow.id)}>
+                          <Copy className="w-3.5 h-3.5 mr-2" /> Duplicar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => deleteMutation.mutate(flow.id)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
