@@ -218,12 +218,11 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
 
     const calc = () => {
       const elapsed = Date.now() - disconnectedAt;
-      if (elapsed < 0) { setCountdown("00:00:00"); return; }
-      const totalSec = Math.floor(elapsed / 1000);
-      const h = Math.floor(totalSec / 3600);
-      const m = Math.floor((totalSec % 3600) / 60);
-      const s = totalSec % 60;
-      setCountdown(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
+      if (elapsed < 0) { setCountdown("00:00"); return; }
+      const totalMin = Math.floor(elapsed / 60000);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      setCountdown(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
     };
 
     calc();
