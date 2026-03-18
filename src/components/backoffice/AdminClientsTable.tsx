@@ -1,9 +1,12 @@
 import { useState, useMemo, useCallback, memo } from "react";
-import { Search, ChevronRight, Shield, ChevronDown, Trash2, Users, Filter, Phone, Calendar, Layers, UserCheck } from "lucide-react";
+import { Search, ChevronRight, Shield, ChevronDown, Trash2, Users, Filter, Phone, Calendar, Layers, UserCheck, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -70,6 +73,11 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
   const [page, setPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showDispatch, setShowDispatch] = useState(false);
+  const [dispatchType, setDispatchType] = useState("custom");
+  const [dispatchMessage, setDispatchMessage] = useState("");
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchResult, setDispatchResult] = useState<{ ok: number; fail: number } | null>(null);
   const queryClient = useQueryClient();
 
   const handleDelete = useCallback(async () => {
@@ -115,6 +123,51 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
       return true;
     });
   }, [users, search, filter]);
+
+  const handleDispatch = useCallback(async () => {
+    if (!dispatchMessage.trim() && dispatchType === "custom") {
+      toast.error("Digite a mensagem para enviar");
+      return;
+    }
+    setDispatching(true);
+    setDispatchResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUsers = filtered.map(u => ({
+        user_id: u.id,
+        phone: u.phone,
+        name: u.full_name || u.email,
+        email: u.email,
+        plan_name: u.plan_name,
+      }));
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=bulk-dispatch`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            targets: targetUsers,
+            message_type: dispatchType,
+            message_content: dispatchMessage.trim(),
+          }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Erro ao disparar");
+      setDispatchResult({ ok: result.enqueued || targetUsers.length, fail: result.failed || 0 });
+      toast.success(`Disparo enfileirado para ${result.enqueued || targetUsers.length} clientes`);
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao disparar mensagens");
+    } finally {
+      setDispatching(false);
+    }
+  }, [filtered, dispatchType, dispatchMessage, queryClient]);
 
   const handleSearch = useCallback((val: string) => { setSearch(val); setPage(0); }, []);
   const handleFilter = useCallback((val: string) => { setFilter(f => f === val ? "all" : val); setPage(0); }, []);
@@ -192,9 +245,18 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
             {filter !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
             <ChevronDown size={13} className={`transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
           </button>
-          <div className="hidden sm:flex items-center gap-1.5 ml-auto">
-            <Users size={13} className="text-muted-foreground/50" />
-            <span className="text-[11px] text-muted-foreground/70 font-medium">{filtered.length} clientes</span>
+          <div className="hidden sm:flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-1.5">
+              <Users size={13} className="text-muted-foreground/50" />
+              <span className="text-[11px] text-muted-foreground/70 font-medium">{filtered.length} clientes</span>
+            </div>
+            <button
+              onClick={() => { setShowDispatch(true); setDispatchResult(null); setDispatchMessage(""); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+            >
+              <Send size={12} />
+              Disparar
+            </button>
           </div>
         </div>
 
@@ -449,6 +511,82 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dispatch Dialog */}
+      <Dialog open={showDispatch} onOpenChange={setShowDispatch}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send size={16} className="text-primary" />
+              Disparar mensagem
+            </DialogTitle>
+            <DialogDescription>
+              Enviar para <strong>{filtered.length}</strong> cliente{filtered.length !== 1 ? "s" : ""} {filter !== "all" ? "(filtrados)" : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {dispatchResult ? (
+            <div className="py-6 text-center space-y-3">
+              <CheckCircle2 size={40} className="mx-auto text-emerald-400" />
+              <div>
+                <p className="text-foreground font-semibold text-lg">{dispatchResult.ok} enfileirado{dispatchResult.ok !== 1 ? "s" : ""}</p>
+                {dispatchResult.fail > 0 && (
+                  <p className="text-sm text-red-400 mt-1">{dispatchResult.fail} falha{dispatchResult.fail !== 1 ? "s" : ""}</p>
+                )}
+              </div>
+              <Button variant="outline" className="mt-2" onClick={() => setShowDispatch(false)}>Fechar</Button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Tipo da mensagem</label>
+                  <Select value={dispatchType} onValueChange={setDispatchType}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">📝 Mensagem personalizada</SelectItem>
+                      <SelectItem value="WELCOME">👋 Boas-vindas</SelectItem>
+                      <SelectItem value="DUE_3_DAYS">⏰ Faltam 3 dias</SelectItem>
+                      <SelectItem value="DUE_TODAY">⚠️ Vence hoje</SelectItem>
+                      <SelectItem value="OVERDUE_1">❌ Vencido 1 dia</SelectItem>
+                      <SelectItem value="OVERDUE_7">❌ Vencido 7 dias</SelectItem>
+                      <SelectItem value="OVERDUE_30">💀 Vencido 30 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {dispatchType === "custom" ? "Mensagem *" : "Mensagem (opcional — usa template se vazio)"}
+                  </label>
+                  <Textarea
+                    placeholder="Digite a mensagem..."
+                    value={dispatchMessage}
+                    onChange={e => setDispatchMessage(e.target.value)}
+                    rows={4}
+                    className="resize-none text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground/50">
+                    Variáveis: {"{{nome}}"}, {"{{email}}"}, {"{{plano}}"}
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setShowDispatch(false)} disabled={dispatching}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleDispatch} disabled={dispatching || filtered.length === 0} className="gap-2">
+                  {dispatching ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {dispatching ? "Enviando..." : `Disparar para ${filtered.length}`}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
