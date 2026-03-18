@@ -162,7 +162,8 @@ function matchesTrigger(
     case "start_chat":
       return isFirstMessage;
     case "template":
-      return true;
+      // Template nodes are manual/template-only and must never auto-fire on inbound messages.
+      return false;
     default:
       return false;
   }
