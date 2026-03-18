@@ -117,27 +117,26 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
                 </button>
               )}
 
-              {/* Logo — elevated above card */}
-              {announcement.show_logo && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: 0.1, duration: 0.4 }}
-                  className="absolute left-1/2 -translate-x-1/2 -top-14 z-20"
-                >
-                  <div className="relative">
-                    <div className="absolute -inset-3 rounded-[22px] blur-xl pointer-events-none" style={{ background: "hsl(43 96% 56% / 0.12)" }} />
-                    <div className="relative w-[96px] h-[96px] rounded-[20px] overflow-hidden shadow-2xl bg-card" style={{ boxShadow: "0 0 20px hsl(43 96% 56% / 0.15), 0 8px 32px hsl(0 0% 0% / 0.4)", border: "2px solid hsl(43 96% 56% / 0.25)" }}>
-                      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, hsl(43 96% 56% / 0.08), transparent)" }} />
-                      <img src={logo} alt="Logo" className="w-full h-full object-cover block" />
-                    </div>
-                    <Sparkles size={14} className="absolute -top-1.5 -right-1.5 animate-pulse" style={{ color: "hsl(43 96% 56% / 0.7)" }} />
-                  </div>
-                </motion.div>
-              )}
-
               {/* Content */}
-              <div className={`relative px-7 pb-4 space-y-5 ${announcement.show_logo ? "pt-16" : "pt-8"}`}>
+              <div className="relative px-7 pb-4 space-y-5 pt-8">
+                {/* Logo — inside card, centered */}
+                {announcement.show_logo && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1, duration: 0.4 }}
+                    className="flex justify-center"
+                  >
+                    <div className="relative">
+                      <div className="absolute -inset-3 rounded-[22px] blur-xl pointer-events-none" style={{ background: "hsl(43 96% 56% / 0.12)" }} />
+                      <div className="relative w-[80px] h-[80px] rounded-[18px] overflow-hidden shadow-2xl bg-card" style={{ boxShadow: "0 0 20px hsl(43 96% 56% / 0.15), 0 8px 32px hsl(0 0% 0% / 0.4)", border: "2px solid hsl(43 96% 56% / 0.25)" }}>
+                        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, hsl(43 96% 56% / 0.08), transparent)" }} />
+                        <img src={logo} alt="Logo" className="w-full h-full object-cover block" />
+                      </div>
+                      <Sparkles size={14} className="absolute -top-1.5 -right-1.5 animate-pulse" style={{ color: "hsl(43 96% 56% / 0.7)" }} />
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Image */}
                 {announcement.image_url && (
