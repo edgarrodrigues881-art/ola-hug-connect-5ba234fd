@@ -190,11 +190,20 @@ const AdminAutoTemplates = () => {
                   </div>
                   <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
                     <button
-                      onClick={() => { setExpandedId(tpl.id); setPreviewId(tpl.id); }}
-                      className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                      onClick={() => {
+                        if (previewId === tpl.id) {
+                          setPreviewId(null);
+                        } else {
+                          setPreviewId(tpl.id);
+                        }
+                      }}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-colors",
+                        previewId === tpl.id ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
+                      )}
                       title="Pré-visualizar"
                     >
-                      <Eye size={15} />
+                      {previewId === tpl.id ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                     <div className="flex items-center gap-2">
                       <span className={cn("text-[10px] font-medium", tpl.is_active ? "text-emerald-400" : "text-muted-foreground/40")}>
