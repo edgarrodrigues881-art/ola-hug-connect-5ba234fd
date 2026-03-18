@@ -33,6 +33,7 @@ import { NavLink } from "@/components/NavLink";
 import { useSidebarStats } from "@/hooks/useSidebarStats";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
 import { useFeatureControls } from "@/hooks/useFeatureControls";
+import { MaintenanceModal } from "@/components/MaintenanceModal";
 import logo from "@/assets/logo-new.png";
 
 import {
