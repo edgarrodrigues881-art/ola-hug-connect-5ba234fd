@@ -166,9 +166,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </DropdownMenu>
           </header>
           <main className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto p-2.5 sm:p-5 md:p-8 has-[.flow-builder-fullscreen]:!p-0 has-[.flow-builder-fullscreen]:!overflow-hidden">
-            {children}
+            {showMaintenance ? (
+              <div className="flex items-center justify-center min-h-[60vh]">
+                <MaintenanceModal
+                  open={true}
+                  onClose={() => navigate("/dashboard")}
+                  featureName={blockedFeature!.feature_name}
+                  message={blockedFeature!.maintenance_message}
+                />
+              </div>
+            ) : children}
           </main>
           <AnnouncementManager />
+          {maintenanceModal && (
+            <MaintenanceModal
+              open={true}
+              onClose={() => setMaintenanceModal(null)}
+              featureName={maintenanceModal.name}
+              message={maintenanceModal.message}
+            />
+          )}
         </div>
       </div>
     </SidebarProvider>
