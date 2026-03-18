@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   Mail, Clock, AlertTriangle, XCircle, Skull, Loader2, Pencil,
-  Save, Eye, ChevronDown, ChevronUp, Sparkles, RefreshCw,
+  Save, Eye, EyeOff, ChevronDown, ChevronUp, Sparkles, RefreshCw,
   FileText, ToggleLeft
 } from "lucide-react";
 import { toast } from "sonner";
@@ -190,11 +190,20 @@ const AdminAutoTemplates = () => {
                   </div>
                   <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
                     <button
-                      onClick={() => { setExpandedId(tpl.id); setPreviewId(tpl.id); }}
-                      className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                      onClick={() => {
+                        if (previewId === tpl.id) {
+                          setPreviewId(null);
+                        } else {
+                          setPreviewId(tpl.id);
+                        }
+                      }}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-colors",
+                        previewId === tpl.id ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
+                      )}
                       title="Pré-visualizar"
                     >
-                      <Eye size={15} />
+                      {previewId === tpl.id ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                     <div className="flex items-center gap-2">
                       <span className={cn("text-[10px] font-medium", tpl.is_active ? "text-emerald-400" : "text-muted-foreground/40")}>
@@ -209,6 +218,18 @@ const AdminAutoTemplates = () => {
                   </div>
                   {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <Pencil size={14} className="text-muted-foreground/40" />}
                 </div>
+
+                {/* Inline preview (eye toggle) */}
+                {previewId === tpl.id && !isExpanded && (
+                  <div className="px-4 pb-4 border-t border-border/30 pt-3">
+                    <div className="bg-[hsl(150_10%_8%)] border border-emerald-500/10 rounded-xl p-4 relative">
+                      <div className="absolute top-2 right-3 text-[9px] text-muted-foreground/30 font-medium">Preview</div>
+                      <pre className="text-[13px] text-foreground whitespace-pre-wrap font-sans leading-relaxed">
+                        {getPreviewContent(currentContent)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
 
                 {/* Expanded editor */}
                 {isExpanded && (
