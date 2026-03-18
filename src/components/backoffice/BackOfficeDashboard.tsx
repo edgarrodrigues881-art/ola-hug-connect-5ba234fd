@@ -232,6 +232,17 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
                       onClick={() => handleClickUser(s.user_id)}
                       className="flex items-center justify-between bg-primary/5 rounded-lg px-3 py-2 border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors"
                     >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{p?.full_name || s.user_id.slice(0, 8)}</p>
+                        <p className="text-[11px] text-muted-foreground">{s.plan_name} · R$ {Number(s.plan_price).toFixed(2)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                          {getDaysLeft(s.expires_at)}d restante{(getDaysLeft(s.expires_at) || 0) > 1 ? "s" : ""}
+                        </Badge>
+                        <ChevronRight size={14} className="text-muted-foreground/30" />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
