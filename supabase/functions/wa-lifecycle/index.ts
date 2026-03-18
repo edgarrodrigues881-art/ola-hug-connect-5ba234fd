@@ -138,7 +138,9 @@ Deno.serve(async (req) => {
 
     // ─── ACTION: WELCOME (called from provision-trial) ───
     if (action === "welcome") {
-      const { user_id } = await req.json();
+      const body = await req.json();
+      const user_id = body.user_id;
+      const force = body.force === true;
       console.log("[wa-lifecycle] Welcome for user:", user_id);
 
       const config = await getReportConfig(adminClient);
@@ -180,14 +182,19 @@ Deno.serve(async (req) => {
       // 1) Check if WELCOME already queued (handle_new_user trigger may have inserted one)
       let pvQueued = false;
       if (clientPhone) {
-        const { data: existing } = await adminClient
-          .from("message_queue")
-          .select("id")
-          .eq("user_id", user_id)
-          .eq("message_type", "WELCOME")
-          .limit(1);
+        let shouldInsert = force;
 
-        if (!existing || existing.length === 0) {
+        if (!force) {
+          const { data: existing } = await adminClient
+            .from("message_queue")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("message_type", "WELCOME")
+            .limit(1);
+          shouldInsert = !existing || existing.length === 0;
+        }
+
+        if (shouldInsert) {
           const phoneNumber = clientPhone.startsWith("55") ? clientPhone : `55${clientPhone}`;
           await adminClient.from("message_queue").insert({
             user_id,
@@ -200,7 +207,7 @@ Deno.serve(async (req) => {
             status: "pending" as any,
           });
           pvQueued = true;
-          console.log("[wa-lifecycle] WELCOME queued for processing");
+          console.log(`[wa-lifecycle] WELCOME queued for processing${force ? " (forced)" : ""}`);
         } else {
           pvQueued = true;
           console.log("[wa-lifecycle] WELCOME already exists, skipping duplicate");
