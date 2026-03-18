@@ -636,16 +636,17 @@ async function processNodeChain(
 async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
   const { device_id } = body;
 
-  // Auth check: accept user token OR service role key
+  // Auth check: accept user token, service role key, or internal secret
   const authHeader = req.headers.get("authorization") ?? "";
   const bearerToken = authHeader.replace("Bearer ", "");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const internalSecret = Deno.env.get("INTERNAL_TICK_SECRET") || "";
+  const cronSecret = req.headers.get("x-cron-secret") || body._internal_secret || "";
   const isServiceRole = bearerToken === serviceRoleKey;
+  const isInternal = internalSecret && cronSecret === internalSecret;
 
-  let userId: string | null = null;
-
-  if (isServiceRole) {
-    // Service role: get device without user filter
+  if (isServiceRole || isInternal) {
+    // Internal/service role: get device without user filter
     const { data: device } = await supabase
       .from("devices")
       .select("id, user_id, uazapi_token, uazapi_base_url")
@@ -654,7 +655,6 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
     if (!device?.uazapi_token || !device?.uazapi_base_url) {
       return json({ error: "Device not configured" }, 400);
     }
-    userId = device.user_id;
     return await doRegisterWebhook(device);
   }
 
