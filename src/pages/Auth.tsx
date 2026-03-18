@@ -139,7 +139,7 @@ const Auth = () => {
   };
 
   const inputClass =
-    "pl-11 h-[52px] rounded-2xl border-[#1a2235]/80 bg-[#0d1117]/80 text-white text-sm font-medium placeholder:text-[#4b5563] focus:border-emerald-500/60 focus:bg-[#111827] focus:ring-1 focus:ring-emerald-500/30 transition-all duration-300 backdrop-blur-sm";
+    "pl-11 h-[52px] rounded-2xl border-[#1a2235]/80 bg-[#0d1117]/80 text-white text-sm font-medium placeholder:text-[#4b5563] focus:border-emerald-500/60 focus:bg-[#111827] focus:ring-1 focus:ring-emerald-500/30 transition-all duration-300 backdrop-blur-sm [&~.input-icon]:text-white/50 [&:focus~.input-icon]:text-emerald-400";
 
   return (
     <motion.div
@@ -231,7 +231,7 @@ const Auth = () => {
                     Nome completo
                   </Label>
                   <div className="relative group">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                     <Input id="fullName" type="text" placeholder="Seu nome" value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClass} required maxLength={100} />
                   </div>
                 </div>
@@ -241,7 +241,7 @@ const Auth = () => {
                     Número de telefone
                   </Label>
                   <div className="relative group">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                     <Input id="phone" type="tel" placeholder="(00) 00000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} required maxLength={20} />
                   </div>
                 </div>
@@ -251,7 +251,7 @@ const Auth = () => {
                     Nome fantasia
                   </Label>
                   <div className="relative group">
-                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                     <Input id="company" type="text" placeholder="Nome da empresa" value={company} onChange={(e) => setCompany(e.target.value)} className={inputClass} required maxLength={100} />
                   </div>
                 </div>
@@ -263,7 +263,7 @@ const Auth = () => {
                 Endereço de e-mail
               </Label>
               <div className="relative group">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                 <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} required maxLength={255} />
               </div>
             </div>
@@ -273,9 +273,9 @@ const Auth = () => {
                 Senha de acesso
               </Label>
               <div className="relative group">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                 <Input id="password" type={showPassword ? "text" : "password"} placeholder="Mínimo 8 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} pr-11`} required minLength={8} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/70 transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -309,9 +309,9 @@ const Auth = () => {
                   Confirmar senha
                 </Label>
                 <div className="relative group">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                   <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Repita a senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`${inputClass} pr-11`} required minLength={8} />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors">
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/70 transition-colors">
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
