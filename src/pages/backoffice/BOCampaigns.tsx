@@ -718,6 +718,28 @@ const Campaigns = () => {
     return list;
   }, [savedContacts, importContactSearch, importSearchMode]);
 
+  const handleImportFromBase = () => {
+    const toImport = selectedSavedContactIds.size > 0
+      ? adminUsers.filter(u => selectedSavedContactIds.has(u.id))
+      : filteredBaseContacts;
+    const imported: Contact[] = toImport.map((u, i) => ({
+      id: Date.now() + i,
+      nome: u.full_name || "Sem nome",
+      numero: (u.phone || "").replace(/\D/g, ""),
+      var1: u.plan_name || "Sem plano",
+      var2: "", var3: "", var4: "", var5: "",
+      var6: "", var7: "", var8: "", var9: "", var10: "",
+    }));
+    if (imported.length === 0) { toast({ title: "Nenhum contato encontrado", variant: "destructive" }); return; }
+    setContacts(prev => [...prev, ...imported]);
+    setImportFromContacts(false);
+    setSelectedSavedContactIds(new Set());
+    setImportContactSearch("");
+    setSelectedPlanFilter("all");
+    setShowContactTable(true);
+    toast({ title: `${imported.length} contatos adicionados`, description: "Plano salvo em Var 1" });
+  };
+
   const handleImportFromDB = () => {
     const toImport = selectedSavedContactIds.size > 0
       ? savedContacts.filter(c => selectedSavedContactIds.has(c.id))
