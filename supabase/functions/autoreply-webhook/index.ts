@@ -636,10 +636,29 @@ async function processNodeChain(
 async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
   const { device_id } = body;
 
-  // Auth check
+  // Auth check: accept user token OR service role key
   const authHeader = req.headers.get("authorization") ?? "";
-  const userToken = authHeader.replace("Bearer ", "");
-  const { data: { user }, error: authErr } = await supabase.auth.getUser(userToken);
+  const bearerToken = authHeader.replace("Bearer ", "");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const isServiceRole = bearerToken === serviceRoleKey;
+
+  let userId: string | null = null;
+
+  if (isServiceRole) {
+    // Service role: get device without user filter
+    const { data: device } = await supabase
+      .from("devices")
+      .select("id, user_id, uazapi_token, uazapi_base_url")
+      .eq("id", device_id)
+      .single();
+    if (!device?.uazapi_token || !device?.uazapi_base_url) {
+      return json({ error: "Device not configured" }, 400);
+    }
+    userId = device.user_id;
+    return await doRegisterWebhook(device);
+  }
+
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(bearerToken);
   if (authErr || !user) {
     return json({ error: "Not authenticated" }, 401);
   }
@@ -656,6 +675,10 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
     return json({ error: "Device not configured" }, 400);
   }
 
+  return await doRegisterWebhook(device);
+}
+
+async function doRegisterWebhook(device: any) {
   const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const webhookUrl = `${supabaseUrl}/functions/v1/autoreply-webhook`;
