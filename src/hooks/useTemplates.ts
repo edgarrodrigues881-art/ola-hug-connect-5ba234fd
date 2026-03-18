@@ -61,9 +61,58 @@ export function useUpdateTemplate() {
         .select("id, name, content, type, media_url, buttons, created_at, updated_at")
         .single();
       if (error) throw error;
+
+      // Sync all autoreply flows that reference this template
+      try {
+        const { data: flows } = await supabase
+          .from("autoreply_flows")
+          .select("id, nodes");
+
+        if (flows) {
+          for (const flow of flows) {
+            const nodes = flow.nodes as any[];
+            let changed = false;
+
+            const updatedNodes = nodes.map((node: any) => {
+              if (node.data?.templateId === id) {
+                changed = true;
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    text: data.content,
+                    imageUrl: data.media_url || "",
+                    label: node.type === "startNode" ? data.name : node.data.label,
+                    templateName: data.name,
+                    buttons: (data.buttons || []).map((btn: any, i: number) => ({
+                      id: node.data.buttons?.[i]?.id || `btn-sync-${Date.now()}-${i}`,
+                      label: typeof btn === "string" ? btn : btn.label || btn.text || btn.title || `Botão ${i + 1}`,
+                      targetNodeId: node.data.buttons?.[i]?.targetNodeId || "",
+                    })),
+                  },
+                };
+              }
+              return node;
+            });
+
+            if (changed) {
+              await supabase
+                .from("autoreply_flows")
+                .update({ nodes: updatedNodes })
+                .eq("id", flow.id);
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Template sync to flows failed:", syncErr);
+      }
+
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["templates"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+    },
   });
 }
 
