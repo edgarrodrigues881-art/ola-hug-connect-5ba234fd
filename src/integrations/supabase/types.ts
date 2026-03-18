@@ -1090,6 +1090,45 @@ export type Database = {
           },
         ]
       }
+      feature_controls: {
+        Row: {
+          feature_description: string
+          feature_icon: string
+          feature_key: string
+          feature_name: string
+          id: string
+          maintenance_message: string | null
+          route_path: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          feature_description?: string
+          feature_icon?: string
+          feature_key: string
+          feature_name: string
+          id?: string
+          maintenance_message?: string | null
+          route_path?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          feature_description?: string
+          feature_icon?: string
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          maintenance_message?: string | null
+          route_path?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       group_join_campaigns: {
         Row: {
           already_member_count: number
