@@ -1,8 +1,9 @@
-import { Zap, MessageSquare, CircleStop } from "lucide-react";
+import { Zap, MessageSquare, CircleStop, Timer } from "lucide-react";
 
 const blocks = [
   { type: "startNode", label: "Início", desc: "Gatilho do fluxo", icon: Zap, accent: "text-emerald-500", bg: "bg-emerald-500/8", ring: "ring-emerald-500/15" },
   { type: "messageNode", label: "Mensagem", desc: "Texto, imagem, botões", icon: MessageSquare, accent: "text-primary", bg: "bg-primary/8", ring: "ring-primary/15" },
+  { type: "delayNode", label: "Temporizador", desc: "Delay entre mensagens", icon: Timer, accent: "text-amber-500", bg: "bg-amber-500/8", ring: "ring-amber-500/15" },
   { type: "endNode", label: "Finalizar", desc: "Encerra o fluxo", icon: CircleStop, accent: "text-rose-500", bg: "bg-rose-500/8", ring: "ring-rose-500/15" },
 ];
 

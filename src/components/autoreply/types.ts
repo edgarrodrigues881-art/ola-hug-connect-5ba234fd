@@ -18,6 +18,8 @@ export interface FlowNodeData extends Record<string, unknown> {
   // Model integration
   templateId?: string;
   templateName?: string;
+  // Delay node
+  delaySeconds?: number;
   // End node
   action?: "end_flow" | "wait_response" | "transfer_human";
 }
