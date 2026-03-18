@@ -1,6 +1,6 @@
 import { useState, useCallback, lazy, Suspense, memo, useMemo, useEffect } from "react";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -8,11 +8,13 @@ import {
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key,
-  Send, FileText, Cable, Megaphone, List
+  Send, FileText, Cable, Megaphone, List, Trash2
 } from "lucide-react";
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 // Lazy load all tab components
 const AdminOverview = lazy(() => import("./AdminOverview"));
@@ -93,6 +95,21 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
     const user = findUser(userId);
     if (user && onSelectClient) onSelectClient(user);
   }, [findUser, onSelectClient]);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("message_queue" as any).delete() as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["message-queue-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-count"] });
+      toast.success("Pendência removida com sucesso");
+    },
+    onError: () => toast.error("Erro ao remover pendência"),
+  });
+
   const { data: queueItems = [], isLoading } = useQuery({
     queryKey: ["message-queue-pending"],
     queryFn: async () => {
@@ -338,6 +355,30 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
                             </span>
                           );
                         })()}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors ml-1" title="Apagar pendência">
+                              <Trash2 size={12} />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-card border-border">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Apagar pendência?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                A mensagem de <strong>{item.client_name}</strong> ({MESSAGE_TYPE_CONFIG[item.message_type]?.label || item.message_type}) será removida da fila e não será enviada.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(item.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Apagar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}
