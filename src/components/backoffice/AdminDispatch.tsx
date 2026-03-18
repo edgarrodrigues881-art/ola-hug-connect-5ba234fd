@@ -98,6 +98,8 @@ export default function AdminDispatch() {
   const [templateId, setTemplateId] = useState<string>("custom");
   const [customMessage, setCustomMessage] = useState("");
   const [connectionPurpose, setConnectionPurpose] = useState("dispatch");
+  const [minDelay, setMinDelay] = useState(5);
+  const [maxDelay, setMaxDelay] = useState(15);
   const [dispatching, setDispatching] = useState(false);
   const [result, setResult] = useState<{ ok: number; fail: number } | null>(null);
 
@@ -357,6 +359,8 @@ export default function AdminDispatch() {
             targets,
             message_content: messageContent,
             connection_purpose: connectionPurpose,
+            min_delay_seconds: minDelay,
+            max_delay_seconds: maxDelay,
           }),
         }
       );
@@ -732,6 +736,46 @@ export default function AdminDispatch() {
               </div>
             ) : null}
 
+            {/* Delay config */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Intervalo entre envios (segundos)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Mínimo</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={minDelay}
+                    onChange={e => {
+                      const v = Number(e.target.value);
+                      setMinDelay(v);
+                      if (v > maxDelay) setMaxDelay(v);
+                    }}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Máximo</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={maxDelay}
+                    onChange={e => {
+                      const v = Number(e.target.value);
+                      setMaxDelay(v);
+                      if (v < minDelay) setMinDelay(v);
+                    }}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground/50">
+                Cada mensagem será enviada com um atraso aleatório entre {minDelay}s e {maxDelay}s
+              </p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Conexão para envio</label>
               <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/50 bg-card/60 px-3 py-2">
@@ -790,12 +834,56 @@ export default function AdminDispatch() {
                   {dispatchConnection?.device_id ? (dispatchDevice ? `${dispatchDeviceNumber} · ${dispatchDeviceConnected ? "Conectada ✓" : "Configurada ✓"}` : "Configurada ✓") : "Sem dispositivo ⚠"}
                 </p>
               </div>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Intervalo</p>
+                <p className="text-sm font-semibold text-foreground">{minDelay}s – {maxDelay}s</p>
+                <p className="text-[11px] text-muted-foreground">entre cada envio</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Tempo estimado</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {(() => {
+                    const avg = (minDelay + maxDelay) / 2;
+                    const totalSec = avg * effectiveSelected.size;
+                    if (totalSec < 60) return `~${Math.round(totalSec)}s`;
+                    if (totalSec < 3600) return `~${Math.round(totalSec / 60)} min`;
+                    return `~${(totalSec / 3600).toFixed(1)}h`;
+                  })()}
+                </p>
+                <p className="text-[11px] text-muted-foreground">aprox. total</p>
+              </div>
             </div>
 
+            {/* WhatsApp-style message preview */}
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-2">Mensagem</p>
-              <div className="bg-muted/30 border border-border/40 rounded-lg p-4 max-h-40 overflow-y-auto">
-                <p className="text-sm whitespace-pre-wrap text-foreground">{messageContent}</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-2">Prévia da Mensagem</p>
+              <div className="bg-[#0b1418] rounded-xl p-4 max-w-sm mx-auto">
+                <div className="bg-[#005c4b] rounded-lg p-3 ml-auto max-w-[90%]">
+                  {selectedTemplate?.media_url && (
+                    <div className="mb-2 rounded overflow-hidden bg-black/20 flex items-center justify-center h-32 text-xs text-white/40">
+                      📎 Mídia anexada
+                    </div>
+                  )}
+                  <p className="text-[13px] whitespace-pre-wrap text-white leading-relaxed">{messageContent || "(mensagem vazia)"}</p>
+                  {/* Buttons */}
+                  {(() => {
+                    const buttons = templateId !== "custom" && selectedTemplate
+                      ? (selectedTemplate as any).buttons || (selectedTemplate as any).variables?.buttons
+                      : [];
+                    const btnArray = Array.isArray(buttons) ? buttons : [];
+                    if (btnArray.length === 0) return null;
+                    return (
+                      <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
+                        {btnArray.map((btn: any, i: number) => (
+                          <div key={i} className="text-center py-1.5 rounded bg-white/5 text-[12px] text-[#53bdeb] font-medium">
+                            {btn.text || btn.label || btn.title || `Botão ${i + 1}`}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  <p className="text-[10px] text-white/40 text-right mt-1">agora</p>
+                </div>
               </div>
             </div>
           </div>
