@@ -348,6 +348,42 @@ export type Database = {
           },
         ]
       }
+      auto_message_templates: {
+        Row: {
+          buttons: Json
+          content: string
+          id: string
+          is_active: boolean
+          label: string
+          message_type: string
+          updated_at: string
+          updated_by: string | null
+          variables: Json
+        }
+        Insert: {
+          buttons?: Json
+          content?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          message_type: string
+          updated_at?: string
+          updated_by?: string | null
+          variables?: Json
+        }
+        Update: {
+          buttons?: Json
+          content?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          message_type?: string
+          updated_at?: string
+          updated_by?: string | null
+          variables?: Json
+        }
+        Relationships: []
+      }
       campaign_contacts: {
         Row: {
           campaign_id: string

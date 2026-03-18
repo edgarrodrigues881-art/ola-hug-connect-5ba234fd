@@ -32,6 +32,7 @@ const AdminTokensGlobal = lazy(() => import("./AdminTokensGlobal"));
 const AdminDispatchTemplates = lazy(() => import("./AdminDispatchTemplates"));
 const AdminClientBase = lazy(() => import("./AdminClientBase"));
 const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
+const AdminAutoTemplates = lazy(() => import("./AdminAutoTemplates"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
@@ -58,6 +59,7 @@ const NAV_ITEMS = [
   { id: "messages", label: "Relatório WhatsApp", shortLabel: "Relatório", icon: MessageCircle, group: "principal", badge: false },
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
+  { id: "auto-templates", label: "Modelo Automático", shortLabel: "Auto", icon: Sparkles, group: "principal", badge: false },
 
   { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
   { id: "client-base", label: "Base de Contatos", shortLabel: "Contatos", icon: Users, group: "disparo", badge: false },
@@ -416,6 +418,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "messages": return <AdminMessages />;
         case "conexao": return <AdminConexao />;
         case "dispatch-templates": return <AdminDispatchTemplates />;
+        case "auto-templates": return <AdminAutoTemplates />;
         case "client-base": return <AdminClientBase />;
         case "dispatch-connections": return <AdminConnectionPurposes />;
         case "bo-campaigns": return <BOCampaigns />;
