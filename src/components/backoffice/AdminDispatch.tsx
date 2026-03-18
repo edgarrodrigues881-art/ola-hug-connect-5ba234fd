@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Send, Loader2, CheckCircle2, Users, Filter, Search,
   FileText, ChevronRight, Smartphone, AlertTriangle, Eye,
-  Upload, FileSpreadsheet, ArrowRight, Trash2, X
+  Upload, FileSpreadsheet, ArrowRight, Trash2, X, Pencil, Plus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
@@ -82,7 +82,7 @@ interface ConnectionPurpose {
   device: ConnectionDevice | null;
 }
 
-type AudienceSource = "clients" | "imported";
+type AudienceSource = "clients" | "imported" | "manual";
 
 export default function AdminDispatch() {
   const queryClient = useQueryClient();
@@ -113,6 +113,10 @@ export default function AdminDispatch() {
   const [importLoading, setImportLoading] = useState(false);
   const [importedContacts, setImportedContacts] = useState<ImportedContact[]>([]);
   const [importSelectedIds, setImportSelectedIds] = useState<Set<string>>(new Set());
+
+  // Manual state
+  const [manualInput, setManualInput] = useState("");
+  const [manualContacts, setManualContacts] = useState<ImportedContact[]>([]);
   const [importSelectAll, setImportSelectAll] = useState(true);
   const [importSearch, setImportSearch] = useState("");
 
@@ -195,9 +199,12 @@ export default function AdminDispatch() {
       if (importSelectAll) return new Set(filteredImported.map(c => c.id));
       return importSelectedIds;
     }
+    if (audienceSource === "manual") {
+      return new Set(manualContacts.map(c => c.id));
+    }
     if (selectAll) return new Set(audienceUsers.map(u => u.id));
     return selectedIds;
-  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds, filteredImported]);
+  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds, filteredImported, manualContacts]);
 
   const toggleUser = (id: string) => {
     setSelectAll(false);
@@ -354,6 +361,12 @@ export default function AdminDispatch() {
             phone: c.phone,
             name: c.name,
           }));
+      } else if (audienceSource === "manual") {
+        targets = manualContacts
+          .map(c => ({
+            phone: c.phone,
+            name: c.name,
+          }));
       } else {
         targets = audienceUsers
           .filter(u => effectiveSelected.has(u.id))
@@ -395,7 +408,7 @@ export default function AdminDispatch() {
     } finally {
       setDispatching(false);
     }
-  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, audienceSource, connectionPurpose]);
+  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, manualContacts, audienceSource, connectionPurpose]);
 
   const resetAll = () => {
     setStep("audience");
@@ -421,6 +434,8 @@ export default function AdminDispatch() {
 
   const audienceLabel = audienceSource === "imported"
     ? `Lista importada (${importedContacts.length})`
+    : audienceSource === "manual"
+    ? `Manual (${manualContacts.length})`
     : AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label || "Clientes";
 
   return (
@@ -491,6 +506,19 @@ export default function AdminDispatch() {
               <FileSpreadsheet size={12} /> Lista importada
               {importedContacts.length > 0 && (
                 <span className="text-[10px] bg-primary-foreground/20 px-1.5 rounded-full">{importedContacts.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setAudienceSource("manual")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                audienceSource === "manual"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/30"
+              }`}
+            >
+              <Pencil size={12} /> Manual
+              {manualContacts.length > 0 && (
+                <span className="text-[10px] bg-primary-foreground/20 px-1.5 rounded-full">{manualContacts.length}</span>
               )}
             </button>
           </div>
@@ -695,6 +723,78 @@ export default function AdminDispatch() {
                 </>
               )}
             </>
+          )}
+
+          {/* Manual source */}
+          {audienceSource === "manual" && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Digite os números (um por linha). Formato: <code className="text-primary/80">5511999998888</code> ou <code className="text-primary/80">Nome;5511999998888</code>
+              </p>
+              <Textarea
+                placeholder={"5511999998888\nJoão;5521988887777\nMaria;5531977776666"}
+                value={manualInput}
+                onChange={e => setManualInput(e.target.value)}
+                className="min-h-[180px] font-mono text-xs bg-card/50 border-border/60"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    const lines = manualInput.split("\n").map(l => l.trim()).filter(Boolean);
+                    const contacts: ImportedContact[] = [];
+                    const seen = new Set<string>();
+                    for (const line of lines) {
+                      const parts = line.split(/[;,\t]/);
+                      let name = "Contato";
+                      let phone = "";
+                      if (parts.length >= 2) {
+                        name = parts[0].trim() || "Contato";
+                        phone = parts[1].trim().replace(/\D/g, "");
+                      } else {
+                        phone = parts[0].trim().replace(/\D/g, "");
+                      }
+                      if (phone.length >= 10 && !seen.has(phone)) {
+                        seen.add(phone);
+                        contacts.push({ id: crypto.randomUUID(), name, phone });
+                      }
+                    }
+                    if (contacts.length === 0) {
+                      toast.error("Nenhum número válido encontrado");
+                      return;
+                    }
+                    setManualContacts(contacts);
+                    toast.success(`${contacts.length} contatos adicionados`);
+                  }}
+                >
+                  <Plus size={12} /> Adicionar ({manualInput.split("\n").filter(l => l.trim()).length} linhas)
+                </Button>
+                {manualContacts.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setManualContacts([]); setManualInput(""); }}
+                    className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                  >
+                    <Trash2 size={12} /> Limpar ({manualContacts.length})
+                  </Button>
+                )}
+              </div>
+              {manualContacts.length > 0 && (
+                <ScrollArea className="h-[200px] border border-border/50 rounded-xl bg-card/30">
+                  <div className="divide-y divide-border/30">
+                    {manualContacts.map(c => (
+                      <div key={c.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/10">
+                        <Checkbox checked className="shrink-0" />
+                        <p className="text-sm font-medium text-foreground truncate flex-1">{c.name}</p>
+                        <span className="text-[11px] font-mono text-muted-foreground/50">{formatPhone(c.phone)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
           )}
 
           <div className="flex justify-end">
