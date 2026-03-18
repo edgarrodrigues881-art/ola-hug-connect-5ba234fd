@@ -310,14 +310,14 @@ export default function AutoReplyList() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Sem instância</SelectItem>
-                        {devices?.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>
-                            <div className="flex items-center gap-1.5">
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${d.status === "connected" ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
-                              <span className="truncate">{d.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                         {devices?.map((d) => (
+                           <SelectItem key={d.id} value={d.id}>
+                             <div className="flex items-center gap-1.5">
+                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${onlineStatuses.has(d.status) ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                               <span className="truncate">{d.name}</span>
+                             </div>
+                           </SelectItem>
+                         ))}
                       </SelectContent>
                     </Select>
                     <Switch
