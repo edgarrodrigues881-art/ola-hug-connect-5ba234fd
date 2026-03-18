@@ -359,6 +359,8 @@ export default function AdminDispatch() {
             targets,
             message_content: messageContent,
             connection_purpose: connectionPurpose,
+            min_delay_seconds: minDelay,
+            max_delay_seconds: maxDelay,
           }),
         }
       );
