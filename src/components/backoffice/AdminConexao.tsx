@@ -7,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   Plug, RefreshCw, Loader2, CheckCircle2, Smartphone, QrCode, XCircle,
-  LogOut, Key, Send, Users,
+  LogOut, Key, Send, Users, Wifi, WifiOff, MessageSquare, Shield, ArrowLeft,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface WhatsAppGroup {
   id: string;
@@ -39,7 +38,6 @@ export default function AdminConexao() {
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Get community_settings for wa_report_device_id and wa_report_group_id
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["admin-conexao-settings"],
     queryFn: async () => {
@@ -57,7 +55,6 @@ export default function AdminConexao() {
   const groupId = settings?.wa_report_group_id || null;
   const groupName = settings?.wa_report_group_name || null;
 
-  // Get device info
   const { data: device, isLoading: deviceLoading } = useQuery({
     queryKey: ["admin-conexao-device", deviceId],
     queryFn: async () => {
@@ -75,7 +72,6 @@ export default function AdminConexao() {
   const isConnected = device?.status === "Connected" || device?.status === "Ready" || device?.status === "authenticated";
   const hasCredentials = !!(device?.uazapi_token && device?.uazapi_base_url);
 
-  // ─── QR Connect ───
   const openConnectDialog = () => {
     setQrDialogOpen(true);
     setConnectStep("choose");
@@ -97,20 +93,15 @@ export default function AdminConexao() {
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
-
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "connect", deviceId }),
         }
       );
       const result = await res.json();
-
       if (result.base64 || result.qr) {
         setQrCodeBase64(result.base64 || result.qr);
         startCountdownAndPoll(deviceId);
@@ -120,7 +111,7 @@ export default function AdminConexao() {
       } else {
         setConnectError(result.error || "Erro ao gerar QR Code");
       }
-    } catch (e) {
+    } catch {
       setConnectError("Erro de conexão");
     } finally {
       setQrLoading(false);
@@ -130,16 +121,13 @@ export default function AdminConexao() {
   const startCountdownAndPoll = (devId: string) => {
     if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
     if (pollRef.current) clearInterval(pollRef.current);
-
     let countdown = 30;
     setQrCountdown(30);
-
     qrCountdownRef.current = setInterval(() => {
       countdown--;
       setQrCountdown(countdown);
       if (countdown <= 0 && qrCountdownRef.current) clearInterval(qrCountdownRef.current);
     }, 1000);
-
     pollRef.current = setInterval(async () => {
       try {
         const { data: session } = await supabase.auth.getSession();
@@ -148,15 +136,11 @@ export default function AdminConexao() {
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ action: "status", deviceId: devId }),
           }
         );
         const result = await res.json();
-
         if (result.status === "authenticated") {
           setQrConnected(true);
           if (pollRef.current) clearInterval(pollRef.current);
@@ -164,82 +148,65 @@ export default function AdminConexao() {
           queryClient.invalidateQueries({ queryKey: ["admin-conexao-device"] });
           toast.success("Dispositivo conectado!");
         } else if (result.base64 || result.qr) {
-          // Update QR code if a new one was returned
           setQrCodeBase64(result.base64 || result.qr);
         }
-      } catch (_e) {
-        // Silently ignore polling errors
-      }
+      } catch {}
     }, 3000);
   };
 
-  // ─── Pairing Code ───
   const requestPairingCode = async () => {
     if (!deviceId || !pairingPhone) return;
     setPairingLoading(true);
     setPairingCode("");
     setConnectError("");
-
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
-
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "requestPairingCode", deviceId, phoneNumber: pairingPhone.replace(/\D/g, "") }),
         }
       );
       const result = await res.json();
-
       if (result.pairingCode || result.pairing_code) {
         setPairingCode(result.pairingCode || result.pairing_code);
         startCountdownAndPoll(deviceId);
       } else {
         setConnectError(result.error || "Erro ao gerar código");
       }
-    } catch (e) {
+    } catch {
       setConnectError("Erro de conexão");
     } finally {
       setPairingLoading(false);
     }
   };
 
-  // ─── Disconnect ───
   const handleDisconnect = async () => {
     if (!deviceId) return;
     setDisconnecting(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
-
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-connect`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "logout", deviceId }),
         }
       );
-
       queryClient.invalidateQueries({ queryKey: ["admin-conexao-device"] });
       toast.success("Dispositivo desconectado");
-    } catch (e) {
+    } catch {
       toast.error("Erro ao desconectar");
     } finally {
       setDisconnecting(false);
     }
   };
 
-  // ─── Load Groups ───
   const loadGroups = async () => {
     if (!deviceId) return;
     setLoadingGroups(true);
@@ -262,20 +229,16 @@ export default function AdminConexao() {
         participants: g.participants?.length || g.size || 0,
       }));
       setGroups(list);
-    } catch (e) {
+    } catch {
       toast.error("Erro ao carregar grupos");
     } finally {
       setLoadingGroups(false);
     }
   };
 
-  // ─── Select Group ───
   const upsertSetting = async (key: string, value: string) => {
     const { data: existing } = await supabase
-      .from("community_settings")
-      .select("id")
-      .eq("key", key)
-      .maybeSingle();
+      .from("community_settings").select("id").eq("key", key).maybeSingle();
     if (existing) {
       await supabase.from("community_settings").update({ value }).eq("key", key);
     } else {
@@ -292,12 +255,11 @@ export default function AdminConexao() {
       queryClient.invalidateQueries({ queryKey: ["admin-conexao-settings"] });
       toast.success(`Grupo "${group.name}" selecionado`);
       setGroups([]);
-    } catch (e) {
+    } catch {
       toast.error("Erro ao salvar grupo");
     }
   };
 
-  // ─── Send Test ───
   const sendTest = async () => {
     if (!deviceId || !groupId) return;
     setSendingTest(true);
@@ -311,9 +273,7 @@ export default function AdminConexao() {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            action: "sendText",
-            deviceId,
-            number: groupNumber,
+            action: "sendText", deviceId, number: groupNumber,
             text: "✅ Teste de conexão — DG Contingência PRO\n\nSe você recebeu esta mensagem, a conexão está funcionando.",
           }),
         }
@@ -321,13 +281,12 @@ export default function AdminConexao() {
       const result = await res.json();
       if (result.success) toast.success("Mensagem de teste enviada!");
       else toast.error(result.error || "Falha ao enviar teste");
-    } catch (e) {
+    } catch {
       toast.error("Erro de conexão");
     } finally {
       setSendingTest(false);
     }
   };
-
 
   useEffect(() => {
     return () => {
@@ -357,217 +316,248 @@ export default function AdminConexao() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Device Card */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="space-y-5">
+      {/* ─── Status Header ─── */}
+      <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card to-card/80 p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/[0.03] rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-20 h-20 bg-primary/[0.02] rounded-full translate-y-1/2 -translate-x-1/2" />
+
+        <div className="relative flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
-            {device?.profile_picture ? (
-              <img src={device.profile_picture} alt="" className="w-12 h-12 rounded-full object-cover border border-border" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                <Smartphone size={22} className="text-muted-foreground" />
+            <div className="relative">
+              {device?.profile_picture ? (
+                <img
+                  src={device.profile_picture} alt=""
+                  className={`w-14 h-14 rounded-2xl object-cover border-2 ${isConnected ? "border-emerald-500/40" : "border-destructive/30"}`}
+                />
+              ) : (
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 ${
+                  isConnected ? "bg-emerald-500/10 border-emerald-500/30" : "bg-muted border-border"
+                }`}>
+                  <Smartphone size={24} className={isConnected ? "text-emerald-500" : "text-muted-foreground"} />
+                </div>
+              )}
+              <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-card ${isConnected ? "bg-emerald-500" : "bg-destructive"}`}>
+                {isConnected && <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-40" />}
               </div>
-            )}
+            </div>
+
             <div>
-              <h3 className="text-sm font-semibold text-foreground">{device?.name || "Dispositivo"}</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {device?.profile_name || device?.number || "Sem número"}
-              </p>
-              <Badge
-                variant="outline"
-                className={`mt-1 text-[10px] ${
-                  isConnected
-                    ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
-                    : "border-destructive/30 text-destructive bg-destructive/5"
-                }`}
-              >
-                {isConnected ? (
-                  <><CheckCircle2 size={10} className="mr-1" /> Conectado</>
-                ) : (
-                  <><XCircle size={10} className="mr-1" /> Desconectado</>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground">
+                  {device?.profile_name || device?.name || "WhatsApp Admin"}
+                </h3>
+                {hasCredentials && (
+                  <Badge variant="outline" className="text-[9px] border-primary/20 text-primary bg-primary/5 font-medium">
+                    <Shield size={8} className="mr-0.5" /> API ativa
+                  </Badge>
                 )}
-              </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {device?.number ? `+${device.number.replace(/^(\d{2})(\d{2})(\d{5})(\d{4})$/, "$1 ($2) $3-$4")}` : "Número não vinculado"}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                {isConnected ? (
+                  <Badge className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10">
+                    <Wifi size={10} className="mr-1" /> Online
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive bg-destructive/5">
+                    <WifiOff size={10} className="mr-1" /> Offline
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
-            {isConnected && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-                className="text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
-              >
-                {disconnecting ? <Loader2 size={14} className="mr-1 animate-spin" /> : <LogOut size={14} className="mr-1" />}
+          <div className="flex gap-2">
+            {isConnected ? (
+              <Button size="sm" variant="outline" onClick={handleDisconnect} disabled={disconnecting}
+                className="text-xs h-9 border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-destructive/40">
+                {disconnecting ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <LogOut size={14} className="mr-1.5" />}
                 Desconectar
               </Button>
-            )}
-            {!isConnected && (
-              <Button size="sm" onClick={openConnectDialog} className="text-xs">
-                <QrCode size={14} className="mr-1" />
-                Reconectar
+            ) : (
+              <Button size="sm" onClick={openConnectDialog} className="text-xs h-9 gap-1.5">
+                <QrCode size={14} /> Conectar WhatsApp
               </Button>
             )}
           </div>
         </div>
       </div>
 
-
-
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Users size={16} className="text-primary" /> Grupo de Relatórios
-        </h4>
+      {/* ─── Grupo de Relatórios ─── */}
+      <div className="rounded-2xl border border-border/60 bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+              <MessageSquare size={16} className="text-primary" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-foreground">Grupo de Relatórios</h4>
+              <p className="text-[11px] text-muted-foreground">Destino dos alertas e relatórios automáticos</p>
+            </div>
+          </div>
+        </div>
 
         {groupId ? (
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <p className="text-sm font-medium text-foreground">{groupName || "Grupo de Relatórios"}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">As mensagens automáticas e relatórios serão enviados para este grupo.</p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={sendTest}
-                disabled={sendingTest || !isConnected}
-                className="text-xs"
-              >
-                {sendingTest ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Send size={14} className="mr-1" />}
-                Enviar Teste
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={loadGroups}
-                disabled={loadingGroups || !isConnected}
-                className="text-xs"
-              >
-                {loadingGroups ? <Loader2 size={14} className="mr-1 animate-spin" /> : <RefreshCw size={14} className="mr-1" />}
-                Trocar Grupo
-              </Button>
+          <div className="rounded-xl bg-muted/30 border border-border/40 p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Users size={18} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{groupName || "Grupo selecionado"}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Alertas e relatórios serão enviados aqui</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={sendTest} disabled={sendingTest || !isConnected} className="text-xs h-8">
+                  {sendingTest ? <Loader2 size={12} className="mr-1 animate-spin" /> : <Send size={12} className="mr-1" />}
+                  Testar
+                </Button>
+                <Button size="sm" variant="outline" onClick={loadGroups} disabled={loadingGroups || !isConnected} className="text-xs h-8">
+                  {loadingGroups ? <Loader2 size={12} className="mr-1 animate-spin" /> : <RefreshCw size={12} className="mr-1" />}
+                  Trocar
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-3">Nenhum grupo selecionado</p>
-            <Button size="sm" onClick={loadGroups} disabled={loadingGroups || !isConnected} className="text-xs">
-              {loadingGroups ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Users size={14} className="mr-1" />}
+          <div className="rounded-xl border-2 border-dashed border-border/60 p-8 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-muted mx-auto flex items-center justify-center mb-3">
+              <Users size={22} className="text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">Nenhum grupo selecionado</p>
+            <p className="text-xs text-muted-foreground mb-4">Selecione um grupo do WhatsApp para receber os alertas</p>
+            <Button size="sm" onClick={loadGroups} disabled={loadingGroups || !isConnected} className="text-xs h-8">
+              {loadingGroups ? <Loader2 size={12} className="mr-1 animate-spin" /> : <Users size={12} className="mr-1" />}
               Selecionar Grupo
             </Button>
           </div>
         )}
 
-        {/* Group List */}
         {groups.length > 0 && (
-          <div className="mt-4 border rounded-lg border-border max-h-[280px] overflow-y-auto">
+          <div className="mt-4 rounded-xl border border-border/60 overflow-hidden max-h-[280px] overflow-y-auto">
             {groups.map((g) => (
-              <button
-                key={g.id}
-                onClick={() => selectGroup(g)}
-                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent/50 transition-colors border-b border-border last:border-0 text-left"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{g.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{g.participants || 0} participantes</p>
+              <button key={g.id} onClick={() => selectGroup(g)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent/50 transition-colors border-b border-border/40 last:border-0 text-left group">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Users size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{g.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{g.participants || 0} participantes</p>
+                  </div>
                 </div>
-                <CheckCircle2 size={14} className={`shrink-0 ${groupId === g.id ? "text-primary" : "text-transparent"}`} />
+                <CheckCircle2 size={16} className={`shrink-0 transition-colors ${groupId === g.id ? "text-primary" : "text-transparent group-hover:text-muted-foreground/30"}`} />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* QR Dialog */}
+      {/* ─── QR Dialog ─── */}
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base">
-              {connectStep === "choose" ? "Como deseja conectar?" : connectMethod === "qr" ? "Escaneie o QR Code" : "Código de pareamento"}
-            </DialogTitle>
-          </DialogHeader>
-
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
           {connectStep === "choose" ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Escolha o método de conexão:</p>
+            <div className="p-6 space-y-5">
+              <div>
+                <DialogTitle className="text-lg font-bold">Conectar WhatsApp</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">Escolha como deseja vincular seu número</p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => { setConnectMethod("qr"); setConnectStep("active"); startQrConnect(); }}
-                  className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all"
-                >
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <QrCode className="w-6 h-6 text-primary" />
+                  className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border/40 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <QrCode className="w-7 h-7 text-primary" />
                   </div>
                   <div className="text-center">
                     <span className="text-sm font-bold text-foreground block">QR Code</span>
-                    <span className="text-[11px] text-muted-foreground mt-0.5 block">Escaneie com o celular</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block leading-tight">Escaneie com a câmera</span>
                   </div>
                 </button>
                 <button
                   onClick={() => { setConnectMethod("code"); setConnectStep("active"); }}
-                  className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-border/30 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all"
-                >
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Key className="w-6 h-6 text-primary" />
+                  className="group flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border/40 hover:border-primary/50 bg-card hover:bg-primary/[0.04] transition-all">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Key className="w-7 h-7 text-primary" />
                   </div>
                   <div className="text-center">
                     <span className="text-sm font-bold text-foreground block">Código</span>
-                    <span className="text-[11px] text-muted-foreground mt-0.5 block">Digite um código numérico</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block leading-tight">Insira no WhatsApp</span>
                   </div>
                 </button>
               </div>
             </div>
           ) : (
-            <>
-              <button
-                onClick={() => { setConnectStep("choose"); setConnectError(""); }}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors"
-              >
-                ← Voltar
+            <div className="p-6">
+              <button onClick={() => { setConnectStep("choose"); setConnectError(""); }}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors">
+                <ArrowLeft size={12} /> Voltar
               </button>
 
               {connectMethod === "qr" ? (
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-4 py-2">
+                  <h3 className="text-base font-bold text-foreground">Escaneie o QR Code</h3>
                   {qrConnected ? (
-                    <>
-                      <CheckCircle2 size={48} className="text-emerald-500" />
-                      <p className="text-sm font-medium text-emerald-500">Conectado com sucesso!</p>
-                    </>
+                    <div className="flex flex-col items-center gap-3 py-6">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                        <CheckCircle2 size={32} className="text-emerald-500" />
+                      </div>
+                      <p className="text-sm font-semibold text-emerald-500">Conectado com sucesso!</p>
+                      <p className="text-xs text-muted-foreground">Você já pode fechar esta janela</p>
+                    </div>
                   ) : qrCodeBase64 ? (
                     <>
-                      <img src={qrCodeBase64.startsWith("data:") ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`} alt="QR Code" className="w-56 h-56 rounded-lg" />
-                      <p className="text-xs text-muted-foreground">Expira em {qrCountdown}s</p>
+                      <div className="p-3 bg-white rounded-2xl">
+                        <img src={qrCodeBase64.startsWith("data:") ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`}
+                          alt="QR Code" className="w-56 h-56 rounded-lg" />
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        Aguardando leitura • {qrCountdown}s
+                      </div>
                     </>
                   ) : qrLoading ? (
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <div className="py-8 flex flex-col items-center gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-xs text-muted-foreground">Gerando QR Code...</p>
+                    </div>
                   ) : connectError ? (
-                    <p className="text-sm text-destructive">{connectError}</p>
+                    <div className="py-6 text-center">
+                      <XCircle size={32} className="mx-auto text-destructive mb-2" />
+                      <p className="text-sm text-destructive">{connectError}</p>
+                      <Button size="sm" variant="outline" onClick={startQrConnect} className="mt-3 text-xs">
+                        Tentar novamente
+                      </Button>
+                    </div>
                   ) : null}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4 py-2">
+                  <h3 className="text-base font-bold text-foreground text-center">Código de Pareamento</h3>
                   {pairingCode ? (
-                    <div className="text-center">
-                      <p className="text-2xl font-mono font-bold tracking-[0.3em] text-foreground">{pairingCode}</p>
-                      <p className="text-xs text-muted-foreground mt-2">Digite este código no WhatsApp</p>
+                    <div className="text-center py-4">
+                      <div className="inline-block bg-muted/50 rounded-2xl px-6 py-4">
+                        <p className="text-3xl font-mono font-black tracking-[0.4em] text-foreground">{pairingCode}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo → Código
+                      </p>
                     </div>
                   ) : (
                     <>
-                      <Input
-                        placeholder="5562999999999"
-                        value={pairingPhone}
+                      <p className="text-xs text-muted-foreground text-center">Insira o número com DDD (sem +)</p>
+                      <Input placeholder="5562999999999" value={pairingPhone}
                         onChange={(e) => setPairingPhone(e.target.value)}
-                        className="text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        className="w-full text-xs"
-                        onClick={requestPairingCode}
-                        disabled={pairingLoading || !pairingPhone}
-                      >
-                        {pairingLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Key size={14} className="mr-1" />}
+                        className="text-sm text-center font-mono tracking-wider" />
+                      <Button className="w-full text-xs h-10" onClick={requestPairingCode}
+                        disabled={pairingLoading || !pairingPhone}>
+                        {pairingLoading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Key size={14} className="mr-1.5" />}
                         Gerar Código
                       </Button>
                     </>
@@ -575,7 +565,7 @@ export default function AdminConexao() {
                   {connectError && <p className="text-xs text-destructive text-center">{connectError}</p>}
                 </div>
               )}
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
