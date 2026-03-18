@@ -230,11 +230,28 @@ async function scheduleDayJobs(
 
   const volumes = getVolumes(chipState, dayIndex, phase);
 
+  const { data: existingCycle } = await db.from("warmup_cycles")
+    .select("daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_used")
+    .eq("id", cycleId)
+    .maybeSingle();
+
+  const existingBudgetTarget = Math.max(existingCycle?.daily_interaction_budget_target || 0, 0);
+  const existingBudgetUsed = Math.max(existingCycle?.daily_interaction_budget_used || 0, 0);
+  const existingRecipientsUsed = existingCycle?.daily_unique_recipients_used || 0;
+  const remainingBudget = existingBudgetTarget > 0
+    ? Math.max(existingBudgetTarget - existingBudgetUsed, 0)
+    : null;
+
   // Cancel existing pending interaction jobs before creating new ones (prevent duplicates)
   await db.from("warmup_jobs")
     .update({ status: "cancelled", last_error: "Substituído por novo agendamento" })
     .eq("cycle_id", cycleId).eq("status", "pending")
     .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+
+  if (remainingBudget === 0) {
+    console.log(`[scheduleDayJobs] Budget already exhausted (${existingBudgetUsed}/${existingBudgetTarget}), skipping`);
+    return 0;
+  }
 
   const jobs: any[] = [];
 
@@ -309,41 +326,38 @@ async function scheduleDayJobs(
     }
   }
 
+  let jobsToInsert = jobs;
+  if (remainingBudget !== null && jobs.length > remainingBudget) {
+    jobsToInsert = jobs.slice(0, remainingBudget);
+    console.log(`[scheduleDayJobs] Trimming jobs to remaining budget: ${jobs.length} → ${jobsToInsert.length}`);
+  }
+
   // [BUG 1+2 FIX] Phase transitions are now handled ENTIRELY by daily_reset.
   // Removed enable_autosave/enable_community end-of-day jobs to avoid:
   // - Wasted first day (jobs fire at end of window, no time for interactions)
   // - Duplicate pair creation between enable_community and daily_reset
 
   // Insert jobs
-  for (let i = 0; i < jobs.length; i += 100) {
-    await db.from("warmup_jobs").insert(jobs.slice(i, i + 100));
+  for (let i = 0; i < jobsToInsert.length; i += 100) {
+    await db.from("warmup_jobs").insert(jobsToInsert.slice(i, i + 100));
   }
 
-  // Update budget without resetting what has already been consumed today
-  const interactionCount = jobs.filter(j =>
-    ["group_interaction", "autosave_interaction", "community_interaction"].includes(j.job_type)
-  ).length;
+  const interactionCount = jobsToInsert.length;
+  const nextBudgetTarget = existingBudgetTarget > 0 ? existingBudgetTarget : interactionCount;
 
-  const { data: existingCycle } = await db.from("warmup_cycles")
-    .select("daily_interaction_budget_used, daily_unique_recipients_used")
-    .eq("id", cycleId)
-    .maybeSingle();
+  if (nextBudgetTarget > 0) {
+    await db.from("warmup_cycles").update({
+      daily_interaction_budget_target: nextBudgetTarget,
+      daily_interaction_budget_min: Math.floor(nextBudgetTarget * 0.8),
+      daily_interaction_budget_max: Math.ceil(nextBudgetTarget * 1.2),
+      daily_interaction_budget_used: existingBudgetUsed,
+      daily_unique_recipients_used: existingRecipientsUsed,
+      updated_at: new Date().toISOString(),
+    }).eq("id", cycleId);
+  }
 
-  const existingBudgetUsed = existingCycle?.daily_interaction_budget_used || 0;
-  const existingRecipientsUsed = existingCycle?.daily_unique_recipients_used || 0;
-  const totalBudgetTarget = existingBudgetUsed + interactionCount;
-
-  await db.from("warmup_cycles").update({
-    daily_interaction_budget_target: totalBudgetTarget,
-    daily_interaction_budget_min: Math.floor(totalBudgetTarget * 0.8),
-    daily_interaction_budget_max: Math.ceil(totalBudgetTarget * 1.2),
-    daily_interaction_budget_used: existingBudgetUsed,
-    daily_unique_recipients_used: existingRecipientsUsed,
-    updated_at: new Date().toISOString(),
-  }).eq("id", cycleId);
-
-  console.log(`[scheduleDayJobs] Day ${dayIndex} (${phase}/${chipState}): ${jobs.length} jobs`);
-  return jobs.length;
+  console.log(`[scheduleDayJobs] Day ${dayIndex} (${phase}/${chipState}): ${jobsToInsert.length} jobs`);
+  return jobsToInsert.length;
 }
 
 // ══════════════════════════════════════════════════════════
