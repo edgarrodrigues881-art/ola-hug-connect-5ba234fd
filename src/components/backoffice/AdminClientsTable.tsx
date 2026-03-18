@@ -511,6 +511,82 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dispatch Dialog */}
+      <Dialog open={showDispatch} onOpenChange={setShowDispatch}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send size={16} className="text-primary" />
+              Disparar mensagem
+            </DialogTitle>
+            <DialogDescription>
+              Enviar para <strong>{filtered.length}</strong> cliente{filtered.length !== 1 ? "s" : ""} {filter !== "all" ? "(filtrados)" : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {dispatchResult ? (
+            <div className="py-6 text-center space-y-3">
+              <CheckCircle2 size={40} className="mx-auto text-emerald-400" />
+              <div>
+                <p className="text-foreground font-semibold text-lg">{dispatchResult.ok} enfileirado{dispatchResult.ok !== 1 ? "s" : ""}</p>
+                {dispatchResult.fail > 0 && (
+                  <p className="text-sm text-red-400 mt-1">{dispatchResult.fail} falha{dispatchResult.fail !== 1 ? "s" : ""}</p>
+                )}
+              </div>
+              <Button variant="outline" className="mt-2" onClick={() => setShowDispatch(false)}>Fechar</Button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Tipo da mensagem</label>
+                  <Select value={dispatchType} onValueChange={setDispatchType}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">📝 Mensagem personalizada</SelectItem>
+                      <SelectItem value="WELCOME">👋 Boas-vindas</SelectItem>
+                      <SelectItem value="DUE_3_DAYS">⏰ Faltam 3 dias</SelectItem>
+                      <SelectItem value="DUE_TODAY">⚠️ Vence hoje</SelectItem>
+                      <SelectItem value="OVERDUE_1">❌ Vencido 1 dia</SelectItem>
+                      <SelectItem value="OVERDUE_7">❌ Vencido 7 dias</SelectItem>
+                      <SelectItem value="OVERDUE_30">💀 Vencido 30 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {dispatchType === "custom" ? "Mensagem *" : "Mensagem (opcional — usa template se vazio)"}
+                  </label>
+                  <Textarea
+                    placeholder="Digite a mensagem..."
+                    value={dispatchMessage}
+                    onChange={e => setDispatchMessage(e.target.value)}
+                    rows={4}
+                    className="resize-none text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground/50">
+                    Variáveis: {"{{nome}}"}, {"{{email}}"}, {"{{plano}}"}
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setShowDispatch(false)} disabled={dispatching}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleDispatch} disabled={dispatching || filtered.length === 0} className="gap-2">
+                  {dispatching ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {dispatching ? "Enviando..." : `Disparar para ${filtered.length}`}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
