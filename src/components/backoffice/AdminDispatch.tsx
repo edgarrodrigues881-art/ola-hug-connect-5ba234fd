@@ -66,6 +66,22 @@ interface ImportedContact {
   phone: string;
 }
 
+interface ConnectionDevice {
+  id: string;
+  name: string;
+  number: string | null;
+  status: string;
+  profile_name: string | null;
+}
+
+interface ConnectionPurpose {
+  id: string;
+  purpose: string;
+  label: string;
+  device_id: string | null;
+  device: ConnectionDevice | null;
+}
+
 type AudienceSource = "clients" | "imported";
 
 export default function AdminDispatch() {
@@ -109,14 +125,35 @@ export default function AdminDispatch() {
 
   // Load connection purposes
   const { data: connections = [] } = useQuery({
-    queryKey: ["admin-connection-purposes"],
+    queryKey: ["admin-connection-purposes", "dispatch-view"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("admin_connection_purposes" as any)
-        .select("*")
+        .select(`
+          id,
+          purpose,
+          label,
+          device_id,
+          device:devices (
+            id,
+            name,
+            number,
+            status,
+            profile_name
+          )
+        `)
         .order("purpose");
-      return (data || []) as any[];
+
+      if (error) throw error;
+
+      return ((data || []) as any[]).map((item) => ({
+        ...item,
+        device: Array.isArray(item.device) ? item.device[0] ?? null : item.device ?? null,
+      })) as ConnectionPurpose[];
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   // === Client audience logic ===
