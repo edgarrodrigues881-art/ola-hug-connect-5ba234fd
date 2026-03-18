@@ -10,7 +10,7 @@ export function MessageNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`group rounded-2xl bg-card/95 backdrop-blur-sm min-w-[250px] max-w-[280px] transition-all duration-200 ease-out
+      className={`group rounded-2xl bg-card/95 backdrop-blur-sm min-w-[250px] max-w-[320px] transition-all duration-200 ease-out
         ${selected
           ? "shadow-[0_0_0_2px_hsl(var(--primary)),0_8px_32px_-8px_hsl(var(--primary)/0.25)] scale-[1.02]"
           : "shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.08)] hover:shadow-[0_4px_20px_-6px_hsl(var(--foreground)/0.12)] hover:scale-[1.01] border border-border/40"
