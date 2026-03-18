@@ -16,21 +16,26 @@
   border: none;
   border-radius: 10px;
   z-index: 0;
+  overflow: hidden;
 }
 
-/* Rotating conic gradient — the "snake" light */
+/* Oversized rotating gradient — creates the "snake" trail effect */
 .plan-gold-btn::before {
   content: '';
   position: absolute;
   z-index: -2;
-  inset: -2px;
-  border-radius: 12px;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  margin-left: -150%;
+  margin-top: -150%;
   background: conic-gradient(
     from 0deg,
     #fbbf24,
     #f59e0b,
-    transparent 20%,
-    transparent 80%,
+    transparent 25%,
+    transparent 75%,
     #f59e0b,
     #fbbf24
   );
@@ -42,8 +47,8 @@
   content: '';
   position: absolute;
   z-index: -1;
-  inset: 1.5px;
-  border-radius: 9px;
+  inset: 2px;
+  border-radius: 8px;
   background: hsl(var(--sidebar-background, 222 47% 11%));
 }
 
