@@ -434,6 +434,8 @@ export default function AdminDispatch() {
 
   const audienceLabel = audienceSource === "imported"
     ? `Lista importada (${importedContacts.length})`
+    : audienceSource === "manual"
+    ? `Manual (${manualContacts.length})`
     : AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label || "Clientes";
 
   return (
