@@ -111,99 +111,126 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
           <>
             <div className="space-y-2">
               <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Gatilho</Label>
-              <Select value={d.trigger || "any_message"} onValueChange={(v) => onUpdate(node.id, { trigger: v as any })}>
+              <Select
+                value={d.trigger || "keyword"}
+                onValueChange={(v) => {
+                  const updates: Partial<FlowNodeData> = { trigger: v as any };
+                  if (v === "template") {
+                    updates.label = "Template";
+                    updates.keyword = "";
+                  } else {
+                    updates.label = "Início";
+                    updates.templateId = undefined;
+                    updates.templateName = undefined;
+                  }
+                  onUpdate(node.id, updates);
+                }}
+              >
                 <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any_message">Qualquer mensagem</SelectItem>
                   <SelectItem value="keyword">Palavra-chave</SelectItem>
-                  <SelectItem value="new_contact">Novo contato</SelectItem>
-                  <SelectItem value="start_chat">Início de atendimento</SelectItem>
+                  <SelectItem value="template">Template</SelectItem>
                 </SelectContent>
               </Select>
-              {d.trigger === "keyword" && (
+            </div>
+
+            {/* Keyword field – only when trigger = keyword */}
+            {d.trigger === "keyword" && (
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Palavra-chave</Label>
                 <Input
                   placeholder="Digite a palavra-chave"
                   value={d.keyword || ""}
                   onChange={(e) => onUpdate(node.id, { keyword: e.target.value })}
-                  className="h-9 text-sm mt-2"
+                  className="h-9 text-sm"
                 />
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Template selector for start node */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Template</Label>
-              {isUsingModel ? (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-primary/70" />
-                      <span className="text-xs font-medium text-foreground">Usando modelo</span>
+            {/* Template selector – only when trigger = template */}
+            {d.trigger === "template" && (
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Modelo vinculado</Label>
+                {isUsingModel ? (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-primary/70" />
+                        <span className="text-xs font-medium text-foreground">Usando modelo</span>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] px-1.5 h-4 border-primary/20 text-primary/60 bg-primary/5">
+                        Vinculado
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-[9px] px-1.5 h-4 border-primary/20 text-primary/60 bg-primary/5">
-                      Vinculado
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-primary/80 font-medium truncate">{d.templateName}</p>
-                  <div className="flex gap-1.5">
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 flex-1 border-border/40" onClick={() => setShowModelPicker(true)}>
-                      Trocar modelo
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-border/40" onClick={unlinkModel}>
-                      <Unlink className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-border/40" onClick={() => navigate("/dashboard/templates")}>
-                      <ExternalLink className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs gap-1.5 w-full border-border/40 hover:border-primary/40 hover:text-primary"
-                  onClick={() => setShowModelPicker(true)}
-                >
-                  <FileText className="w-3 h-3" /> Selecionar modelo
-                </Button>
-              )}
-            </div>
-
-            {/* Model Picker for start node */}
-            {showModelPicker && (
-              <div className="rounded-xl border border-border/40 bg-card/80 overflow-hidden">
-                <div className="px-3 py-2 border-b border-border/30 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-muted-foreground/60">Selecionar modelo</span>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setShowModelPicker(false)}>
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-                <ScrollArea className="max-h-[220px]">
-                  {!templatesList || templatesList.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <p className="text-xs text-muted-foreground/50 mb-2">Nenhum modelo cadastrado</p>
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/dashboard/templates")}>
-                        Ir para Template
+                    <p className="text-xs text-primary/80 font-medium truncate">{d.templateName}</p>
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 flex-1 border-border/40" onClick={() => setShowModelPicker(true)}>
+                        Trocar modelo
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-border/40" onClick={unlinkModel}>
+                        <Unlink className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-border/40" onClick={() => navigate("/dashboard/templates")}>
+                        <ExternalLink className="w-3 h-3" />
                       </Button>
                     </div>
-                  ) : (
-                    <div className="p-1.5 space-y-1">
-                      {templatesList.map((tpl) => (
-                        <button
-                          key={tpl.id}
-                          onClick={() => selectModel(tpl)}
-                          className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors group/item"
-                        >
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <FileText className="w-3 h-3 text-muted-foreground/40 group-hover/item:text-primary/60" />
-                            <span className="text-xs font-medium text-foreground truncate">{tpl.name}</span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground/40 line-clamp-1 pl-5">{tpl.content}</p>
-                        </button>
-                      ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border/50 p-4 text-center space-y-2">
+                    <p className="text-xs text-muted-foreground/50">Nenhum modelo selecionado</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1.5 border-border/40 hover:border-primary/40 hover:text-primary"
+                      onClick={() => setShowModelPicker(true)}
+                    >
+                      <FileText className="w-3 h-3" /> Selecionar modelo
+                    </Button>
+                  </div>
+                )}
+
+                {/* Model Picker */}
+                {showModelPicker && (
+                  <div className="rounded-xl border border-border/40 bg-card/80 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-border/30 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-muted-foreground/60">Selecionar modelo</span>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setShowModelPicker(false)}>
+                        <X className="w-3 h-3" />
+                      </Button>
                     </div>
-                  )}
-                </ScrollArea>
+                    <ScrollArea className="max-h-[220px]">
+                      {!templatesList || templatesList.length === 0 ? (
+                        <div className="p-4 text-center">
+                          <p className="text-xs text-muted-foreground/50 mb-2">Nenhum modelo cadastrado</p>
+                          <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/dashboard/templates")}>
+                            Ir para Template
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="p-1.5 space-y-1">
+                          {templatesList.map((tpl) => (
+                            <button
+                              key={tpl.id}
+                              onClick={() => selectModel(tpl)}
+                              className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors group/item"
+                            >
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <FileText className="w-3 h-3 text-muted-foreground/40 group-hover/item:text-primary/60" />
+                                <span className="text-xs font-medium text-foreground truncate">{tpl.name}</span>
+                                {tpl.buttons && Array.isArray(tpl.buttons) && tpl.buttons.length > 0 && (
+                                  <Badge variant="outline" className="text-[9px] px-1.5 h-4 border-border/30 text-muted-foreground/40 ml-auto">
+                                    {tpl.buttons.length} botão{tpl.buttons.length !== 1 ? "ões" : ""}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground/40 line-clamp-1 pl-5">{tpl.content}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
             )}
           </>
