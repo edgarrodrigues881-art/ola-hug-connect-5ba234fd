@@ -548,18 +548,52 @@ export default function AdminDispatch() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-primary/10">
-          <Send size={20} className="text-primary" />
+      {/* Header + view toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <Send size={20} className="text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Enviar Mensagem</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Selecione clientes, escreva a mensagem e envie
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-foreground">Enviar Mensagem</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Selecione clientes, escreva a mensagem e envie
-          </p>
+        <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-lg border border-border/40">
+          <button
+            onClick={() => setViewMode("compose")}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+              viewMode === "compose" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Send size={12} /> Novo Disparo
+          </button>
+          <button
+            onClick={() => { setViewMode("history"); refetchHistory(); }}
+            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+              viewMode === "history" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <History size={12} /> Histórico
+            {dispatchHistory.filter((d: any) => d.status === "running").length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </button>
         </div>
       </div>
+
+      {viewMode === "history" && (
+        <DispatchHistoryPanel
+          dispatches={dispatchHistory}
+          onControl={(id, cmd) => dispatchControlMutation.mutate({ dispatch_id: id, command: cmd })}
+          controlling={dispatchControlMutation.isPending}
+        />
+      )}
+
+      {viewMode === "compose" && (<>
+
 
       {/* Stepper */}
       <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/40 w-fit">
