@@ -266,6 +266,12 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             </div>
           )}
         </div>
+        {!connected && countdown && (
+          <div className="flex items-center gap-1 text-[9px] font-mono text-destructive/70 mt-0.5">
+            <Timer className="w-2.5 h-2.5" />
+            <span>{countdown}</span>
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-5 pb-3 flex items-center gap-4">
