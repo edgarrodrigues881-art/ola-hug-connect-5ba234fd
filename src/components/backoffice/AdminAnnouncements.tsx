@@ -482,7 +482,7 @@ export default function AdminAnnouncements() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => openPreview(form)} className="border-border gap-1.5">
+            <Button variant="outline" onClick={() => openPreview(form, true)} className="border-border gap-1.5">
               <Eye size={14} /> Preview
             </Button>
             <Button variant="outline" onClick={closeForm} className="border-border">Cancelar</Button>
