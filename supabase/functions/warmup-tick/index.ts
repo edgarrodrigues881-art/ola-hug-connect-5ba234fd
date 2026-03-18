@@ -1490,11 +1490,19 @@ async function handleTick(db: any) {
     const token = device.uazapi_token || "";
     const chipState = cycle.chip_state || "new";
 
-    // Budget check for interaction jobs
+    // Budget check for interaction jobs — fresh DB read to prevent race conditions between concurrent ticks
     if (INTERACTION_JOB_TYPES.includes(job.job_type)) {
       if (!withinWindow && !job.payload?.forced) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
         return false;
+      }
+      // Always read fresh budget from DB to prevent concurrent tick race conditions
+      const { data: freshBudget } = await db.from("warmup_cycles")
+        .select("daily_interaction_budget_used, daily_interaction_budget_target")
+        .eq("id", cycle.id).single();
+      if (freshBudget) {
+        cycle.daily_interaction_budget_used = freshBudget.daily_interaction_budget_used || 0;
+        cycle.daily_interaction_budget_target = freshBudget.daily_interaction_budget_target || 500;
       }
       const used = cycle.daily_interaction_budget_used || 0;
       const limit = cycle.daily_interaction_budget_target || 500;
