@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   Send, Loader2, CheckCircle2, Users, Filter, Search,
-  FileText, ChevronRight, Smartphone, AlertTriangle, Eye
+  FileText, ChevronRight, Smartphone, AlertTriangle, Eye,
+  Upload, FileSpreadsheet, ArrowRight, Trash2, X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
+import { cn } from "@/lib/utils";
 
 function formatPhone(phone: string | null | undefined): string {
   if (!phone) return "—";
@@ -44,12 +47,34 @@ const AUDIENCE_OPTIONS: { value: AudienceFilter; label: string; color: string }[
   { value: "elite", label: "Plano Elite", color: "text-amber-400" },
 ];
 
+type ImportColumnMapping = "nome" | "numero" | "ignorar";
+const IMPORT_MAPPING_OPTIONS: { value: ImportColumnMapping; label: string }[] = [
+  { value: "ignorar", label: "Ignorar" },
+  { value: "nome", label: "Nome" },
+  { value: "numero", label: "Número" },
+];
+
+interface RawImport {
+  headers: string[];
+  rows: any[][];
+  columnMappings: ImportColumnMapping[];
+}
+
+interface ImportedContact {
+  id: string;
+  name: string;
+  phone: string;
+}
+
+type AudienceSource = "clients" | "imported";
+
 export default function AdminDispatch() {
   const queryClient = useQueryClient();
   const { data: dashData } = useAdminDashboard();
   const users = dashData?.users || [];
 
   const [step, setStep] = useState<"audience" | "message" | "review" | "done">("audience");
+  const [audienceSource, setAudienceSource] = useState<AudienceSource>("clients");
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(true);
@@ -59,6 +84,15 @@ export default function AdminDispatch() {
   const [connectionPurpose, setConnectionPurpose] = useState("dispatch");
   const [dispatching, setDispatching] = useState(false);
   const [result, setResult] = useState<{ ok: number; fail: number } | null>(null);
+
+  // Import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [rawImport, setRawImport] = useState<RawImport | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importedContacts, setImportedContacts] = useState<ImportedContact[]>([]);
+  const [importSelectedIds, setImportSelectedIds] = useState<Set<string>>(new Set());
+  const [importSelectAll, setImportSelectAll] = useState(true);
+  const [importSearch, setImportSearch] = useState("");
 
   // Load templates
   const { data: templates = [] } = useQuery({
@@ -85,7 +119,7 @@ export default function AdminDispatch() {
     },
   });
 
-  // Filter audience
+  // === Client audience logic ===
   const audienceUsers = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter(u => {
@@ -106,9 +140,13 @@ export default function AdminDispatch() {
   }, [users, audienceFilter, search]);
 
   const effectiveSelected = useMemo(() => {
+    if (audienceSource === "imported") {
+      if (importSelectAll) return new Set(filteredImported.map(c => c.id));
+      return importSelectedIds;
+    }
     if (selectAll) return new Set(audienceUsers.map(u => u.id));
     return selectedIds;
-  }, [selectAll, selectedIds, audienceUsers]);
+  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds]);
 
   const toggleUser = (id: string) => {
     setSelectAll(false);
@@ -128,23 +166,145 @@ export default function AdminDispatch() {
     }
   };
 
+  // === Import logic ===
+  const filteredImported = useMemo(() => {
+    const q = importSearch.toLowerCase();
+    if (!q) return importedContacts;
+    return importedContacts.filter(c =>
+      c.name.toLowerCase().includes(q) || c.phone.includes(q)
+    );
+  }, [importedContacts, importSearch]);
+
+  const toggleImportContact = (id: string) => {
+    setImportSelectAll(false);
+    setImportSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleImportAll = () => {
+    if (importSelectAll) {
+      setImportSelectAll(false);
+      setImportSelectedIds(new Set());
+    } else {
+      setImportSelectAll(true);
+    }
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportLoading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
+    const processRows = (rawRows: any[][]) => {
+      if (rawRows.length < 2) { setImportLoading(false); toast.error("Arquivo vazio ou sem dados"); return; }
+      const headers = rawRows[0].map((h: any) => String(h || "").trim());
+      const dataRows = rawRows.slice(1).filter(r => r.some((c: any) => c != null && String(c).trim()));
+      const mappings: ImportColumnMapping[] = headers.map((h) => {
+        const lower = h.toLowerCase();
+        if (lower.includes("nome") || lower.includes("name")) return "nome";
+        if (lower.includes("numero") || lower.includes("phone") || lower.includes("telefone") || lower.includes("number") || lower.includes("celular") || lower.includes("whatsapp")) return "numero";
+        return "ignorar";
+      });
+      setRawImport({ headers, rows: dataRows, columnMappings: mappings });
+      setImportLoading(false);
+    };
+
+    if (ext === "xlsx" || ext === "xls") {
+      import("xlsx").then(XLSX => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const wb = XLSX.read(ev.target?.result, { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          processRows(XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]);
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        const lines = text.split("\n").filter(Boolean);
+        processRows(lines.map(l => l.split(/[,;]/)));
+      };
+      reader.readAsText(file);
+    }
+    e.target.value = "";
+  };
+
+  const updateImportMapping = (colIndex: number, value: ImportColumnMapping) => {
+    if (!rawImport) return;
+    const newMappings = [...rawImport.columnMappings];
+    if (value !== "ignorar") {
+      newMappings.forEach((m, i) => { if (i !== colIndex && m === value) newMappings[i] = "ignorar"; });
+    }
+    newMappings[colIndex] = value;
+    setRawImport({ ...rawImport, columnMappings: newMappings });
+  };
+
+  const confirmImportMapping = () => {
+    if (!rawImport) return;
+    const { rows, columnMappings } = rawImport;
+    const numIdx = columnMappings.indexOf("numero");
+    const nameIdx = columnMappings.indexOf("nome");
+
+    if (numIdx < 0) { toast.error("Mapeie a coluna de número"); return; }
+
+    const contacts: ImportedContact[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      const rawPhone = String(row[numIdx] || "").trim();
+      if (!rawPhone) continue;
+      const phone = rawPhone.replace(/\D/g, "");
+      if (!phone || seen.has(phone)) continue;
+      seen.add(phone);
+      contacts.push({
+        id: `imp_${phone}`,
+        name: nameIdx >= 0 ? String(row[nameIdx] || "Sem nome").trim() : "Sem nome",
+        phone,
+      });
+    }
+
+    setImportedContacts(contacts);
+    setImportSelectAll(true);
+    setImportSelectedIds(new Set());
+    setRawImport(null);
+    setAudienceSource("imported");
+    toast.success(`${contacts.length} contatos importados`);
+  };
+
+  // === Shared logic ===
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
   const messageContent = templateId === "custom" ? customMessage : selectedTemplate?.content || "";
 
   const handleDispatch = useCallback(async () => {
     if (!messageContent.trim()) { toast.error("Selecione ou escreva uma mensagem"); return; }
-    if (effectiveSelected.size === 0) { toast.error("Selecione pelo menos um cliente"); return; }
+    if (effectiveSelected.size === 0) { toast.error("Selecione pelo menos um destinatário"); return; }
 
     setDispatching(true);
     setResult(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const targets = audienceUsers
-        .filter(u => effectiveSelected.has(u.id))
-        .map(u => ({
-          user_id: u.id, phone: u.phone, name: u.full_name || u.email,
-          email: u.email, plan_name: u.plan_name,
-        }));
+
+      let targets: any[];
+      if (audienceSource === "imported") {
+        targets = importedContacts
+          .filter(c => effectiveSelected.has(c.id))
+          .map(c => ({
+            phone: c.phone,
+            name: c.name,
+          }));
+      } else {
+        targets = audienceUsers
+          .filter(u => effectiveSelected.has(u.id))
+          .map(u => ({
+            user_id: u.id, phone: u.phone, name: u.full_name || u.email,
+            email: u.email, plan_name: u.plan_name,
+          }));
+      }
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=bulk-dispatch`,
@@ -166,13 +326,13 @@ export default function AdminDispatch() {
       if (!resp.ok) throw new Error(data.error || "Erro ao disparar");
       setResult({ ok: data.enqueued || targets.length, fail: data.failed || 0 });
       setStep("done");
-      toast.success(`Disparo enviado para ${data.enqueued || targets.length} clientes`);
+      toast.success(`Disparo enviado para ${data.enqueued || targets.length} destinatários`);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setDispatching(false);
     }
-  }, [messageContent, effectiveSelected, audienceUsers, connectionPurpose]);
+  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, audienceSource, connectionPurpose]);
 
   const resetAll = () => {
     setStep("audience");
@@ -183,9 +343,18 @@ export default function AdminDispatch() {
     setSelectAll(true);
     setSearch("");
     setAudienceFilter("all");
+    setImportedContacts([]);
+    setImportSelectAll(true);
+    setImportSelectedIds(new Set());
+    setImportSearch("");
+    setAudienceSource("clients");
   };
 
   const dispatchConnection = connections.find((c: any) => c.purpose === connectionPurpose);
+
+  const audienceLabel = audienceSource === "imported"
+    ? `Lista importada (${importedContacts.length})`
+    : AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label || "Clientes";
 
   return (
     <div className="space-y-6">
@@ -232,99 +401,234 @@ export default function AdminDispatch() {
       {/* Step: Audience */}
       {step === "audience" && (
         <div className="space-y-4">
-          {/* Filter dropdown + Search */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select value={audienceFilter} onValueChange={(v) => setAudienceFilter(v as AudienceFilter)}>
-              <SelectTrigger className="h-9 w-56 bg-card/50 border-border/60 text-sm">
-                <Filter size={14} className="mr-2 text-muted-foreground/50" />
-                <SelectValue placeholder="Filtrar clientes" />
-              </SelectTrigger>
-              <SelectContent>
-                {AUDIENCE_OPTIONS.map(opt => {
-                  const count = users.filter(u => {
-                    const d = getDaysLeft(u.plan_expires_at);
-                    switch (opt.value) {
-                      case "all": return true;
-                      case "active": return u.status === "active";
-                      case "expired": return d !== null && d <= 0;
-                      case "expiring": return d !== null && d > 0 && d <= 3;
-                      case "trial": return u.plan_name === "Trial";
-                      case "start": return u.plan_name === "Start";
-                      case "pro": return u.plan_name === "Pro";
-                      case "scale": return u.plan_name === "Scale";
-                      case "elite": return u.plan_name === "Elite";
-                      default: return true;
-                    }
-                  }).length;
-                  return (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className="flex items-center justify-between gap-3 w-full">
-                        {opt.label}
-                        <span className="text-[10px] font-mono text-muted-foreground/50">{count}</span>
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-
-            <div className="relative flex-1 max-w-xs">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-              <Input
-                placeholder="Buscar cliente..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 h-9 bg-card/50 border-border/60 text-sm"
-              />
-            </div>
-
+          {/* Source toggle */}
+          <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-lg border border-border/40 w-fit">
             <button
-              onClick={toggleAllManual}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
-                selectAll ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground"
+              onClick={() => setAudienceSource("clients")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                audienceSource === "clients"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/30"
               }`}
             >
-              <Users size={12} />
-              {selectAll ? `Todos (${audienceUsers.length})` : `${effectiveSelected.size} selecionados`}
+              <Users size={12} /> Clientes
+            </button>
+            <button
+              onClick={() => setAudienceSource("imported")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                audienceSource === "imported"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/30"
+              }`}
+            >
+              <FileSpreadsheet size={12} /> Lista importada
+              {importedContacts.length > 0 && (
+                <span className="text-[10px] bg-primary-foreground/20 px-1.5 rounded-full">{importedContacts.length}</span>
+              )}
             </button>
           </div>
 
-          {/* User list */}
-          <ScrollArea className="h-[320px] border border-border/50 rounded-xl bg-card/30">
-            <div className="divide-y divide-border/30">
-              {audienceUsers.map(u => {
-                const d = getDaysLeft(u.plan_expires_at);
-                const isChecked = selectAll || selectedIds.has(u.id);
-                return (
-                  <div
-                    key={u.id}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 transition-colors cursor-pointer"
-                    onClick={() => toggleUser(u.id)}
-                  >
-                    <Checkbox checked={isChecked} className="shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{u.full_name || "—"}</p>
-                      <p className="text-[11px] text-muted-foreground/60 truncate">{u.email}</p>
-                    </div>
-                    <span className="text-[11px] font-mono text-muted-foreground/50 hidden sm:block">
-                      {formatPhone(u.phone)}
-                    </span>
-                    <Badge variant="outline" className="text-[9px] shrink-0">
-                      {u.plan_name || "—"}
-                    </Badge>
-                    {d !== null && d <= 0 && (
-                      <span className="text-[9px] text-red-400 font-bold shrink-0">Vencido</span>
-                    )}
-                  </div>
-                );
-              })}
-              {audienceUsers.length === 0 && (
-                <div className="text-center py-12 text-sm text-muted-foreground/50">
-                  Nenhum cliente neste filtro
+          {/* Clients source */}
+          {audienceSource === "clients" && (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Select value={audienceFilter} onValueChange={(v) => setAudienceFilter(v as AudienceFilter)}>
+                  <SelectTrigger className="h-9 w-56 bg-card/50 border-border/60 text-sm">
+                    <Filter size={14} className="mr-2 text-muted-foreground/50" />
+                    <SelectValue placeholder="Filtrar clientes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AUDIENCE_OPTIONS.map(opt => {
+                      const count = users.filter(u => {
+                        const d = getDaysLeft(u.plan_expires_at);
+                        switch (opt.value) {
+                          case "all": return true;
+                          case "active": return u.status === "active";
+                          case "expired": return d !== null && d <= 0;
+                          case "expiring": return d !== null && d > 0 && d <= 3;
+                          case "trial": return u.plan_name === "Trial";
+                          case "start": return u.plan_name === "Start";
+                          case "pro": return u.plan_name === "Pro";
+                          case "scale": return u.plan_name === "Scale";
+                          case "elite": return u.plan_name === "Elite";
+                          default: return true;
+                        }
+                      }).length;
+                      return (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <span className="flex items-center justify-between gap-3 w-full">
+                            {opt.label}
+                            <span className="text-[10px] font-mono text-muted-foreground/50">{count}</span>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                <div className="relative flex-1 max-w-xs">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+                  <Input
+                    placeholder="Buscar cliente..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-9 h-9 bg-card/50 border-border/60 text-sm"
+                  />
                 </div>
+
+                <button
+                  onClick={toggleAllManual}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                    selectAll ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground"
+                  }`}
+                >
+                  <Users size={12} />
+                  {selectAll ? `Todos (${audienceUsers.length})` : `${effectiveSelected.size} selecionados`}
+                </button>
+              </div>
+
+              <ScrollArea className="h-[320px] border border-border/50 rounded-xl bg-card/30">
+                <div className="divide-y divide-border/30">
+                  {audienceUsers.map(u => {
+                    const d = getDaysLeft(u.plan_expires_at);
+                    const isChecked = selectAll || selectedIds.has(u.id);
+                    return (
+                      <div
+                        key={u.id}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 transition-colors cursor-pointer"
+                        onClick={() => toggleUser(u.id)}
+                      >
+                        <Checkbox checked={isChecked} className="shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{u.full_name || "—"}</p>
+                          <p className="text-[11px] text-muted-foreground/60 truncate">{u.email}</p>
+                        </div>
+                        <span className="text-[11px] font-mono text-muted-foreground/50 hidden sm:block">
+                          {formatPhone(u.phone)}
+                        </span>
+                        <Badge variant="outline" className="text-[9px] shrink-0">
+                          {u.plan_name || "—"}
+                        </Badge>
+                        {d !== null && d <= 0 && (
+                          <span className="text-[9px] text-red-400 font-bold shrink-0">Vencido</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {audienceUsers.length === 0 && (
+                    <div className="text-center py-12 text-sm text-muted-foreground/50">
+                      Nenhum cliente neste filtro
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </>
+          )}
+
+          {/* Imported source */}
+          {audienceSource === "imported" && (
+            <>
+              {importedContacts.length === 0 ? (
+                <div className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center space-y-4">
+                  <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Upload size={24} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Importar lista de contatos</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Envie um arquivo CSV ou XLSX com nome e número de telefone
+                    </p>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={importLoading}
+                    className="gap-2"
+                  >
+                    {importLoading ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />}
+                    {importLoading ? "Processando..." : "Selecionar arquivo"}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative flex-1 max-w-xs">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+                      <Input
+                        placeholder="Buscar na lista..."
+                        value={importSearch}
+                        onChange={e => setImportSearch(e.target.value)}
+                        className="pl-9 h-9 bg-card/50 border-border/60 text-sm"
+                      />
+                    </div>
+
+                    <button
+                      onClick={toggleImportAll}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                        importSelectAll ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground"
+                      }`}
+                    >
+                      <Users size={12} />
+                      {importSelectAll ? `Todos (${filteredImported.length})` : `${effectiveSelected.size} selecionados`}
+                    </button>
+
+                    <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={importLoading}
+                      className="gap-1.5 text-xs"
+                    >
+                      <FileSpreadsheet size={12} />
+                      Reimportar
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setImportedContacts([]); setImportSelectAll(true); setImportSelectedIds(new Set()); }}
+                      className="gap-1.5 text-xs text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 size={12} />
+                      Limpar
+                    </Button>
+                  </div>
+
+                  <ScrollArea className="h-[320px] border border-border/50 rounded-xl bg-card/30">
+                    <div className="divide-y divide-border/30">
+                      {filteredImported.map(c => {
+                        const isChecked = importSelectAll || importSelectedIds.has(c.id);
+                        return (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 transition-colors cursor-pointer"
+                            onClick={() => toggleImportContact(c.id)}
+                          >
+                            <Checkbox checked={isChecked} className="shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                            </div>
+                            <span className="text-[11px] font-mono text-muted-foreground/50">
+                              {formatPhone(c.phone)}
+                            </span>
+                            <Badge variant="outline" className="text-[9px] shrink-0 text-blue-400 border-blue-400/30">
+                              Importado
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                      {filteredImported.length === 0 && (
+                        <div className="text-center py-12 text-sm text-muted-foreground/50">
+                          Nenhum contato encontrado
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </>
               )}
-            </div>
-          </ScrollArea>
+            </>
+          )}
 
           <div className="flex justify-end">
             <Button
@@ -426,9 +730,9 @@ export default function AdminDispatch() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-muted/20 rounded-lg p-3">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Clientes</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Destinatários</p>
                 <p className="text-lg font-bold text-foreground">{effectiveSelected.size}</p>
-                <p className="text-[11px] text-muted-foreground">{AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label}</p>
+                <p className="text-[11px] text-muted-foreground">{audienceLabel}</p>
               </div>
               <div className="bg-muted/20 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Conexão</p>
@@ -472,6 +776,61 @@ export default function AdminDispatch() {
           </Button>
         </div>
       )}
+
+      {/* Import Mapping Dialog */}
+      <Dialog open={!!rawImport} onOpenChange={(open) => { if (!open) setRawImport(null); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader><DialogTitle>Mapear colunas do arquivo</DialogTitle></DialogHeader>
+          {rawImport && (
+            <div className="space-y-4">
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span>{rawImport.rows.length} linhas</span>
+                <span>{rawImport.headers.length} colunas</span>
+                <span className={rawImport.columnMappings.filter(m => m !== "ignorar").length > 0 ? "text-primary font-medium" : ""}>
+                  {rawImport.columnMappings.filter(m => m !== "ignorar").length} mapeadas
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {rawImport.headers.map((header, i) => {
+                  const mapping = rawImport.columnMappings[i];
+                  const sample = rawImport.rows.slice(0, 3).map(r => String(r[i] || "")).filter(Boolean).join(", ");
+                  const mappingColors: Record<string, string> = {
+                    nome: "ring-emerald-500/30 bg-emerald-500/5",
+                    numero: "ring-blue-500/30 bg-blue-500/5",
+                  };
+                  return (
+                    <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border/30 bg-muted/10">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{header || `Coluna ${i + 1}`}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{sample || "—"}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/30 shrink-0" />
+                      <Select value={mapping} onValueChange={(v) => updateImportMapping(i, v as ImportColumnMapping)}>
+                        <SelectTrigger className={cn("w-[150px] h-9 text-xs", mapping !== "ignorar" && (mappingColors[mapping] || "ring-primary/30 bg-primary/5"))}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {IMPORT_MAPPING_OPTIONS.map(opt => {
+                            const taken = opt.value !== "ignorar" && rawImport.columnMappings.some((m, idx) => idx !== i && m === opt.value);
+                            return <SelectItem key={opt.value} value={opt.value} disabled={taken} className={taken ? "opacity-30" : ""}>{opt.label}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRawImport(null)}>Cancelar</Button>
+            <Button onClick={confirmImportMapping} disabled={!rawImport?.columnMappings.includes("numero")}>
+              Importar {rawImport ? rawImport.rows.length : 0} contatos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
