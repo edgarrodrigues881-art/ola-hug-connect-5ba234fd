@@ -319,7 +319,7 @@ const CampaignDetail = () => {
     };
     sessionStorage.setItem("resend_campaign_data", JSON.stringify(resendData));
     setResendOpen(false);
-    navigate("/dashboard/campaigns");
+    navigate("/backoffice/campaigns");
   };
 
   const handleExportConfirm = async () => {
