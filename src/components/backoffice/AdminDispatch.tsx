@@ -175,13 +175,6 @@ export default function AdminDispatch() {
   };
 
   // === Import logic ===
-  const filteredImported = useMemo(() => {
-    const q = importSearch.toLowerCase();
-    if (!q) return importedContacts;
-    return importedContacts.filter(c =>
-      c.name.toLowerCase().includes(q) || c.phone.includes(q)
-    );
-  }, [importedContacts, importSearch]);
 
   const toggleImportContact = (id: string) => {
     setImportSelectAll(false);
