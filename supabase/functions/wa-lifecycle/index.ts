@@ -138,7 +138,9 @@ Deno.serve(async (req) => {
 
     // ─── ACTION: WELCOME (called from provision-trial) ───
     if (action === "welcome") {
-      const { user_id } = await req.json();
+      const body = await req.json();
+      const user_id = body.user_id;
+      const force = body.force === true;
       console.log("[wa-lifecycle] Welcome for user:", user_id);
 
       const config = await getReportConfig(adminClient);
