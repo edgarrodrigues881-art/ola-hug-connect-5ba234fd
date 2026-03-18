@@ -502,7 +502,7 @@ const Campaigns = () => {
 
   // Handlers
   const handleSendCampaign = () => {
-    if (isBlocked) { setPlanGateOpen(true); return; }
+    if (isBlocked) { return; }
     if (!campaignName.trim()) { toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" }); return; }
     if (selectedDevices.length === 0) { toast({ title: "Instância obrigatória", description: "Selecione pelo menos uma instância.", variant: "destructive" }); return; }
     // Validate selected devices still exist
