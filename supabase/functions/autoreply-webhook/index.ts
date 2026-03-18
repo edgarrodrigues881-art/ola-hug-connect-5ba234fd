@@ -408,10 +408,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Anti-loop cooldown: prevent processing same contact more than once per 3 seconds ──
+    // ── Anti-loop cooldown: prevent processing same contact/message more than once per 30 seconds ──
     const { data: recentSession } = await supabase
       .from("autoreply_sessions")
-      .select("last_message_at")
+      .select("last_message_at, current_node_id")
       .eq("device_id", deviceId)
       .eq("contact_phone", fromPhone)
       .order("updated_at", { ascending: false })
@@ -421,7 +421,7 @@ Deno.serve(async (req) => {
     if (recentSession?.last_message_at) {
       const lastMs = new Date(recentSession.last_message_at).getTime();
       const nowMs = Date.now();
-      if (nowMs - lastMs < 3000) {
+      if (nowMs - lastMs < 30000) {
         console.log(`[autoreply] Anti-loop cooldown: ${nowMs - lastMs}ms since last message`);
         return json({ ok: true, skipped: true, reason: "cooldown" });
       }
