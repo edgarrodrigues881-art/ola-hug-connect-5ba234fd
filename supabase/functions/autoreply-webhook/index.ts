@@ -474,7 +474,10 @@ Deno.serve(async (req) => {
       (f) => !f.device_id || f.device_id === deviceId
     );
 
+    console.log(`[autoreply] Device ${deviceId}: ${flows.length} active flows, ${matchingFlows.length} matching this device`);
+
     if (matchingFlows.length === 0) {
+      console.log(`[autoreply] SKIP: No flows matching device ${deviceId}. Flow device_ids: ${flows.map((f: any) => f.device_id).join(", ")}`);
       return json({ ok: true, skipped: true, reason: "no_matching_flows" });
     }
 
