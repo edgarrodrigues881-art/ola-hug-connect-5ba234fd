@@ -139,6 +139,14 @@ export default function AdminDispatch() {
     });
   }, [users, audienceFilter, search]);
 
+  const filteredImported = useMemo(() => {
+    const q = importSearch.toLowerCase();
+    if (!q) return importedContacts;
+    return importedContacts.filter(c =>
+      c.name.toLowerCase().includes(q) || c.phone.includes(q)
+    );
+  }, [importedContacts, importSearch]);
+
   const effectiveSelected = useMemo(() => {
     if (audienceSource === "imported") {
       if (importSelectAll) return new Set(filteredImported.map(c => c.id));
@@ -146,7 +154,7 @@ export default function AdminDispatch() {
     }
     if (selectAll) return new Set(audienceUsers.map(u => u.id));
     return selectedIds;
-  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds]);
+  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds, filteredImported]);
 
   const toggleUser = (id: string) => {
     setSelectAll(false);
