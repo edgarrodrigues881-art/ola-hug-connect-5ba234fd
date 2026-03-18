@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Send, Loader2, CheckCircle2, Users, Filter, Search,
   FileText, ChevronRight, Smartphone, AlertTriangle, Eye,
-  Upload, FileSpreadsheet, ArrowRight, Trash2, X
+  Upload, FileSpreadsheet, ArrowRight, Trash2, X, Pencil, Plus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
