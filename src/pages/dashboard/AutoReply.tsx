@@ -346,7 +346,7 @@ function FlowCanvas() {
         name={flowName}
         onNameChange={setFlowName}
         isActive={isActive}
-        onToggleActive={() => setIsActive(!isActive)}
+        onToggleActive={setIsActive}
         onSave={handleSave}
         saving={saving}
         deviceId={deviceId}
