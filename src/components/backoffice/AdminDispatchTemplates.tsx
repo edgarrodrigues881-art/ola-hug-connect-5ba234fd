@@ -374,11 +374,10 @@ export default function AdminDispatchTemplates() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return templates.filter(t => {
-      if (filterCat !== "all" && t.category !== filterCat) return false;
       if (q && !t.name.toLowerCase().includes(q) && !t.content.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [templates, search, filterCat]);
+  }, [templates, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
@@ -400,25 +399,11 @@ export default function AdminDispatchTemplates() {
         </Button>
       </div>
 
-      {/* Search + Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Search */}
+      <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
           <Input placeholder="Buscar modelo..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card/50 border-border/60 text-sm" />
-        </div>
-        <div className="flex gap-1.5 overflow-x-auto">
-          <button onClick={() => setFilterCat("all")} className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${filterCat === "all" ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground hover:border-border"}`}>
-            Todos ({templates.length})
-          </button>
-          {CATEGORIES.map(cat => {
-            const count = templates.filter(t => t.category === cat.value).length;
-            return (
-              <button key={cat.value} onClick={() => setFilterCat(f => f === cat.value ? "all" : cat.value)}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${filterCat === cat.value ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground hover:border-border"}`}>
-                {cat.label} {count > 0 && <span className="text-[9px] ml-1 opacity-60">({count})</span>}
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -434,15 +419,11 @@ export default function AdminDispatchTemplates() {
       ) : (
         <div className="space-y-2.5">
           {paginated.map((t, idx) => {
-            const cat = catConfig(t.category);
             return (
               <div key={t.id} className="group flex items-center gap-4 px-4 py-3.5 rounded-xl border border-border/40 bg-card hover:border-primary/20 hover:shadow-[0_2px_12px_-4px_hsl(var(--primary)/0.08)] transition-all duration-200">
                 <span className="text-xs font-mono text-muted-foreground/40 w-6 text-right tabular-nums shrink-0">
                   {(currentPage - 1) * perPage + idx + 1}
                 </span>
-                <Badge variant="outline" className={`text-[10px] font-medium shrink-0 rounded-lg px-2 py-0.5 border-border/60 bg-muted/40 hidden sm:flex`}>
-                  {cat.label}
-                </Badge>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-foreground truncate">{t.name}</p>
@@ -509,21 +490,10 @@ export default function AdminDispatchTemplates() {
           </DialogHeader>
 
           <div className="px-6 py-5 space-y-5">
-            {/* Name + Category */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Nome do modelo</Label>
-                <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Lembrete de vencimento" className="h-11 text-sm bg-background/50 dark:bg-muted/20 border-border/30" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Categoria</Label>
-                <Select value={formCategory} onValueChange={setFormCategory}>
-                  <SelectTrigger className="h-11 bg-background/50 dark:bg-muted/20 border-border/30"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Nome do modelo</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Lembrete de vencimento" className="h-11 text-sm bg-background/50 dark:bg-muted/20 border-border/30" />
             </div>
 
             {/* Message Editor */}
