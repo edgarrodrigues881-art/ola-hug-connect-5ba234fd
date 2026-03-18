@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import {
   Send, Loader2, CheckCircle2, Users, Filter, Search,
   FileText, ChevronRight, Smartphone, AlertTriangle, Eye,
-  Upload, FileSpreadsheet, ArrowRight, Trash2, X, Pencil, Plus
+  Upload, FileSpreadsheet, ArrowRight, Trash2, X, Pencil, Plus,
+  Pause, Play, XCircle, Clock, History, BarChart3
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
