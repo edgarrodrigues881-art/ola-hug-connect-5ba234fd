@@ -751,129 +751,124 @@ async function doRegisterWebhook(device: any) {
     webhookHeaders["x-webhook-secret"] = webhookSecret;
   }
 
-  // Try multiple endpoint formats for different UaZapi versions
-  const attempts = [
-    // UaZapi GO v2 format
-    {
-      url: `${baseUrl}/webhook`,
-      body: {
-        url: webhookUrl,
-        enabled: true,
-        events: ["messages"],
-        excludeMessages: ["wasSentByApi"],
-        addUrlEvents: true,
-        headers: webhookHeaders,
-      },
-    },
-    // UaZapi GO alternate format
-    {
-      url: `${baseUrl}/webhook`,
-      body: {
-        webhookURL: webhookUrl,
-        enabled: true,
-        events: ["messages"],
-        excludeMessages: ["wasSentByApi"],
-        webhookHeaders,
-      },
-    },
-    // UaZapi legacy format
-    {
-      url: `${baseUrl}/webhook/set`,
-      body: {
-        url: webhookUrl,
-        enabled: true,
-        events: ["messages"],
-        excludeMessages: ["wasSentByApi"],
-        headers: webhookHeaders,
-      },
-    },
-  ];
+  const desiredBody = {
+    url: webhookUrl,
+    enabled: true,
+    events: ["messages"],
+    excludeMessages: ["wasSentByApi"],
+    addUrlEvents: true,
+    headers: webhookHeaders,
+  };
 
-  let lastError = "";
-  let lastStatus = 0;
-
-  for (const attempt of attempts) {
-    try {
-      const res = await fetch(attempt.url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(attempt.body),
-      });
-
-      const text = await res.text();
-      console.log(`[autoreply] Webhook attempt ${attempt.url}: ${res.status} ${text.substring(0, 500)}`);
-
-      if (res.ok || res.status === 200 || res.status === 201) {
-        // Check if response shows webhook is still disabled (list response, not update)
-        try {
-          const parsed = JSON.parse(text);
-          const arr = Array.isArray(parsed) ? parsed : [parsed];
-          const ours = arr.find((w: any) => w.url === webhookUrl || w.webhookURL === webhookUrl);
-          if (ours && ours.enabled === false) {
-            console.log(`[autoreply] Webhook exists but disabled, trying PUT to update...`);
-            // Try PUT to update existing webhook
-            const putRes = await fetch(attempt.url, {
-              method: "PUT",
-              headers,
-              body: JSON.stringify({ ...attempt.body, id: ours.id }),
-            });
-            const putText = await putRes.text();
-            console.log(`[autoreply] PUT update: ${putRes.status} ${putText.substring(0, 300)}`);
-          }
-        } catch {}
-        return json({ ok: true, webhook_url: webhookUrl, endpoint: attempt.url });
-      }
-
-      lastError = text;
-      lastStatus = res.status;
-
-      // If method not allowed, try next format
-      if (res.status === 405) continue;
-      // If bad request, try next format
-      if (res.status === 400) continue;
-
-      // For other errors, return immediately
-      return json({ error: `Webhook registration failed (${res.status})`, details: text.substring(0, 300) }, 502);
-    } catch (err) {
-      lastError = err instanceof Error ? err.message : String(err);
-      console.error(`[autoreply] Webhook attempt ${attempt.url} error:`, lastError);
-      continue;
-    }
-  }
-
-  // Also try PUT method as some versions use that
+  // Step 1: GET existing webhooks to check if ours exists
   try {
-    const res = await fetch(`${baseUrl}/webhook`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify({
-        url: webhookUrl,
-        enabled: true,
-        events: ["messages"],
-        excludeMessages: ["wasSentByApi"],
-        addUrlEvents: true,
-        headers: webhookHeaders,
-      }),
-    });
+    const getRes = await fetch(`${baseUrl}/webhook`, { method: "GET", headers });
+    const getText = await getRes.text();
+    console.log(`[autoreply] GET /webhook: ${getRes.status} ${getText.substring(0, 500)}`);
 
-    const text = await res.text();
-    console.log(`[autoreply] Webhook PUT attempt: ${res.status} ${text.substring(0, 300)}`);
+    if (getRes.ok) {
+      try {
+        const parsed = JSON.parse(getText);
+        const arr = Array.isArray(parsed) ? parsed : [];
+        const existing = arr.find((w: any) => w.url === webhookUrl);
 
-    if (res.ok) {
-      return json({ ok: true, webhook_url: webhookUrl, endpoint: "PUT /webhook" });
+        if (existing) {
+          // Webhook exists — update it via PUT with its id
+          console.log(`[autoreply] Found existing webhook id=${existing.id}, enabled=${existing.enabled}. Updating via PUT...`);
+          const putRes = await fetch(`${baseUrl}/webhook`, {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({ ...desiredBody, id: existing.id }),
+          });
+          const putText = await putRes.text();
+          console.log(`[autoreply] PUT /webhook: ${putRes.status} ${putText.substring(0, 500)}`);
+
+          if (putRes.ok) {
+            return json({ ok: true, webhook_url: webhookUrl, method: "PUT_UPDATE", webhook_id: existing.id });
+          }
+
+          // PUT failed — try PATCH
+          const patchRes = await fetch(`${baseUrl}/webhook`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ ...desiredBody, id: existing.id }),
+          });
+          const patchText = await patchRes.text();
+          console.log(`[autoreply] PATCH /webhook: ${patchRes.status} ${patchText.substring(0, 500)}`);
+
+          if (patchRes.ok) {
+            return json({ ok: true, webhook_url: webhookUrl, method: "PATCH_UPDATE", webhook_id: existing.id });
+          }
+
+          // Try DELETE + POST (recreate)
+          console.log(`[autoreply] PUT/PATCH failed. Trying DELETE + POST to recreate...`);
+          const delRes = await fetch(`${baseUrl}/webhook`, {
+            method: "DELETE",
+            headers,
+            body: JSON.stringify({ id: existing.id }),
+          });
+          const delText = await delRes.text();
+          console.log(`[autoreply] DELETE /webhook: ${delRes.status} ${delText.substring(0, 300)}`);
+        }
+      } catch (parseErr) {
+        console.log(`[autoreply] Could not parse GET response, proceeding with POST`);
+      }
     }
-
-    lastError = text;
-    lastStatus = res.status;
-  } catch (err) {
-    lastError = err instanceof Error ? err.message : String(err);
+  } catch (getErr) {
+    console.log(`[autoreply] GET /webhook failed: ${getErr}, proceeding with POST`);
   }
 
-  console.error(`[autoreply] All webhook registration attempts failed. Last: ${lastStatus} ${lastError}`);
+  // Step 2: POST to create new webhook
+  try {
+    const postRes = await fetch(`${baseUrl}/webhook`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(desiredBody),
+    });
+    const postText = await postRes.text();
+    console.log(`[autoreply] POST /webhook: ${postRes.status} ${postText.substring(0, 500)}`);
+
+    if (postRes.ok) {
+      // Verify it was actually enabled
+      try {
+        const parsed = JSON.parse(postText);
+        const arr = Array.isArray(parsed) ? parsed : [parsed];
+        const ours = arr.find((w: any) => w.url === webhookUrl);
+        if (ours && ours.enabled === false) {
+          console.warn(`[autoreply] POST returned success but webhook still disabled. Manual config may be needed.`);
+          return json({
+            ok: false,
+            warning: "Webhook criado mas não habilitado automaticamente",
+            webhook_url: webhookUrl,
+            manual_setup: `Acesse o painel UaZapi, ative o webhook com URL: ${webhookUrl}`,
+          });
+        }
+      } catch {}
+      return json({ ok: true, webhook_url: webhookUrl, method: "POST_CREATE" });
+    }
+  } catch (postErr) {
+    console.error(`[autoreply] POST /webhook error: ${postErr}`);
+  }
+
+  // Step 3: Try /webhook/set endpoint (legacy)
+  try {
+    const setRes = await fetch(`${baseUrl}/webhook/set`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(desiredBody),
+    });
+    const setText = await setRes.text();
+    console.log(`[autoreply] POST /webhook/set: ${setRes.status} ${setText.substring(0, 300)}`);
+
+    if (setRes.ok) {
+      return json({ ok: true, webhook_url: webhookUrl, method: "POST_SET" });
+    }
+  } catch {}
+
+  console.error(`[autoreply] All webhook registration attempts failed`);
   return json({
-    error: "Falha ao registrar webhook em todos os formatos",
-    details: `Status ${lastStatus}: ${lastError.substring(0, 300)}`,
+    error: "Falha ao registrar webhook",
     webhook_url: webhookUrl,
-    manual_setup: "Configure manualmente: cole a URL acima no campo 'URL' do webhook na UaZapi, evento 'messages', exclua 'wasSentByApi'",
+    manual_setup: `Configure manualmente no painel UaZapi: URL = ${webhookUrl}, Eventos = messages, Ativar = Sim`,
   }, 502);
 }
