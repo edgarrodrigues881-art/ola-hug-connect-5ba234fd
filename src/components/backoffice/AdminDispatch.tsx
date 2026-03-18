@@ -429,7 +429,7 @@ export default function AdminDispatch() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-muted/20 rounded-lg p-3">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Audiência</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Clientes</p>
                 <p className="text-lg font-bold text-foreground">{effectiveSelected.size}</p>
                 <p className="text-[11px] text-muted-foreground">{AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label}</p>
               </div>
