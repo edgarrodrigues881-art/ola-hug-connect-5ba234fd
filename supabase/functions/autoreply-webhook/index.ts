@@ -387,7 +387,7 @@ Deno.serve(async (req) => {
 
     // Skip empty messages without button response (likely bot's own sent messages echoed back)
     if (!messageText && !hasButtonResponse) {
-      console.log("[autoreply] Skipping empty message without button response");
+      console.log(`[autoreply] Skipping empty message without button response. fromMe=${isFromMe} fromPhone=${fromPhone} bodyKeys=${Object.keys(body).join(",")}`);
       return json({ ok: true, skipped: true, reason: "empty_no_button" });
     }
 
