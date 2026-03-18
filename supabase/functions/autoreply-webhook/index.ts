@@ -593,3 +593,59 @@ async function processNodeChain(
     .update({ status: "completed" })
     .eq("id", sessionId);
 }
+
+// ──────────────────────────────────────────────────────────────
+// WEBHOOK REGISTRATION ON UAZAPI
+// ──────────────────────────────────────────────────────────────
+
+async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
+  const { device_id } = body;
+
+  // Auth check
+  const authHeader = req.headers.get("authorization") ?? "";
+  const userToken = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(userToken);
+  if (authErr || !user) {
+    return json({ error: "Not authenticated" }, 401);
+  }
+
+  // Get device
+  const { data: device } = await supabase
+    .from("devices")
+    .select("id, uazapi_token, uazapi_base_url")
+    .eq("id", device_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!device?.uazapi_token || !device?.uazapi_base_url) {
+    return json({ error: "Device not configured" }, 400);
+  }
+
+  const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const webhookUrl = `${supabaseUrl}/functions/v1/autoreply-webhook`;
+
+  try {
+    // UaZapi V2: POST /webhook/set
+    const res = await fetch(`${baseUrl}/webhook/set`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: device.uazapi_token,
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: ["messages.upsert"],
+        headers: { token: device.uazapi_token },
+      }),
+    });
+
+    const text = await res.text();
+    console.log(`[autoreply] Webhook registered for device ${device_id}: ${res.status} ${text}`);
+
+    return json({ ok: true, webhook_url: webhookUrl });
+  } catch (err) {
+    console.error("[autoreply] Webhook registration error:", err);
+    return json({ error: "Failed to register webhook", details: err.message }, 500);
+  }
+}
