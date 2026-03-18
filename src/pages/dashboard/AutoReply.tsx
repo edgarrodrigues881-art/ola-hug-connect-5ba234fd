@@ -117,6 +117,7 @@ function FlowCanvas() {
       const payload = {
         name: flowName,
         is_active: isActive,
+        device_id: deviceId,
         nodes: nodes as any,
         edges: edges as any,
         user_id: user.id,
