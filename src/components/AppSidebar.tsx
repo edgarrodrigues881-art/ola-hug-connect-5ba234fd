@@ -9,6 +9,7 @@ import {
   Flame,
   Shield,
   UsersRound,
+  BotMessageSquare,
   LogOut,
   Settings,
   ChevronUp,
@@ -79,6 +80,7 @@ const menuGroups = [
     items: [
       { title: "Modelos", url: "/dashboard/templates", icon: FileText },
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
+      { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare },
     ],
   },
 ];
