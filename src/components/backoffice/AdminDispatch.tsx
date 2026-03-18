@@ -168,7 +168,50 @@ export default function AdminDispatch() {
     refetchOnWindowFocus: true,
   });
 
-  // === Client audience logic ===
+  // === Dispatch history ===
+  const { data: dispatchHistory = [], refetch: refetchHistory } = useQuery({
+    queryKey: ["admin-dispatch-history"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=dispatch-list`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      const data = await resp.json();
+      return data.dispatches || [];
+    },
+    refetchInterval: viewMode === "history" ? 5000 : false,
+  });
+
+  const dispatchControlMutation = useMutation({
+    mutationFn: async ({ dispatch_id, command }: { dispatch_id: string; command: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data?action=dispatch-control`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ dispatch_id, command }),
+        }
+      );
+      if (!resp.ok) throw new Error("Erro ao controlar disparo");
+    },
+    onSuccess: () => {
+      refetchHistory();
+      toast.success("Disparo atualizado");
+    },
+  });
+
+
   const audienceUsers = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter(u => {
