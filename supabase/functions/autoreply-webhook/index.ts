@@ -173,9 +173,30 @@ Deno.serve(async (req) => {
     let buttonResponseId = "";
     let isFromMe = false;
     let instanceToken = "";
+    let deviceHeaderId = "";
 
-    // Try to get the instance token from headers or body
-    instanceToken = req.headers.get("token") || body.token || body.instance_token || "";
+    // Try to get instance identifiers from headers/body
+    instanceToken = (
+      req.headers.get("token") ||
+      req.headers.get("x-instance-token") ||
+      body.token ||
+      body.instance_token ||
+      ""
+    ).trim().replace(/^Bearer\s+/i, "");
+
+    deviceHeaderId = (
+      req.headers.get("x-device-id") ||
+      body.device_id ||
+      body.instance_id ||
+      body.deviceId ||
+      ""
+    ).trim();
+
+    const webhookSecret = req.headers.get("x-webhook-secret") || "";
+    const expectedWebhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
+    if (webhookSecret && expectedWebhookSecret && webhookSecret !== expectedWebhookSecret) {
+      return json({ error: "Invalid webhook secret" }, 401);
+    }
 
     // UaZapi format
     if (msgData.key) {
@@ -223,21 +244,35 @@ Deno.serve(async (req) => {
       return json({ ok: true, skipped: true, reason: "non_message_event" });
     }
 
-    console.log(`[autoreply] Incoming from ${fromPhone}: "${messageText}" buttonId: "${buttonResponseId}" token: ${instanceToken ? "yes" : "no"}`);
+    console.log(`[autoreply] Incoming from ${fromPhone}: "${messageText}" buttonId: "${buttonResponseId}" token: ${instanceToken ? "yes" : "no"} deviceId: ${deviceHeaderId || "no"}`);
 
-    // ── Find the device by token ──
-    if (!instanceToken) {
-      return json({ ok: true, skipped: true, reason: "no_token" });
+    // ── Find the device by explicit device id, fallback to token ──
+    if (!deviceHeaderId && !instanceToken) {
+      return json({ ok: true, skipped: true, reason: "no_device_identifier" });
     }
 
-    const { data: device } = await supabase
-      .from("devices")
-      .select("id, user_id, uazapi_token, uazapi_base_url, status")
-      .eq("uazapi_token", instanceToken)
-      .maybeSingle();
+    let device: { id: string; user_id: string; uazapi_token: string | null; uazapi_base_url: string | null; status: string } | null = null;
+
+    if (deviceHeaderId) {
+      const { data } = await supabase
+        .from("devices")
+        .select("id, user_id, uazapi_token, uazapi_base_url, status")
+        .eq("id", deviceHeaderId)
+        .maybeSingle();
+      device = data;
+    }
+
+    if (!device && instanceToken) {
+      const { data } = await supabase
+        .from("devices")
+        .select("id, user_id, uazapi_token, uazapi_base_url, status")
+        .eq("uazapi_token", instanceToken)
+        .maybeSingle();
+      device = data;
+    }
 
     if (!device) {
-      console.log("[autoreply] Device not found for token");
+      console.log("[autoreply] Device not found for webhook identifiers");
       return json({ ok: true, skipped: true, reason: "device_not_found" });
     }
 
