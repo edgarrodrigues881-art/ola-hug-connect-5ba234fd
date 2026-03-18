@@ -15,6 +15,7 @@ import logo from "@/assets/logo-new.png";
 
 import { useNavigate } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { AnnouncementManager } from "@/components/AnnouncementManager";
 import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
