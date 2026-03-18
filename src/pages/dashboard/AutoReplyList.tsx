@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, BotMessageSquare, Pencil, Copy, Trash2, MoreHorizontal,
   Zap, Clock, Search, Filter, GitBranch, MousePointerClick,
-  FileText, Loader2, Smartphone
+  Loader2, Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -80,7 +80,7 @@ export default function AutoReplyList() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows", user?.id] });
       toast.success("Instância atualizada");
     },
   });
@@ -160,7 +160,7 @@ export default function AutoReplyList() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows", user?.id] });
       toast.success("Automação excluída");
     },
   });
@@ -176,11 +176,12 @@ export default function AutoReplyList() {
         is_active: false,
         nodes: original.nodes,
         edges: original.edges,
+        device_id: (original as any).device_id || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows", user?.id] });
       toast.success("Automação duplicada");
     },
   });
@@ -280,6 +281,7 @@ export default function AutoReplyList() {
         <div className="space-y-3">
           {filtered.map((flow) => {
             const { steps, buttons, trigger } = getFlowInfo(flow);
+            const deviceInfo = (flow as any).device_id ? deviceMap.get((flow as any).device_id) : null;
             return (
               <div
                 key={flow.id}
@@ -288,44 +290,60 @@ export default function AutoReplyList() {
                 <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl transition-colors ${
                   flow.is_active ? "bg-emerald-500" : "bg-transparent"
                 }`} />
-                <div className="flex items-start sm:items-center gap-4 px-5 py-4 pl-6">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 transition-colors mt-0.5 sm:mt-0 ${
-                    flow.is_active ? "bg-emerald-500/10 ring-emerald-500/20" : "bg-muted/20 ring-border/30"
-                  }`}>
-                    <BotMessageSquare className={`w-4 h-4 ${flow.is_active ? "text-emerald-500" : "text-muted-foreground/40"}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <h3 className="text-sm font-semibold text-foreground truncate">{flow.name}</h3>
-                      <Badge variant={flow.is_active ? "default" : "secondary"} className={`text-[10px] px-2 py-0 h-5 font-medium shrink-0 ${
-                        flow.is_active
-                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/15"
-                          : "bg-muted/30 text-muted-foreground/50 border-border/30 hover:bg-muted/40"
-                      }`}>
-                        {flow.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
+                
+                {/* Main row - stack on mobile */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 pl-6">
+                  {/* Icon + Info */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 transition-colors ${
+                      flow.is_active ? "bg-emerald-500/10 ring-emerald-500/20" : "bg-muted/20 ring-border/30"
+                    }`}>
+                      <BotMessageSquare className={`w-4 h-4 ${flow.is_active ? "text-emerald-500" : "text-muted-foreground/40"}`} />
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
-                        <Zap className="w-3 h-3 text-amber-500/60" /> {triggerLabels[trigger] || trigger}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
-                        <GitBranch className="w-3 h-3" /> {steps} bloco{steps !== 1 ? "s" : ""}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
-                        <MousePointerClick className="w-3 h-3" /> {buttons} botão{buttons !== 1 ? "ões" : ""}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/30">
-                        <Clock className="w-3 h-3" /> {format(new Date(flow.updated_at), "dd MMM, HH:mm", { locale: ptBR })}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <h3 className="text-sm font-semibold text-foreground truncate">{flow.name}</h3>
+                        <Badge variant={flow.is_active ? "default" : "secondary"} className={`text-[10px] px-2 py-0 h-5 font-medium shrink-0 ${
+                          flow.is_active
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/15"
+                            : "bg-muted/30 text-muted-foreground/50 border-border/30 hover:bg-muted/40"
+                        }`}>
+                          {flow.is_active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
+                          <Zap className="w-3 h-3 text-amber-500/60" /> {triggerLabels[trigger] || trigger}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+                          <GitBranch className="w-3 h-3" /> {steps} bloco{steps !== 1 ? "s" : ""}
+                        </span>
+                        {buttons > 0 && (
+                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+                            <MousePointerClick className="w-3 h-3" /> {buttons} botão{buttons !== 1 ? "ões" : ""}
+                          </span>
+                        )}
+                        {deviceInfo && (
+                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+                            <Smartphone className="w-3 h-3" />
+                            <span className={`w-1.5 h-1.5 rounded-full ${onlineStatuses.has(deviceInfo.status) ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                            {deviceInfo.name}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/30">
+                          <Clock className="w-3 h-3" /> {format(new Date(flow.updated_at), "dd MMM, HH:mm", { locale: ptBR })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 shrink-0 pl-[52px] sm:pl-0">
                     <Select
                       value={(flow as any).device_id || "none"}
                       onValueChange={(v) => deviceMutation.mutate({ id: flow.id, device_id: v === "none" ? null : v })}
                     >
-                      <SelectTrigger className="w-[160px] h-8 text-xs bg-card/60 border-border/30 gap-1.5">
+                      <SelectTrigger className="w-[140px] sm:w-[160px] h-8 text-xs bg-card/60 border-border/30 gap-1.5">
                         <Smartphone className="w-3 h-3 text-muted-foreground/40 shrink-0" />
                         <SelectValue placeholder="Instância" />
                       </SelectTrigger>
@@ -347,7 +365,7 @@ export default function AutoReplyList() {
                       className="scale-[0.85]"
                     />
                     <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-border/40 hover:border-primary/40 hover:text-primary transition-colors" onClick={() => navigate(`/dashboard/auto-reply/${flow.id}`)}>
-                      <Pencil className="w-3 h-3" /> Editar
+                      <Pencil className="w-3 h-3" /> <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
