@@ -100,6 +100,10 @@ export default function AdminDispatch() {
   const [connectionPurpose, setConnectionPurpose] = useState("dispatch");
   const [minDelay, setMinDelay] = useState(5);
   const [maxDelay, setMaxDelay] = useState(15);
+  const [pauseEveryMin, setPauseEveryMin] = useState(10);
+  const [pauseEveryMax, setPauseEveryMax] = useState(20);
+  const [pauseDurationMin, setPauseDurationMin] = useState(30);
+  const [pauseDurationMax, setPauseDurationMax] = useState(120);
   const [dispatching, setDispatching] = useState(false);
   const [result, setResult] = useState<{ ok: number; fail: number } | null>(null);
 
@@ -361,6 +365,10 @@ export default function AdminDispatch() {
             connection_purpose: connectionPurpose,
             min_delay_seconds: minDelay,
             max_delay_seconds: maxDelay,
+            pause_every_min: pauseEveryMin,
+            pause_every_max: pauseEveryMax,
+            pause_duration_min: pauseDurationMin,
+            pause_duration_max: pauseDurationMax,
           }),
         }
       );
@@ -776,6 +784,32 @@ export default function AdminDispatch() {
               </p>
             </div>
 
+            {/* Pause config */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Pausa automática</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Pausar a cada (min msgs)</label>
+                  <Input type="number" min={1} max={500} value={pauseEveryMin} onChange={e => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Pausar a cada (max msgs)</label>
+                  <Input type="number" min={1} max={500} value={pauseEveryMax} onChange={e => { const v = Number(e.target.value); setPauseEveryMax(v); if (v < pauseEveryMin) setPauseEveryMin(v); }} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Duração da pausa (min seg)</label>
+                  <Input type="number" min={5} max={600} value={pauseDurationMin} onChange={e => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Duração da pausa (max seg)</label>
+                  <Input type="number" min={5} max={600} value={pauseDurationMax} onChange={e => { const v = Number(e.target.value); setPauseDurationMax(v); if (v < pauseDurationMin) setPauseDurationMin(v); }} className="h-9 text-sm" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground/50">
+                A cada {pauseEveryMin}–{pauseEveryMax} mensagens, pausa de {pauseDurationMin}s–{pauseDurationMax}s
+              </p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Conexão para envio</label>
               <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/50 bg-card/60 px-3 py-2">
@@ -838,6 +872,11 @@ export default function AdminDispatch() {
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Intervalo</p>
                 <p className="text-sm font-semibold text-foreground">{minDelay}s – {maxDelay}s</p>
                 <p className="text-[11px] text-muted-foreground">entre cada envio</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Pausa</p>
+                <p className="text-sm font-semibold text-foreground">{pauseDurationMin}s – {pauseDurationMax}s</p>
+                <p className="text-[11px] text-muted-foreground">a cada {pauseEveryMin}–{pauseEveryMax} msgs</p>
               </div>
               <div className="bg-muted/20 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Tempo estimado</p>
