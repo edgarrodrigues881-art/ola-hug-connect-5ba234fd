@@ -1393,6 +1393,120 @@ export default function AdminDispatch() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>)}
+    </div>
+  );
+}
+
+// ─── Dispatch History Panel ───
+function DispatchHistoryPanel({ dispatches, onControl, controlling }: {
+  dispatches: any[];
+  onControl: (id: string, cmd: string) => void;
+  controlling: boolean;
+}) {
+  const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+    running: { label: "Enviando", color: "text-emerald-400", icon: Play },
+    paused: { label: "Pausado", color: "text-yellow-400", icon: Pause },
+    completed: { label: "Concluído", color: "text-primary", icon: CheckCircle2 },
+    cancelled: { label: "Cancelado", color: "text-destructive", icon: XCircle },
+    pending: { label: "Pendente", color: "text-muted-foreground", icon: Clock },
+  };
+
+  if (dispatches.length === 0) {
+    return (
+      <div className="text-center py-16 space-y-3">
+        <History size={40} className="mx-auto text-muted-foreground/20" />
+        <p className="text-sm text-muted-foreground">Nenhum disparo realizado ainda</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {dispatches.map((d: any) => {
+        const cfg = statusConfig[d.status] || statusConfig.pending;
+        const Icon = cfg.icon;
+        const progress = d.total_contacts > 0 ? Math.round(((d.sent_count + d.failed_count) / d.total_contacts) * 100) : 0;
+        const isActive = d.status === "running" || d.status === "paused";
+
+        return (
+          <div key={d.id} className="bg-card/60 border border-border/50 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon size={16} className={cfg.color} />
+                <span className={cn("text-xs font-bold", cfg.color)}>{cfg.label}</span>
+                {d.status === "running" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+              </div>
+              <span className="text-[10px] text-muted-foreground/50">
+                {d.started_at ? new Date(d.started_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="space-y-1.5">
+              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                <div
+                  className={cn("h-full rounded-full transition-all duration-500",
+                    d.status === "running" ? "bg-emerald-400" :
+                    d.status === "completed" ? "bg-primary" :
+                    d.status === "cancelled" ? "bg-destructive/60" : "bg-yellow-400"
+                  )}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground/50">
+                <span className="tabular-nums">{d.sent_count + d.failed_count} / {d.total_contacts}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-emerald-400">✓ {d.sent_count}</span>
+                  {d.failed_count > 0 && <span className="text-destructive">✗ {d.failed_count}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Message preview */}
+            <p className="text-[11px] text-muted-foreground/60 line-clamp-2 bg-muted/10 rounded-lg px-3 py-2">
+              {d.message_content}
+            </p>
+
+            {/* Controls */}
+            {isActive && (
+              <div className="flex items-center gap-2 pt-1">
+                {d.status === "running" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] h-7 gap-1 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                    onClick={() => onControl(d.id, "pause")}
+                    disabled={controlling}
+                  >
+                    <Pause size={12} /> Pausar
+                  </Button>
+                )}
+                {d.status === "paused" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] h-7 gap-1 border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/10"
+                    onClick={() => onControl(d.id, "resume")}
+                    disabled={controlling}
+                  >
+                    <Play size={12} /> Retomar
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[11px] h-7 gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => onControl(d.id, "cancel")}
+                  disabled={controlling}
+                >
+                  <XCircle size={12} /> Cancelar
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
