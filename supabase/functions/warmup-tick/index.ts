@@ -2336,6 +2336,29 @@ async function handleTick(db: any) {
               message: `Comunitário x1 concluído com ${maxTurns} turnos`,
               meta: { pair_id: selectedPair.id, peer_device: peerDeviceId, turns: maxTurns },
             });
+
+            // [FIX] Schedule a NEW burst to start another conversation later in the day
+            if (isWithinOperatingWindow()) {
+              const nextBurstDelay = randInt(15, 45) * 60; // 15-45 min cooldown before next conversation
+              const nextRunAt = new Date(Date.now() + nextBurstDelay * 1000).toISOString();
+              const endOfWindow = getBrtTodayAt(19).getTime();
+              
+              // Only schedule if there's enough time left in the day
+              if (Date.now() + nextBurstDelay * 1000 < endOfWindow - 30 * 60 * 1000) {
+                await db.from("warmup_jobs").insert({
+                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                  job_type: "community_interaction",
+                  payload: { source: "auto_reburst", after_completed: selectedPair.id },
+                  run_at: nextRunAt, status: "pending",
+                });
+                bufferAudit({
+                  user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+                  level: "info", event_type: "community_reburst_scheduled",
+                  message: `Novo burst agendado em ${Math.round(nextBurstDelay / 60)}min após conclusão`,
+                  meta: { next_run_at: nextRunAt },
+                });
+              }
+            }
           }
           return "ok";
         };
