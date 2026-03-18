@@ -141,6 +141,8 @@ const Campaigns = () => {
   const startCampaign = useStartCampaign();
   const { data: savedTemplates = [] } = useTemplates();
   const { data: savedContacts = [] } = useContacts();
+  const { data: adminData } = useAdminDashboard();
+  const adminUsers = useMemo(() => (adminData?.users || []).filter(u => !u.roles.includes("admin")), [adminData]);
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
