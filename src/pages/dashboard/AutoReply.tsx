@@ -99,6 +99,7 @@ function FlowCanvas() {
       }
       setFlowName(data.name);
       setIsActive(data.is_active);
+      setDeviceId((data as any).device_id || null);
       if (Array.isArray(data.nodes) && data.nodes.length > 0) {
         setNodes(data.nodes as any);
       }
