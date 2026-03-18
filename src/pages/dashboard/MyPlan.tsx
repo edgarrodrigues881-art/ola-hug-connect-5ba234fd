@@ -1,4 +1,4 @@
-import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Star, Users } from "lucide-react";
+import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Lock, Activity, TrendingUp } from "lucide-react";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number; price: string }) => {
   const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência – ${plan.name} (${plan.instances} Instâncias) no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
@@ -10,55 +10,54 @@ const buildAddonWhatsappUrl = () => {
   return `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
 };
 
-const FEATURES = [
-  "Aquecimento automático inteligente",
-  "Disparo de mensagens em massa",
-  "Gestão de instâncias",
-  "Monitoramento em tempo real",
-  "Painel centralizado",
-  "Relatórios via WhatsApp",
-];
-
 const plans = [
   {
     name: "Start",
     instances: 10,
     price: "149,90",
-    description: "Perfeito para quem está iniciando uma operação profissional.",
+    perInstance: "14,99",
+    subtitle: "Ideal para quem está começando com estrutura profissional.",
+    extraCopy: null,
     cta: "Começar agora",
     popular: false,
     reportsIncluded: false,
-    icon: Shield,
+    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Painel centralizado", "Monitoramento em tempo real", "Suporte padrão"],
   },
   {
     name: "Pro",
     instances: 30,
     price: "349,90",
-    description: "Ideal para operadores ativos que precisam de mais capacidade.",
+    perInstance: "11,66",
+    subtitle: "Estrutura ideal para operadores ativos.",
+    extraCopy: "Plano mais escolhido por operadores ativos.",
     cta: "Começar agora",
     popular: true,
     reportsIncluded: false,
-    icon: Zap,
+    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada de instâncias", "Monitoramento completo", "Suporte prioritário"],
   },
   {
     name: "Scale",
     instances: 50,
     price: "549,90",
-    description: "Para operações em crescimento que precisam de escala e monitoramento.",
+    perInstance: "10,99",
+    subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
+    extraCopy: null,
     cta: "Escalar operação",
     popular: false,
     reportsIncluded: true,
-    icon: BarChart3,
+    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada", "Monitoramento em tempo real", "Suporte prioritário"],
   },
   {
     name: "Elite",
     instances: 100,
     price: "899,90",
-    description: "Máxima capacidade operacional para estruturas de alto volume.",
+    perInstance: "8,99",
+    subtitle: "Máxima capacidade operacional.",
+    extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.",
     cta: "Máximo desempenho",
     popular: false,
     reportsIncluded: true,
-    icon: Crown,
+    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão completa de instâncias", "Monitoramento avançado", "Atendimento prioritário dedicado"],
   },
 ];
 
@@ -70,190 +69,130 @@ const comparisonRows = [
   { label: "Relatórios via WhatsApp", values: [false, false, true, true] },
 ];
 
-const GradientCheck = () => (
-  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-primary/10">
-    <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
-  </div>
-);
-
-const fontDisplay = { fontFamily: "'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif" };
-
 const MyPlan = () => {
   return (
-    <div className="min-h-screen pb-24 bg-background -m-2.5 sm:-m-5 md:-m-8">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 space-y-24">
+    <div className="min-h-screen pb-24 -m-2.5 sm:-m-5 md:-m-8" style={{ background: '#080b0e' }}>
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 space-y-20">
 
         {/* Hero */}
         <div className="text-center max-w-2xl mx-auto pt-14 sm:pt-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 border border-primary/20 bg-primary/5 text-primary">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 border border-amber-500/20 bg-amber-500/5 text-amber-400">
             <Sparkles className="w-3.5 h-3.5" />
             Planos flexíveis para qualquer escala
           </div>
-          <h1 className="text-2xl sm:text-4xl md:text-[3.25rem] font-extrabold tracking-tight leading-[1.12] text-foreground px-2" style={fontDisplay}>
-            Escalone sua operação de WhatsApp com segurança
+          <h1 className="text-2xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight leading-[1.15] text-white">
+            Escolha o plano ideal para escalar sua operação com estabilidade
           </h1>
-          <p className="text-sm sm:text-base md:text-lg mt-5 leading-relaxed max-w-lg mx-auto text-muted-foreground px-4">
-            Escolha o plano ideal para o tamanho da sua operação. Todos incluem aquecimento inteligente e disparo profissional.
-          </p>
-          <p className="mt-4 text-xs sm:text-sm text-muted-foreground/50">
-            Mais de 1.200 operadores já usam nossa plataforma
+          <p className="text-sm sm:text-base mt-5 leading-relaxed max-w-lg mx-auto text-white/30">
+            Todos os planos incluem aquecimento automatizado, disparador inteligente e monitoramento em tempo real.
           </p>
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-6 lg:gap-5 items-stretch max-w-[1100px] mx-auto">
-          {plans.map((plan) => {
-            const Icon = plan.icon;
-            return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`relative flex flex-col rounded-2xl ${
+                plan.popular
+                  ? "border border-amber-500/30"
+                  : "border border-white/[0.06]"
+              }`}
+            >
               <div
-                key={plan.name}
-                className={`relative group transition-all duration-300 ease-out rounded-2xl border flex flex-col
-                  ${plan.popular
-                    ? "border-primary/30 shadow-lg shadow-primary/5 dark:shadow-primary/10 bg-card lg:scale-[1.04] z-10 ring-1 ring-primary/10 mt-2 sm:mt-0"
-                    : "border-border/60 bg-card shadow-sm hover:shadow-md dark:shadow-none"
-                  }
-                  hover:-translate-y-1
-                `}
+                className={`relative flex flex-col rounded-2xl p-7 sm:p-8 h-full ${
+                  plan.popular ? "bg-[#0d1318]" : "bg-[#0f1419]"
+                }`}
               >
-                {/* Badge */}
                 {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-4 py-1.5 rounded-full text-primary-foreground shadow-lg border border-black/10 dark:border-transparent"
-                      style={{
-                        background: "linear-gradient(135deg, #00FFA3, #00C2FF)",
-                        boxShadow: "0 4px 20px rgba(0,255,163,0.25)",
-                      }}>
-                      <Star className="w-3 h-3" fill="currentColor" />
-                      Mais escolhido
-                    </span>
-                  </div>
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-bold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap shadow-[0_0_20px_-4px_rgba(245,158,11,0.5)]">
+                    ⭐ Mais Escolhido
+                  </span>
                 )}
 
-                <div className="p-6 sm:p-7 pt-8 sm:pt-9 flex flex-col h-full">
-                  {/* Plan header */}
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${plan.popular ? "bg-primary/15" : "bg-muted/60 dark:bg-white/5"}`}>
-                      <Icon className={`w-4 h-4 ${plan.popular ? "text-primary" : "text-muted-foreground/60"}`} />
-                    </div>
-                    <div>
-                      <h3 className={`text-[11px] font-bold uppercase tracking-[0.14em] leading-none ${plan.popular ? "text-primary" : "text-muted-foreground/50"}`}>
-                        {plan.name}
-                      </h3>
-                      <p className="font-semibold text-sm mt-0.5 text-foreground">
-                        {plan.instances} instâncias
-                      </p>
-                    </div>
-                  </div>
+                <h3 className="text-xl font-semibold mt-1 text-white/90">{plan.name}</h3>
+                <p className="text-sm text-white/30 mb-1">{plan.instances} instâncias</p>
+                <p className="text-xs text-white/20 mb-1 leading-relaxed">{plan.subtitle}</p>
+                {plan.extraCopy && (
+                  <p className="text-xs text-amber-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
+                )}
+                {!plan.extraCopy && <div className="mb-3" />}
 
-                  {/* Price */}
-                  <div className="mt-4 mb-1.5">
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-sm font-medium text-muted-foreground/50">R$</span>
-                      <span className="text-[2.5rem] sm:text-[2.75rem] font-extrabold tracking-tighter leading-none text-foreground" style={fontDisplay}>
-                        {plan.price.split(",")[0]}
-                      </span>
-                      <span className="text-lg font-bold text-foreground/40">
-                        ,{plan.price.split(",")[1]}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[13px] text-muted-foreground/45">por mês</span>
-                      <span className="text-[10px] text-muted-foreground/30">•</span>
-                      <span className="text-[11px] text-muted-foreground/35">Cancele quando quiser</span>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-[13px] leading-relaxed mt-4 mb-6 min-h-[40px] text-muted-foreground/60">
-                    {plan.description}
-                  </p>
-
-                  {/* CTA */}
-                  <a
-                    href={buildWhatsappUrl(plan)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`w-full py-3 font-semibold text-[13px] flex items-center justify-center gap-2 mb-6 transition-all duration-200 rounded-xl
-                      ${plan.popular
-                        ? "text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-black/10 dark:border-transparent"
-                        : "bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08] hover:border-border"
-                      }
-                    `}
-                    style={plan.popular ? { background: "linear-gradient(135deg, #00FFA3, #00C2FF)" } : {}}
-                  >
-                    {plan.cta}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
-
-                  {/* Divider */}
-                  <div className="h-px mb-5 bg-border/40" />
-
-                  {/* Features */}
-                  <div className="space-y-3.5 flex-1">
-                    {FEATURES.map((feature, i) => {
-                      const isReport = feature === "Relatórios via WhatsApp";
-                      const included = isReport ? plan.reportsIncluded : true;
-                      return (
-                        <div key={i} className={`flex items-center gap-2.5 text-[12.5px] ${included ? "text-foreground/65" : "text-muted-foreground/20"}`}>
-                          {included ? (
-                            <GradientCheck />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-muted/30 dark:bg-white/[0.03]">
-                              <X className="w-3 h-3 text-red-400" strokeWidth={2} />
-                            </div>
-                          )}
-                          <span className={!included ? "line-through decoration-muted-foreground/10" : ""}>
-                            {feature}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Report highlight */}
-                  {plan.reportsIncluded && (
-                    <div className="mt-5 px-3.5 py-2.5 rounded-xl bg-primary/[0.04] border border-primary/10">
-                      <div className="flex items-center gap-2 text-[11px] font-medium text-primary">
-                        <Bell className="w-3.5 h-3.5" />
-                        Relatórios WhatsApp incluídos
-                      </div>
-                    </div>
-                  )}
+                <div className="mb-2">
+                  <span className="text-4xl font-bold text-white/90">R$ {plan.price}</span>
+                  <span className="text-white/20 text-base"> / mês</span>
                 </div>
+
+                <div className="h-px bg-white/[0.05] mb-7" />
+
+                <div className="space-y-3.5 mb-8 flex-1">
+                  {plan.features.map((f, fi) => (
+                    <div key={fi} className="flex items-center gap-3 text-sm text-white/40">
+                      <Check className="w-4 h-4 min-w-[16px] min-h-[16px] text-white/20 shrink-0" />
+                      {f}
+                    </div>
+                  ))}
+
+                  {/* Report line */}
+                  <div className={`flex items-center gap-3 text-sm ${plan.reportsIncluded ? "text-white/40" : "text-white/15"}`}>
+                    {plan.reportsIncluded ? (
+                      <Check className="w-4 h-4 min-w-[16px] min-h-[16px] text-emerald-500/60 shrink-0" />
+                    ) : (
+                      <X className="w-4 h-4 min-w-[16px] min-h-[16px] text-red-400/40 shrink-0" />
+                    )}
+                    <span className={!plan.reportsIncluded ? "line-through decoration-white/10" : ""}>
+                      Relatórios WhatsApp {plan.reportsIncluded ? "incluso" : `+ R$ 18,90/mês`}
+                    </span>
+                  </div>
+                </div>
+
+                <a
+                  href={buildWhatsappUrl(plan)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-full py-3.5 rounded-lg font-medium text-base flex items-center justify-center gap-2 transition-all duration-200 ${
+                    plan.popular
+                      ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold hover:from-amber-400 hover:to-yellow-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
+                      : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
+                  }`}
+                >
+                  {plan.cta}
+                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                </a>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
-        {/* Relatórios via WhatsApp */}
+        {/* Addon - Relatórios via WhatsApp */}
         <div className="max-w-xl mx-auto">
-          <div className="relative overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0f1419]">
             <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <div className="flex items-start gap-4 flex-1">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/8 border border-primary/12">
-                  <Bell className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/15">
+                  <Bell className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-foreground mb-1" style={fontDisplay}>
+                  <h3 className="text-base font-bold text-white/90 mb-1">
                     Relatórios via WhatsApp
                   </h3>
-                  <p className="text-xs text-muted-foreground/60 leading-relaxed">
+                  <p className="text-xs text-white/30 leading-relaxed">
                     Receba relatórios automáticos e alertas direto no WhatsApp. Já incluso nos planos Scale e Elite.
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto">
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-xs font-medium text-muted-foreground/50">R$</span>
-                  <span className="text-2xl font-extrabold tracking-tighter leading-none text-foreground" style={fontDisplay}>18</span>
-                  <span className="text-sm font-bold text-foreground/40">,90</span>
-                  <span className="text-[10px] text-muted-foreground/40 ml-0.5">/mês</span>
+                  <span className="text-xs font-medium text-white/30">R$</span>
+                  <span className="text-2xl font-extrabold tracking-tighter leading-none text-white/90">18</span>
+                  <span className="text-sm font-bold text-white/30">,90</span>
+                  <span className="text-[10px] text-white/20 ml-0.5">/mês</span>
                 </div>
                 <a
                   href={buildAddonWhatsappUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto sm:ml-0 px-5 py-2.5 font-semibold text-xs flex items-center gap-2 transition-all duration-200 rounded-xl bg-muted/40 dark:bg-white/[0.04] text-foreground/80 border border-border/60 hover:bg-muted/70 dark:hover:bg-white/[0.08]"
+                  className="ml-auto sm:ml-0 px-5 py-2.5 font-semibold text-xs flex items-center gap-2 transition-all duration-200 rounded-xl bg-white/[0.05] text-white/60 border border-white/[0.06] hover:bg-white/[0.08]"
                 >
                   Ativar
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -266,21 +205,21 @@ const MyPlan = () => {
         {/* Comparison Table */}
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-xl font-bold flex items-center justify-center gap-2.5 text-foreground" style={fontDisplay}>
-              <BarChart3 className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold flex items-center justify-center gap-2.5 text-white/90">
+              <BarChart3 className="w-5 h-5 text-amber-400" />
               Comparação rápida
             </h2>
-            <p className="text-sm mt-2 text-muted-foreground">
+            <p className="text-sm mt-2 text-white/30">
               Veja o que cada plano oferece lado a lado.
             </p>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#0f1419] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <table className="w-full text-sm min-w-[480px]">
               <thead>
-                <tr className="bg-muted/20 dark:bg-white/[0.02]">
-                  <th className="text-left px-3 sm:px-5 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider w-[120px] sm:w-[200px] text-muted-foreground/50">Recurso</th>
+                <tr className="bg-white/[0.02]">
+                  <th className="text-left px-3 sm:px-5 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider w-[120px] sm:w-[200px] text-white/30">Recurso</th>
                   {plans.map(p => (
-                    <th key={p.name} className={`text-center px-2 sm:px-3 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${p.popular ? "text-primary" : "text-foreground/50"}`}>
+                    <th key={p.name} className={`text-center px-2 sm:px-3 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${p.popular ? "text-amber-400" : "text-white/40"}`}>
                       {p.name}
                     </th>
                   ))}
@@ -289,21 +228,21 @@ const MyPlan = () => {
               <tbody>
                 {comparisonRows.map((row, ri) => (
                   <tr key={ri}
-                    className={`transition-colors duration-100 border-t border-border/20 hover:bg-muted/20 dark:hover:bg-white/[0.02] ${ri % 2 === 1 ? "bg-muted/8 dark:bg-white/[0.008]" : ""}`}
+                    className={`transition-colors duration-100 border-t border-white/[0.04] hover:bg-white/[0.02] ${ri % 2 === 1 ? "bg-white/[0.01]" : ""}`}
                   >
-                    <td className="px-3 sm:px-5 py-3 sm:py-3.5 text-[12px] sm:text-[13px] font-medium text-foreground/60">
+                    <td className="px-3 sm:px-5 py-3 sm:py-3.5 text-[12px] sm:text-[13px] font-medium text-white/40">
                       {row.label}
                     </td>
                     {row.values.map((val, vi) => (
                       <td key={vi} className="text-center px-2 sm:px-3 py-3 sm:py-3.5">
                         {typeof val === "boolean" ? (
                           val ? (
-                            <Check className="w-4 h-4 mx-auto text-primary" strokeWidth={2.5} />
+                            <Check className="w-4 h-4 mx-auto text-emerald-500/60" strokeWidth={2.5} />
                           ) : (
-                            <X className="w-4 h-4 mx-auto text-red-400" strokeWidth={2} />
+                            <X className="w-4 h-4 mx-auto text-red-400/40" strokeWidth={2} />
                           )
                         ) : (
-                          <span className={`text-sm font-bold ${plans[vi].popular ? "text-primary" : "text-foreground/80"}`}>
+                          <span className={`text-sm font-bold ${plans[vi].popular ? "text-amber-400" : "text-white/70"}`}>
                             {val}
                           </span>
                         )}
@@ -316,21 +255,36 @@ const MyPlan = () => {
           </div>
         </div>
 
-
-
-        {/* Trust */}
-        <div className="flex flex-row items-center justify-center gap-8 sm:gap-12 text-xs text-muted-foreground/40 pb-4">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Sem fidelidade
+        {/* Trust badges */}
+        <div className="space-y-6 pb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-white/30">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
+              Sem fidelidade
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
+              Upgrade imediato
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
+              Garantia de 7 dias
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Upgrade imediato
-          </div>
-          <div className="flex items-center gap-2">
-            <Crown className="w-4 h-4" />
-            Garantia de 7 dias
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-sm text-white/20">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 flex-shrink-0" />
+              Infraestrutura segura
+            </div>
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 flex-shrink-0" />
+              Operação estável
+            </div>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 flex-shrink-0" />
+              Monitoramento contínuo
+            </div>
           </div>
         </div>
       </div>
