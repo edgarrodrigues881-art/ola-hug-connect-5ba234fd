@@ -201,7 +201,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
   const warmupProgress = getWarmupProgress(cycle);
 
-  // Disconnect countdown (24h from updated_at when disconnected)
+  // Disconnect elapsed timer (counts UP from disconnection moment)
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
     const disconnectSince = device.updated_at ?? device.created_at;
@@ -217,15 +217,12 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
     }
 
     const calc = () => {
-      const deadline = disconnectedAt + 24 * 60 * 60 * 1000;
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        setCountdown("00:00:00");
-        return;
-      }
-      const h = Math.floor(remaining / 3600000);
-      const m = Math.floor((remaining % 3600000) / 60000);
-      const s = Math.floor((remaining % 60000) / 1000);
+      const elapsed = Date.now() - disconnectedAt;
+      if (elapsed < 0) { setCountdown("00:00:00"); return; }
+      const totalSec = Math.floor(elapsed / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
       setCountdown(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
     };
 
@@ -261,13 +258,19 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-col items-end gap-1">
           {cycle && warmupProgress !== null && (
             <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/25 rounded-full px-2 py-0.5">
               <Flame className="w-3 h-3 text-orange-400" />
               <span className="text-[10px] font-bold text-orange-400">
                 {warmupProgress}%
               </span>
+            </div>
+          )}
+          {!connected && countdown && (
+            <div className="flex items-center gap-1 rounded-full bg-destructive/8 border border-destructive/15 px-2 py-0.5">
+              <Timer className="w-2.5 h-2.5 text-destructive/60" />
+              <span className="text-[9px] font-mono font-semibold text-destructive/70 tabular-nums tracking-tight">{countdown}</span>
             </div>
           )}
           {deviceTags && deviceTags.length > 0 && (
@@ -281,12 +284,6 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )}
         </div>
       </div>
-      {!connected && countdown && (
-        <div className="flex items-center justify-center gap-1 text-[9px] font-mono text-destructive/70 px-4 -mt-0.5">
-          <Timer className="w-2.5 h-2.5" />
-          <span>{countdown}</span>
-        </div>
-      )}
 
       <div className="px-4 pt-5 pb-3 flex items-center gap-4">
         <div className={cn(
