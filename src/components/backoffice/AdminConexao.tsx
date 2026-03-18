@@ -414,56 +414,8 @@ export default function AdminConexao() {
         </div>
       </div>
 
-      {/* Credentials Section - Always visible */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Key size={16} className="text-primary" /> Credenciais
-        </h4>
 
-        {hasCredentials && (
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
-                <CheckCircle2 size={10} className="mr-1" /> Token configurado
-              </Badge>
-              <p className="text-[11px] text-muted-foreground">{device?.uazapi_base_url}</p>
-            </div>
-          </div>
-        )}
 
-        <p className="text-xs text-muted-foreground mb-4">
-          {hasCredentials ? "Trocar o token e URL base:" : "Insira o token e URL base da UAZAPI:"}
-        </p>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Token UAZAPI *</label>
-            <Input
-              placeholder="Cole o token aqui..."
-              value={manualToken}
-              onChange={(e) => setManualToken(e.target.value)}
-              className="text-xs font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">URL Base (opcional)</label>
-            <Input
-              placeholder="https://api.uazapi.com"
-              value={manualBaseUrl}
-              onChange={(e) => setManualBaseUrl(e.target.value)}
-              className="text-xs font-mono"
-            />
-          </div>
-          <Button
-            size="sm"
-            onClick={saveManualCredentials}
-            disabled={savingCredentials || !manualToken.trim()}
-            className="text-xs"
-          >
-            {savingCredentials ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Key size={14} className="mr-1" />}
-            {hasCredentials ? "Atualizar Credenciais" : "Salvar Credenciais"}
-          </Button>
-        </div>
-      </div>
       <div className="rounded-xl border border-border bg-card p-5">
         <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
           <Users size={16} className="text-primary" /> Grupo de Relatórios
