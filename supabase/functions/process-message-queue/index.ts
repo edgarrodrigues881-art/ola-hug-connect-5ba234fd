@@ -231,10 +231,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate cron secret
+    // Parse body for force mode
+    let forceId: string | null = null;
+    try {
+      const body = await req.json();
+      forceId = body?.force_id || null;
+    } catch (_) { /* no body = cron mode */ }
+
+    // Validate cron secret (skip for force mode with auth header)
     const cronSecret = req.headers.get("x-cron-secret");
     const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
-    if (cronSecret !== expectedSecret) {
+    const authHeader = req.headers.get("authorization");
+    
+    if (!forceId && cronSecret !== expectedSecret) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -245,22 +254,24 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // ── TIME WINDOW CHECK: only send between 09:00 and 19:00 BRT ──
-    const nowBRT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    const hourBRT = nowBRT.getHours();
-    if (hourBRT < 9 || hourBRT >= 19) {
-      console.log(`[process-mq] Outside sending window (${hourBRT}h BRT). Skipping.`);
-      return new Response(
-        JSON.stringify({ skipped: true, reason: `Outside sending window (${hourBRT}h BRT, allowed 09-19)` }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // ── TIME WINDOW CHECK: only send between 09:00 and 19:00 BRT (skip for force mode) ──
+    if (!forceId) {
+      const nowBRT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const hourBRT = nowBRT.getHours();
+      if (hourBRT < 9 || hourBRT >= 19) {
+        console.log(`[process-mq] Outside sending window (${hourBRT}h BRT). Skipping.`);
+        return new Response(
+          JSON.stringify({ skipped: true, reason: `Outside sending window (${hourBRT}h BRT, allowed 09-19)` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-    // ── RANDOM DELAY 1-4 MINUTES before processing to avoid spam ──
-    const delayMinutes = 1 + Math.random() * 3; // 1 to 4 minutes
-    const delayMs = Math.floor(delayMinutes * 60_000);
-    console.log(`[process-mq] Waiting ${Math.round(delayMinutes * 10) / 10} min (${delayMs}ms) before processing...`);
-    await new Promise((r) => setTimeout(r, delayMs));
+      // ── RANDOM DELAY 1-4 MINUTES before processing to avoid spam ──
+      const delayMinutes = 1 + Math.random() * 3;
+      const delayMs = Math.floor(delayMinutes * 60_000);
+      console.log(`[process-mq] Waiting ${Math.round(delayMinutes * 10) / 10} min (${delayMs}ms) before processing...`);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
 
     console.log("[process-mq] Starting queue processing...");
 
@@ -276,8 +287,27 @@ Deno.serve(async (req) => {
     // Load templates from DB
     const templates = await loadTemplates(adminClient);
 
-    // Process only 1 message per cron tick (delay of 1-4 min between messages is handled by cron interval)
-    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 1 });
+    // Force mode: process specific message by ID
+    let claimed: any[] | null = null;
+    let claimErr: any = null;
+
+    if (forceId) {
+      // Directly update status and fetch the specific message
+      const { data, error } = await adminClient
+        .from("message_queue")
+        .update({ status: "sent", updated_at: new Date().toISOString() })
+        .eq("id", forceId)
+        .eq("status", "pending")
+        .select("*");
+      claimed = data;
+      claimErr = error;
+      console.log(`[process-mq] FORCE MODE: processing message ${forceId}`);
+    } else {
+      // Process only 1 message per cron tick
+      const result = await adminClient.rpc("claim_pending_messages", { _limit: 1 });
+      claimed = result.data;
+      claimErr = result.error;
+    }
 
     if (claimErr) {
       console.error("[process-mq] Claim error:", claimErr.message);
