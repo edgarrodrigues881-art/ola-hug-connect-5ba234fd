@@ -58,6 +58,7 @@ const WarmupInstanceDetail = lazyRetry(() => import("./pages/dashboard/WarmupIns
 const AutoSave = lazyRetry(() => import("./pages/dashboard/AutoSave"));
 const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
 const Community = lazyRetry(() => import("./pages/dashboard/Community"));
+const AutoReply = lazyRetry(() => import("./pages/dashboard/AutoReply"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
