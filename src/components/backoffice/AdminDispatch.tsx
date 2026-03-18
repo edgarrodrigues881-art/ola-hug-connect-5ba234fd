@@ -408,7 +408,7 @@ export default function AdminDispatch() {
     } finally {
       setDispatching(false);
     }
-  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, audienceSource, connectionPurpose]);
+  }, [messageContent, effectiveSelected, audienceUsers, importedContacts, manualContacts, audienceSource, connectionPurpose]);
 
   const resetAll = () => {
     setStep("audience");
