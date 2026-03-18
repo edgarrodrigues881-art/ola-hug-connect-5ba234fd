@@ -734,13 +734,20 @@ export default function AdminDispatch() {
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Conexão para envio</label>
-              <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/50 bg-card/60">
+              <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/50 bg-card/60 px-3 py-2">
                 <Smartphone size={14} className="text-primary shrink-0" />
-                <span className="text-sm font-medium text-foreground">{dispatchConnection?.label || "Disparos manuais"}</span>
-                {dispatchConnection?.device_id ? (
-                  <Badge variant="outline" className="ml-auto text-[9px] text-emerald-400 border-emerald-400/30">Conectado</Badge>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{dispatchDeviceName}</p>
+                  {dispatchDevice && (
+                    <p className="text-[11px] text-muted-foreground truncate">{dispatchDeviceNumber}</p>
+                  )}
+                </div>
+                {dispatchDeviceConnected ? (
+                  <Badge variant="outline" className="ml-auto text-[9px] border-primary/30 bg-primary/5 text-primary">Conectado</Badge>
+                ) : dispatchConnection?.device_id ? (
+                  <Badge variant="outline" className="ml-auto text-[9px] border-border text-muted-foreground">Configurado</Badge>
                 ) : (
-                  <span className="ml-auto text-[10px] text-red-400">(sem dispositivo)</span>
+                  <span className="ml-auto text-[10px] text-destructive">(sem dispositivo)</span>
                 )}
               </div>
               {dispatchConnection && !dispatchConnection.device_id && (
