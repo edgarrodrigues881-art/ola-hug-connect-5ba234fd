@@ -2,12 +2,13 @@ import { useState, useCallback, lazy, Suspense, memo, useMemo, useEffect } from 
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key,
-  Send, FileText, Cable
+  Send, FileText, Cable, Megaphone, List
 } from "lucide-react";
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,10 @@ function getDaysLeft(expiresAt: string | null): number | null {
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
+const BOCampaigns = lazy(() => import("@/pages/backoffice/BOCampaigns"));
+const BOCampaignList = lazy(() => import("@/pages/backoffice/BOCampaignList"));
+const BOCampaignDetail = lazy(() => import("@/pages/backoffice/BOCampaignDetail"));
+
 const NAV_ITEMS = [
   { id: "overview", label: "Visão Geral", shortLabel: "Home", icon: LayoutDashboard, group: "principal", badge: false },
   { id: "clients", label: "Clientes", shortLabel: "Clientes", icon: Users, group: "principal", badge: false },
@@ -54,9 +59,11 @@ const NAV_ITEMS = [
   { id: "pendencias", label: "Pendências", shortLabel: "Alertas", icon: Bell, group: "principal", badge: true },
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
 
-  { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "principal", badge: false },
-  { id: "dispatch", label: "Disparar", shortLabel: "Disparar", icon: Send, group: "principal", badge: false },
-  { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "principal", badge: false },
+  { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
+  { id: "dispatch", label: "Disparar (Admin)", shortLabel: "Disparar", icon: Send, group: "disparo", badge: false },
+  { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "disparo", badge: false },
+  { id: "bo-campaigns", label: "Nova Campanha", shortLabel: "Campanha", icon: Megaphone, group: "campanhas", badge: false },
+  { id: "bo-campaign-list", label: "Campanhas", shortLabel: "Lista", icon: List, group: "campanhas", badge: false },
 
   { id: "groups-pool", label: "Grupo De Aquecimento", shortLabel: "Grupos", icon: Database, group: "operacao", badge: false },
   { id: "tokens-global", label: "Tokens Globais", shortLabel: "Tokens", icon: Key, group: "sistema", badge: false },
@@ -67,6 +74,7 @@ const NAV_ITEMS = [
 const GROUP_LABELS: Record<string, string> = {
   principal: "Principal",
   disparo: "Disparo",
+  campanhas: "Campanhas",
   gestao: "Gestão",
   operacao: "Operação",
   sistema: "Sistema",
@@ -325,11 +333,17 @@ const TabLoader = () => (
   </div>
 );
 
-const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
+const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; initialTab?: string }) => {
   const { data, isLoading, error, refetch } = useAdminDashboard();
   const [selectedClient, setSelectedClient] = useState<AdminUser | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialTab || "overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Sync activeTab when initialTab changes (route navigation)
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   const handleSelectClient = useCallback((u: AdminUser) => {
     setSelectedClient(u);
@@ -404,6 +418,9 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         case "dispatch-templates": return <AdminDispatchTemplates />;
         case "dispatch": return <AdminDispatch />;
         case "dispatch-connections": return <AdminConnectionPurposes />;
+        case "bo-campaigns": return <BOCampaigns />;
+        case "bo-campaign-list": return <BOCampaignList />;
+        case "bo-campaign-detail": return <BOCampaignDetail />;
         case "logs": return <AdminLogs />;
         case "costs": return <CostsTab costs={((data as any)?.costs || []) as any[]} onRefresh={() => refetch()} />;
         case "groups-pool": return <AdminGroupsPool />;
@@ -491,7 +508,14 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
+                      onClick={() => {
+                        const routeTabs = ["bo-campaigns", "bo-campaign-list", "bo-campaign-detail"];
+                        if (routeTabs.includes(item.id)) {
+                          const routes: Record<string, string> = { "bo-campaigns": "/backoffice/campaigns", "bo-campaign-list": "/backoffice/campaign-list" };
+                          if (routes[item.id]) navigate(routes[item.id]);
+                        }
+                        setActiveTab(item.id); setSidebarOpen(false);
+                      }}
                       className={`
                         w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
                         ${isActive

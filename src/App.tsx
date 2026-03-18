@@ -32,6 +32,9 @@ const Auth = lazyRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyRetry(() => import("./pages/ResetPassword"));
 const NotFound = lazyRetry(() => import("./pages/NotFound"));
 const BackOffice = lazyRetry(() => import("./pages/BackOffice"));
+const BOCampaigns = lazyRetry(() => import("./pages/backoffice/BOCampaigns"));
+const BOCampaignList = lazyRetry(() => import("./pages/backoffice/BOCampaignList"));
+const BOCampaignDetail = lazyRetry(() => import("./pages/backoffice/BOCampaignDetail"));
 const DashboardLayout = lazyRetry(() => import("./components/DashboardLayout"));
 const DashboardHome = lazyRetry(() => import("./pages/dashboard/DashboardHome"));
 const Devices = lazyRetry(() => import("./pages/dashboard/Devices"));
@@ -137,6 +140,9 @@ const App = () => (
               />
               <Route path="/welcome" element={<ProtectedRoute><WelcomeSplash /></ProtectedRoute>} />
               <Route path="/backoffice" element={<BackOffice />} />
+              <Route path="/backoffice/campaigns" element={<BackOffice initialTab="bo-campaigns" />} />
+              <Route path="/backoffice/campaign-list" element={<BackOffice initialTab="bo-campaign-list" />} />
+              <Route path="/backoffice/campaign/:id" element={<BackOffice initialTab="bo-campaign-detail" />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
