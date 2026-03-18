@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Save, Play, BotMessageSquare, ArrowLeft, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -9,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import type { FlowNodeData } from "./types";
+import type { Node } from "@xyflow/react";
 
 interface Props {
   name: string;
@@ -19,11 +22,13 @@ interface Props {
   saving?: boolean;
   deviceId: string | null;
   onDeviceChange: (id: string | null) => void;
+  nodes: Node<FlowNodeData>[];
 }
 
-export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange }: Props) {
+export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange, nodes }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [testing, setTesting] = useState(false);
 
   const { data: devices } = useQuery({
     queryKey: ["devices-list", user?.id],
@@ -37,6 +42,66 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
     },
     enabled: !!user,
   });
+
+  const handleTest = async () => {
+    if (!deviceId) {
+      toast.error("Selecione uma instância antes de testar");
+      return;
+    }
+
+    // Find the first message node connected to start
+    const startNode = nodes.find((n) => n.type === "startNode");
+    if (!startNode) {
+      toast.error("Adicione um nó de início ao fluxo");
+      return;
+    }
+
+    // Get text from start node (if template) or first message node
+    const startData = startNode.data as FlowNodeData;
+    let messageText = "";
+    let mediaUrl = "";
+
+    if (startData.text) {
+      messageText = startData.text;
+      mediaUrl = startData.imageUrl || "";
+    } else {
+      // Find first message node
+      const msgNode = nodes.find((n) => n.type === "messageNode");
+      if (msgNode) {
+        const msgData = msgNode.data as FlowNodeData;
+        messageText = msgData.text || "";
+        mediaUrl = msgData.imageUrl || "";
+      }
+    }
+
+    if (!messageText) {
+      toast.error("Nenhuma mensagem no fluxo para testar");
+      return;
+    }
+
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-autoreply", {
+        body: {
+          device_id: deviceId,
+          message_text: messageText,
+          media_url: mediaUrl || undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(`Mensagem de teste enviada para ${data.phone}`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar teste");
+    } finally {
+      setTesting(false);
+    }
+  };
 
   return (
     <div className="flex items-center gap-4 px-5 py-3 border-b border-border/40 bg-card/50 backdrop-blur-sm shrink-0">
@@ -103,9 +168,11 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
           size="sm"
           variant="outline"
           className="h-8 text-xs border-border/50 hover:border-border"
-          onClick={() => toast.info("Teste do fluxo iniciado (simulação)")}
+          onClick={handleTest}
+          disabled={testing}
         >
-          <Play className="w-3.5 h-3.5 mr-1.5" /> Testar
+          {testing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1.5" />}
+          Testar
         </Button>
         <Button
           size="sm"
