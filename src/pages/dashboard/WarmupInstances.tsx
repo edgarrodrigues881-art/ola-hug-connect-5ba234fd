@@ -215,15 +215,25 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
-        {deviceTags && deviceTags.length > 0 && (
-          <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">
-            {deviceTags.map((tag) => (
-              <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold text-white leading-tight" style={{ backgroundColor: tag.color }}>
-                {tag.label}
+        <div className="flex items-center gap-1.5">
+          {cycle && (
+            <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/25 rounded-full px-2 py-0.5">
+              <Flame className="w-3 h-3 text-orange-400" />
+              <span className="text-[10px] font-bold text-orange-400">
+                {Math.round((cycle.day_index / cycle.days_total) * 100)}%
               </span>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+          {deviceTags && deviceTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">
+              {deviceTags.map((tag) => (
+                <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold text-white leading-tight" style={{ backgroundColor: tag.color }}>
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="px-4 pt-5 pb-3 flex items-center gap-4">
