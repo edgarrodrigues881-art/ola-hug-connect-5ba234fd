@@ -65,9 +65,9 @@ const AdminAutoTemplates = () => {
       const updates: any = { updated_at: new Date().toISOString(), updated_by: session?.user?.id };
       if (content !== undefined) updates.content = content;
       if (is_active !== undefined) updates.is_active = is_active;
-      const { error } = await supabase
+      const { error } = await (supabase
         .from("auto_message_templates" as any)
-        .update(updates)
+        .update(updates) as any)
         .eq("id", id);
       if (error) throw error;
     },
