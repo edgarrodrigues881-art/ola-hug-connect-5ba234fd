@@ -22,6 +22,7 @@ import { FlowSidebar } from "@/components/autoreply/FlowSidebar";
 import { EditPanel } from "@/components/autoreply/EditPanel";
 import { FlowHeader } from "@/components/autoreply/FlowHeader";
 import type { FlowNodeData } from "@/components/autoreply/types";
+import { MessageSquare, Square } from "lucide-react";
 
 const nodeTypes = {
   startNode: StartNode,
@@ -49,12 +50,23 @@ const defaultEdges: Edge[] = [];
 
 let nodeId = 100;
 
+interface DropMenu {
+  x: number;
+  y: number;
+  flowX: number;
+  flowY: number;
+  sourceNodeId: string;
+  sourceHandleId: string;
+}
+
 function FlowCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [flowName, setFlowName] = useState("Minha Automação");
   const [isActive, setIsActive] = useState(false);
+  const [dropMenu, setDropMenu] = useState<DropMenu | null>(null);
+  const pendingConnection = useRef<{ source: string; sourceHandle: string } | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
@@ -68,12 +80,92 @@ function FlowCanvas() {
     [setEdges]
   );
 
+  const onConnectStart = useCallback((_: any, params: { nodeId: string | null; handleId: string | null; handleType: string | null }) => {
+    if (params.handleType === "source" && params.nodeId && params.handleId) {
+      pendingConnection.current = { source: params.nodeId, sourceHandle: params.handleId };
+    }
+  }, []);
+
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      if (!pendingConnection.current) return;
+
+      const targetIsNode = (event.target as HTMLElement)?.closest?.(".react-flow__node");
+      const targetIsHandle = (event.target as HTMLElement)?.closest?.(".react-flow__handle");
+      if (targetIsNode || targetIsHandle) {
+        pendingConnection.current = null;
+        return;
+      }
+
+      const clientX = "changedTouches" in event ? event.changedTouches[0].clientX : event.clientX;
+      const clientY = "changedTouches" in event ? event.changedTouches[0].clientY : event.clientY;
+      const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
+
+      setDropMenu({
+        x: clientX,
+        y: clientY,
+        flowX: flowPos.x,
+        flowY: flowPos.y,
+        sourceNodeId: pendingConnection.current.source,
+        sourceHandleId: pendingConnection.current.sourceHandle,
+      });
+
+      pendingConnection.current = null;
+    },
+    [screenToFlowPosition]
+  );
+
+  const createNodeFromMenu = useCallback(
+    (type: "messageNode" | "endNode") => {
+      if (!dropMenu) return;
+
+      const id = `${type}-${++nodeId}`;
+      let data: FlowNodeData;
+
+      if (type === "endNode") {
+        data = { label: "Finalizar", action: "end_flow" };
+      } else {
+        data = {
+          label: "Nova Mensagem",
+          text: "",
+          imageUrl: "",
+          imageCaption: "",
+          delay: 0,
+          buttons: [],
+        };
+      }
+
+      const newNode: Node<FlowNodeData> = {
+        id,
+        type,
+        position: { x: dropMenu.flowX - 125, y: dropMenu.flowY - 30 },
+        data,
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+
+      const newEdge: Edge = {
+        id: `e-${dropMenu.sourceNodeId}-${id}`,
+        source: dropMenu.sourceNodeId,
+        sourceHandle: dropMenu.sourceHandleId,
+        target: id,
+        targetHandle: "in",
+      };
+      setEdges((eds) => addEdge(newEdge, eds));
+
+      setSelectedNodeId(id);
+      setDropMenu(null);
+    },
+    [dropMenu, setNodes, setEdges]
+  );
+
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNodeId(node.id);
   }, []);
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
+    setDropMenu(null);
   }, []);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -170,6 +262,8 @@ function FlowCanvas() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
             onDragOver={onDragOver}
@@ -188,6 +282,45 @@ function FlowCanvas() {
               className="!bg-card/90 !backdrop-blur-sm !border-border/50 !shadow-xl !rounded-2xl !overflow-hidden [&>button]:!bg-transparent [&>button]:!border-b [&>button]:!border-border/30 [&>button]:!text-muted-foreground [&>button:hover]:!bg-muted/50 [&>button:hover]:!text-foreground [&>button]:!transition-colors [&>button]:!duration-150 [&>button:last-child]:!border-b-0"
             />
           </ReactFlow>
+
+          {/* Drop menu – appears when user releases a connection on empty canvas */}
+          {dropMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setDropMenu(null)} />
+              <div
+                className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+                style={{
+                  left: dropMenu.x,
+                  top: dropMenu.y,
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                <div className="bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl p-1.5 min-w-[180px]">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold px-3 pt-2 pb-1.5">
+                    Adicionar bloco
+                  </p>
+                  <button
+                    onClick={() => createNodeFromMenu("messageNode")}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-primary/10 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    Mensagem
+                  </button>
+                  <button
+                    onClick={() => createNodeFromMenu("endNode")}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-destructive/10 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+                      <Square className="w-3.5 h-3.5 text-destructive" />
+                    </div>
+                    Finalizar
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
         {selectedNode && (
           <EditPanel
