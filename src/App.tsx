@@ -61,6 +61,13 @@ const Community = lazyRetry(() => import("./pages/dashboard/Community"));
 const AutoReply = lazyRetry(() => import("./pages/dashboard/AutoReply"));
 const AutoReplyList = lazyRetry(() => import("./pages/dashboard/AutoReplyList"));
 
+const AutoReplyComingSoon = lazy(() => Promise.resolve({
+  default: () => {
+    const navigate = (await import("react-router-dom")).useNavigate;
+    return null;
+  }
+}));
+
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
   const onVisibilityChange = () => handleFocus(document.visibilityState === "visible");
