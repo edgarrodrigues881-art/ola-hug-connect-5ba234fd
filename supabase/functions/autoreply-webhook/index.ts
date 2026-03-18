@@ -390,6 +390,34 @@ Deno.serve(async (req) => {
     const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
     const deviceToken = device.uazapi_token!;
 
+    // ── Anti-loop: check if the incoming phone matches the device's own number ──
+    if (device.number) {
+      const deviceNumber = device.number.replace(/\D/g, "");
+      if (deviceNumber && fromPhone && (fromPhone === deviceNumber || fromPhone.endsWith(deviceNumber) || deviceNumber.endsWith(fromPhone))) {
+        console.log(`[autoreply] Skipping: fromPhone ${fromPhone} matches device number ${deviceNumber}`);
+        return json({ ok: true, skipped: true, reason: "device_own_number" });
+      }
+    }
+
+    // ── Anti-loop cooldown: prevent processing same contact more than once per 3 seconds ──
+    const { data: recentSession } = await supabase
+      .from("autoreply_sessions")
+      .select("last_message_at")
+      .eq("device_id", deviceId)
+      .eq("contact_phone", fromPhone)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentSession?.last_message_at) {
+      const lastMs = new Date(recentSession.last_message_at).getTime();
+      const nowMs = Date.now();
+      if (nowMs - lastMs < 3000) {
+        console.log(`[autoreply] Anti-loop cooldown: ${nowMs - lastMs}ms since last message`);
+        return json({ ok: true, skipped: true, reason: "cooldown" });
+      }
+    }
+
     // ── Find active flows for this device ──
     const { data: flows } = await supabase
       .from("autoreply_flows")
