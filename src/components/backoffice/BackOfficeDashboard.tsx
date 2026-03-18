@@ -315,6 +315,29 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
                         <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5 ml-1">
                           <Clock size={8} className="mr-0.5" /> Aguardando
                         </Badge>
+                        {item.created_at && (() => {
+                          const created = new Date(item.created_at);
+                          const now = new Date();
+                          // Cron runs every 5 minutes — estimate next run
+                          const nextRun = new Date(created);
+                          nextRun.setMinutes(Math.ceil(nextRun.getMinutes() / 5) * 5, 0, 0);
+                          if (nextRun <= now) {
+                            // Already past, calculate from now
+                            const next = new Date(now);
+                            next.setMinutes(Math.ceil(next.getMinutes() / 5) * 5, 0, 0);
+                            if (next <= now) next.setMinutes(next.getMinutes() + 5);
+                            return (
+                              <span className="text-[9px] text-muted-foreground/60">
+                                Envio ~{next.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="text-[9px] text-muted-foreground/60">
+                              Envio ~{nextRun.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
