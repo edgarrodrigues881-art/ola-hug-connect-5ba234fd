@@ -610,7 +610,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      await serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId).eq("user_id", userId);
+      const resumeFilter = serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId);
+      if (!isAdmin) resumeFilter.eq("user_id", userId);
+      await resumeFilter;
       selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
       return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
