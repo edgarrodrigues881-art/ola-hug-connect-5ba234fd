@@ -35,9 +35,6 @@ export default function AdminConexao() {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [sendingTest, setSendingTest] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [manualToken, setManualToken] = useState("");
-  const [manualBaseUrl, setManualBaseUrl] = useState("");
-  const [savingCredentials, setSavingCredentials] = useState(false);
 
   const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
