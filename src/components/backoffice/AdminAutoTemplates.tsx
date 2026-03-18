@@ -219,6 +219,18 @@ const AdminAutoTemplates = () => {
                   {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <Pencil size={14} className="text-muted-foreground/40" />}
                 </div>
 
+                {/* Inline preview (eye toggle) */}
+                {previewId === tpl.id && !isExpanded && (
+                  <div className="px-4 pb-4 border-t border-border/30 pt-3">
+                    <div className="bg-[hsl(150_10%_8%)] border border-emerald-500/10 rounded-xl p-4 relative">
+                      <div className="absolute top-2 right-3 text-[9px] text-muted-foreground/30 font-medium">Preview</div>
+                      <pre className="text-[13px] text-foreground whitespace-pre-wrap font-sans leading-relaxed">
+                        {getPreviewContent(currentContent)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
                 {/* Expanded editor */}
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
