@@ -590,8 +590,15 @@ Deno.serve(async (req) => {
           let phase = c.previous_phase || "groups_only";
           if (now < new Date(c.first_24h_ends_at)) phase = "pre_24h";
           if (["error", "completed", "paused"].includes(phase)) phase = "groups_only";
+
+          // Check if daily budget is already consumed — if so, just resume without scheduling new jobs
+          const budgetUsed = c.daily_interaction_budget_used || 0;
+          const budgetTarget = c.daily_interaction_budget_target || 0;
+          const budgetExhausted = budgetTarget > 0 && budgetUsed >= budgetTarget;
+
           await svc.from("warmup_cycles").update({
-            is_running: true, phase, previous_phase: null, last_error: null, next_run_at: now.toISOString(),
+            is_running: true, phase, previous_phase: null, last_error: null,
+            next_run_at: budgetExhausted ? null : now.toISOString(),
           }).eq("id", c.id);
         }
       }
