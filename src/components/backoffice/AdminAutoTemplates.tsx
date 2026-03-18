@@ -18,12 +18,19 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
+interface TemplateButton {
+  id: number;
+  type: "reply" | "url" | "phone";
+  text: string;
+  value: string;
+}
+
 interface AutoTemplate {
   id: string;
   message_type: string;
   label: string;
   content: string;
-  buttons: any[];
+  buttons: TemplateButton[];
   variables: any[];
   is_active: boolean;
   updated_at: string;
