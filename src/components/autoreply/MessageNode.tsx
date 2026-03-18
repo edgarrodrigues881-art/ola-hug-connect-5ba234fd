@@ -20,7 +20,7 @@ export function MessageNode({ data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         id="in"
-        className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)] !transition-all !duration-150 hover:!scale-125"
+className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
       />
 
       {/* Header */}
