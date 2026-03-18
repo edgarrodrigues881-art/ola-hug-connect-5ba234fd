@@ -108,6 +108,7 @@ const AdminAutoTemplates = () => {
   const openEditor = (tpl: AutoTemplate) => {
     setEditingTemplate(tpl);
     setDialogContent(tpl.content);
+    setDialogButtons(tpl.buttons || []);
     setShowEmojiPicker(false);
   };
 
