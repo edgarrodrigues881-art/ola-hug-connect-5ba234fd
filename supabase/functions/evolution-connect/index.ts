@@ -357,17 +357,45 @@ Deno.serve(async (req) => {
 
     // ── Auth ──
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("[evolution-connect] missing bearer token");
+      return json({ error: "Unauthorized" }, 401);
+    }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) return json({ error: "Unauthorized" }, 401);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const jwt = authHeader.replace("Bearer ", "");
+    let userId: string | null = null;
+    let userEmail: string | null = null;
+
+    try {
+      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(jwt);
+      if (!claimsError && claimsData?.claims?.sub) {
+        userId = claimsData.claims.sub;
+        userEmail = (claimsData.claims.email as string) || null;
+      }
+    } catch (claimsErr: any) {
+      console.warn("[evolution-connect] getClaims failed:", claimsErr?.message || String(claimsErr));
+    }
+
+    if (!userId) {
+      const { data: { user: authUser }, error: userError } = await userClient.auth.getUser();
+      if (userError || !authUser) {
+        console.error("[evolution-connect] auth failed:", userError?.message || "no_user");
+        return json({ error: "Unauthorized" }, 401);
+      }
+      userId = authUser.id;
+      userEmail = authUser.email || null;
+    }
+
+    const user = { id: userId, email: userEmail };
+    const svc = createClient(supabaseUrl, serviceRoleKey);
 
     const BASE_URL = (Deno.env.get("UAZAPI_BASE_URL") || "").replace(/\/+$/, "");
     const ADMIN_TOKEN = Deno.env.get("UAZAPI_TOKEN") || "";
