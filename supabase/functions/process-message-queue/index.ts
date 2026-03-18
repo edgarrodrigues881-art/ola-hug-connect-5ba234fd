@@ -376,12 +376,7 @@ Deno.serve(async (req) => {
         console.log(`[process-mq] ❌ Failed ${item.message_type} for ${nome}: ${result.error}`);
       }
 
-      // Random delay between 3-8 seconds
-      if (pendingItems.indexOf(item) < pendingItems.length - 1) {
-        const delayMs = Math.floor(Math.random() * 5000) + 3000;
-        console.log(`[process-mq] Waiting ${delayMs}ms before next...`);
-        await randomDelay(delayMs, delayMs);
-      }
+      // Only 1 message per tick — next message will be sent on next cron execution
     }
 
     console.log(`[process-mq] Done: ${sent} sent, ${failed} failed`);
