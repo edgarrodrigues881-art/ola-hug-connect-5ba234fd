@@ -409,6 +409,15 @@ function FlowCanvas() {
                     Mensagem
                   </button>
                   <button
+                    onClick={() => createNodeFromMenu("delayNode")}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-amber-500/10 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                      <Timer className="w-3.5 h-3.5 text-amber-500" />
+                    </div>
+                    Temporizador
+                  </button>
+                  <button
                     onClick={() => createNodeFromMenu("endNode")}
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-destructive/10 transition-colors"
                   >
