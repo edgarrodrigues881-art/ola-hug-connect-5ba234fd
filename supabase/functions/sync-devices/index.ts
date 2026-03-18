@@ -582,16 +582,27 @@ Deno.serve(async (req) => {
     if (warmupResumes.length > 0) {
       for (const devId of warmupResumes) {
         const { data: cycles } = await svc.from("warmup_cycles")
-          .select("id, first_24h_ends_at, user_id, previous_phase, last_error, daily_interaction_budget_target, daily_interaction_budget_used")
+          .select("id, first_24h_ends_at, user_id, device_id, previous_phase, last_error, daily_interaction_budget_target, daily_interaction_budget_used, day_index, days_total, chip_state")
           .eq("device_id", devId).eq("phase", "paused").eq("is_running", false);
         for (const c of (cycles || [])) {
           if (c.last_error !== "Auto-pausado: instância desconectada") continue;
           const now = new Date();
           let phase = c.previous_phase || "groups_only";
-          if (now < new Date(c.first_24h_ends_at)) phase = "pre_24h";
-          if (["error", "completed", "paused"].includes(phase)) phase = "groups_only";
 
-          // Check if daily budget is already consumed — if so, just resume without scheduling new jobs
+          // If the cycle was already completed (all days done), keep it completed — don't restart
+          if (phase === "completed") {
+            await svc.from("warmup_cycles").update({
+              is_running: false, phase: "completed", previous_phase: null, last_error: null,
+              next_run_at: null,
+            }).eq("id", c.id);
+            console.log(`[sync-devices] Cycle ${c.id} was completed — keeping completed, not resuming`);
+            continue;
+          }
+
+          if (now < new Date(c.first_24h_ends_at)) phase = "pre_24h";
+          if (["error", "paused"].includes(phase)) phase = "groups_only";
+
+          // Check if daily budget is already consumed — if so, just resume state without scheduling new jobs
           const budgetUsed = c.daily_interaction_budget_used || 0;
           const budgetTarget = c.daily_interaction_budget_target || 0;
           const budgetExhausted = budgetTarget > 0 && budgetUsed >= budgetTarget;
@@ -600,6 +611,30 @@ Deno.serve(async (req) => {
             is_running: true, phase, previous_phase: null, last_error: null,
             next_run_at: budgetExhausted ? null : now.toISOString(),
           }).eq("id", c.id);
+
+          // Ensure a daily_reset job exists so the cycle advances to the next day
+          const tomorrow = new Date();
+          tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+          tomorrow.setUTCHours(3, 5, 0, 0);
+
+          const { data: existingReset } = await svc.from("warmup_jobs")
+            .select("id")
+            .eq("cycle_id", c.id).eq("job_type", "daily_reset").eq("status", "pending")
+            .limit(1);
+
+          if (!existingReset?.length) {
+            await svc.from("warmup_jobs").insert({
+              user_id: c.user_id, device_id: c.device_id, cycle_id: c.id,
+              job_type: "daily_reset", payload: {},
+              run_at: tomorrow.toISOString(), status: "pending",
+            });
+          }
+
+          if (budgetExhausted) {
+            console.log(`[sync-devices] Cycle ${c.id} resumed but budget exhausted (${budgetUsed}/${budgetTarget}) — no new jobs`);
+          } else {
+            console.log(`[sync-devices] Cycle ${c.id} resumed to phase=${phase}, budget ${budgetUsed}/${budgetTarget}`);
+          }
         }
       }
     }
