@@ -1366,10 +1366,13 @@ const WarmupInstanceDetail = () => {
 
             const doneToday = cycle?.daily_interaction_budget_used ?? displayJobs.filter((j) => j.status === "succeeded").length;
             const failedToday = displayJobs.filter((j) => j.status === "failed").length;
-            const totalDisplay = cycle?.daily_interaction_budget_target || Math.max(
+            const budgetTarget = cycle?.daily_interaction_budget_target || 0;
+            const totalFromJobs = Math.max(
               displayJobs.filter((j) => actionableTypes.has(j.job_type)).length,
               displayJobs.length,
             );
+            // Use the actual done+failed count if it exceeds the target, so we never show "134/135" artificially
+            const totalDisplay = Math.max(budgetTarget, totalFromJobs, doneToday + failedToday);
             // Prioritize actionable jobs (phase_transition > interaction) over daily_reset for display
             const pendingJobs = displayJobs.filter((j) => j.status === "pending");
             const nextPendingJob =
