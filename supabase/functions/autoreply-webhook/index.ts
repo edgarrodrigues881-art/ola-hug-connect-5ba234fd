@@ -360,7 +360,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, skipped: true, reason: "no_device_identifier" });
     }
 
-    let device: { id: string; user_id: string; uazapi_token: string | null; uazapi_base_url: string | null; status: string } | null = null;
+    let device: { id: string; user_id: string; uazapi_token: string | null; uazapi_base_url: string | null; status: string; number: string | null } | null = null;
 
     if (deviceHeaderId) {
       const { data } = await supabase
