@@ -80,8 +80,8 @@ function FlowCanvas() {
     [setEdges]
   );
 
-  const onConnectStart = useCallback((_: any, params: { nodeId: string | null; handleId: string | null; handleType: string | null }) => {
-    if (params.handleType === "source" && params.nodeId && params.handleId) {
+  const onConnectStart = useCallback((_: any, params: any) => {
+    if (params.nodeId && params.handleId) {
       pendingConnection.current = { source: params.nodeId, sourceHandle: params.handleId };
     }
   }, []);
