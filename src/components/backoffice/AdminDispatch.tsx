@@ -113,6 +113,10 @@ export default function AdminDispatch() {
   const [importLoading, setImportLoading] = useState(false);
   const [importedContacts, setImportedContacts] = useState<ImportedContact[]>([]);
   const [importSelectedIds, setImportSelectedIds] = useState<Set<string>>(new Set());
+
+  // Manual state
+  const [manualInput, setManualInput] = useState("");
+  const [manualContacts, setManualContacts] = useState<ImportedContact[]>([]);
   const [importSelectAll, setImportSelectAll] = useState(true);
   const [importSearch, setImportSearch] = useState("");
 
