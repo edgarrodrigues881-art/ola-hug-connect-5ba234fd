@@ -1,11 +1,12 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { MessageSquare, Image, Clock } from "lucide-react";
+import { MessageSquare, Image, Clock, FileText } from "lucide-react";
 import type { FlowNodeData } from "./types";
 
 export function MessageNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
   const hasImage = !!d.imageUrl;
   const hasButtons = d.buttons && d.buttons.length > 0;
+  const isUsingModel = !!d.templateId;
 
   return (
     <div
@@ -29,6 +30,12 @@ export function MessageNode({ data, selected }: NodeProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-semibold text-foreground leading-tight truncate">{d.label}</p>
+          {isUsingModel && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <FileText className="w-2.5 h-2.5 text-primary/50" />
+              <span className="text-[9px] text-primary/50 font-medium truncate">{d.templateName}</span>
+            </div>
+          )}
         </div>
         {d.delay && d.delay > 0 ? (
           <span className="flex items-center gap-1 text-[10px] text-muted-foreground/70 bg-muted/30 px-2 py-0.5 rounded-full">
