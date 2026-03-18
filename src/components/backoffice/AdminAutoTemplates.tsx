@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   Mail, Clock, AlertTriangle, XCircle, Skull, Loader2, Pencil,
-  Save, Eye, EyeOff, ChevronDown, ChevronUp, Sparkles, RefreshCw,
-  FileText, ToggleLeft
+  Save, Eye, EyeOff, Sparkles, RefreshCw, Bold, Italic,
+  Strikethrough, Code, Smile, X, ClipboardPaste
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,12 +42,19 @@ const VARIABLES = [
   { key: "{{suporte}}", label: "Número do suporte" },
 ];
 
+const commonEmojis: Record<string, string[]> = {
+  "Mais usados": ["😀", "😂", "😊", "😍", "😎", "🤩", "😘", "🤗", "😁", "😉", "🥺", "😢", "🤔", "👍", "👋", "🙏"],
+  "Negócios": ["✅", "⭐", "💰", "🚀", "📱", "💬", "📢", "🎯", "⚡", "🏆", "💎", "📞", "✨", "🎁", "📊", "🔥"],
+};
+
 const AdminAutoTemplates = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState<Record<string, string>>({});
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<AutoTemplate | null>(null);
+  const [dialogContent, setDialogContent] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: templates = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["auto-message-templates"],
@@ -76,21 +84,6 @@ const AdminAutoTemplates = () => {
     },
   });
 
-  const handleSave = async (tpl: AutoTemplate) => {
-    const newContent = editContent[tpl.id];
-    if (newContent === undefined || newContent === tpl.content) {
-      toast.info("Nenhuma alteração detectada");
-      return;
-    }
-    try {
-      await updateMutation.mutateAsync({ id: tpl.id, content: newContent });
-      toast.success(`Modelo "${tpl.label}" salvo com sucesso`);
-      setEditContent(prev => { const n = { ...prev }; delete n[tpl.id]; return n; });
-    } catch {
-      toast.error("Erro ao salvar modelo");
-    }
-  };
-
   const handleToggle = async (tpl: AutoTemplate) => {
     try {
       await updateMutation.mutateAsync({ id: tpl.id, is_active: !tpl.is_active });
@@ -100,9 +93,57 @@ const AdminAutoTemplates = () => {
     }
   };
 
-  const insertVariable = (tplId: string, variable: string) => {
-    const current = editContent[tplId] ?? templates.find(t => t.id === tplId)?.content ?? "";
-    setEditContent(prev => ({ ...prev, [tplId]: current + variable }));
+  const openEditor = (tpl: AutoTemplate) => {
+    setEditingTemplate(tpl);
+    setDialogContent(tpl.content);
+    setShowEmojiPicker(false);
+  };
+
+  const handleDialogSave = async () => {
+    if (!editingTemplate) return;
+    if (dialogContent === editingTemplate.content) {
+      toast.info("Nenhuma alteração detectada");
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({ id: editingTemplate.id, content: dialogContent });
+      toast.success(`Modelo "${editingTemplate.label}" salvo com sucesso`);
+      setEditingTemplate(null);
+    } catch {
+      toast.error("Erro ao salvar modelo");
+    }
+  };
+
+  const insertAtCursor = (text: string) => {
+    const ta = textareaRef.current;
+    if (ta) {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const before = dialogContent.slice(0, start);
+      const after = dialogContent.slice(end);
+      setDialogContent(before + text + after);
+      setTimeout(() => {
+        ta.focus();
+        ta.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
+    } else {
+      setDialogContent(prev => prev + text);
+    }
+  };
+
+  const wrapSelection = (prefix: string, suffix: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = dialogContent.slice(start, end);
+    const before = dialogContent.slice(0, start);
+    const after = dialogContent.slice(end);
+    setDialogContent(before + prefix + selected + suffix + after);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + prefix.length, end + prefix.length);
+    }, 0);
   };
 
   const getPreviewContent = (content: string) => {
@@ -115,8 +156,9 @@ const AdminAutoTemplates = () => {
 
   const sortOrder = ["WELCOME", "DUE_3_DAYS", "DUE_TODAY", "OVERDUE_1", "OVERDUE_7", "OVERDUE_30"];
   const sorted = [...templates].sort((a, b) => sortOrder.indexOf(a.message_type) - sortOrder.indexOf(b.message_type));
-
   const activeCount = templates.filter(t => t.is_active).length;
+
+  const editConfig = editingTemplate ? (TYPE_CONFIG[editingTemplate.message_type] || TYPE_CONFIG.WELCOME) : null;
 
   return (
     <div className="space-y-5">
@@ -160,22 +202,18 @@ const AdminAutoTemplates = () => {
           {sorted.map((tpl) => {
             const config = TYPE_CONFIG[tpl.message_type] || TYPE_CONFIG.WELCOME;
             const Icon = config.icon;
-            const isExpanded = expandedId === tpl.id;
-            const isPreviewing = previewId === tpl.id;
-            const currentContent = editContent[tpl.id] ?? tpl.content;
-            const hasChanges = editContent[tpl.id] !== undefined && editContent[tpl.id] !== tpl.content;
+            const currentContent = tpl.content;
 
             return (
               <div
                 key={tpl.id}
                 className={cn(
                   "border rounded-xl overflow-hidden transition-all",
-                  tpl.is_active ? "border-border/40 bg-card/40" : "border-border/20 bg-card/20 opacity-60",
-                  isExpanded && "border-primary/30 bg-card/60"
+                  tpl.is_active ? "border-border/40 bg-card/40" : "border-border/20 bg-card/20 opacity-60"
                 )}
               >
                 {/* Header row */}
-                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : tpl.id)}>
+                <div className="flex items-center gap-3 px-4 py-3">
                   <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", config.bg)}>
                     <Icon size={15} className={config.color} />
                   </div>
@@ -188,15 +226,10 @@ const AdminAutoTemplates = () => {
                     </div>
                     <p className="text-[11px] text-muted-foreground/50 mt-0.5">{config.description}</p>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Eye preview toggle */}
                     <button
-                      onClick={() => {
-                        if (previewId === tpl.id) {
-                          setPreviewId(null);
-                        } else {
-                          setPreviewId(tpl.id);
-                        }
-                      }}
+                      onClick={() => setPreviewId(previewId === tpl.id ? null : tpl.id)}
                       className={cn(
                         "p-1.5 rounded-lg transition-colors",
                         previewId === tpl.id ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
@@ -205,101 +238,34 @@ const AdminAutoTemplates = () => {
                     >
                       {previewId === tpl.id ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-[10px] font-medium", tpl.is_active ? "text-emerald-400" : "text-muted-foreground/40")}>
-                        {tpl.is_active ? "Ativo" : "Inativo"}
-                      </span>
-                      <Switch
-                        checked={tpl.is_active}
-                        onCheckedChange={() => handleToggle(tpl)}
-                        disabled={updateMutation.isPending}
-                      />
-                    </div>
+                    {/* Pencil edit dialog */}
+                    <button
+                      onClick={() => openEditor(tpl)}
+                      className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                      title="Editar modelo"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    {/* Active toggle */}
+                    <span className={cn("text-[10px] font-medium ml-1", tpl.is_active ? "text-emerald-400" : "text-muted-foreground/40")}>
+                      {tpl.is_active ? "Ativo" : "Inativo"}
+                    </span>
+                    <Switch
+                      checked={tpl.is_active}
+                      onCheckedChange={() => handleToggle(tpl)}
+                      disabled={updateMutation.isPending}
+                    />
                   </div>
-                  {isExpanded ? <ChevronUp size={16} className="text-muted-foreground/40" /> : <Pencil size={14} className="text-muted-foreground/40" />}
                 </div>
 
-                {/* Inline preview (eye toggle) */}
-                {previewId === tpl.id && !isExpanded && (
+                {/* Inline preview */}
+                {previewId === tpl.id && (
                   <div className="px-4 pb-4 border-t border-border/30 pt-3">
-                    <div className="bg-[hsl(150_10%_8%)] border border-emerald-500/10 rounded-xl p-4 relative">
+                    <div className="bg-muted/10 border border-border/30 rounded-xl p-4 relative">
                       <div className="absolute top-2 right-3 text-[9px] text-muted-foreground/30 font-medium">Preview</div>
                       <pre className="text-[13px] text-foreground whitespace-pre-wrap font-sans leading-relaxed">
                         {getPreviewContent(currentContent)}
                       </pre>
-                    </div>
-                  </div>
-                )}
-
-                {/* Expanded editor */}
-                {isExpanded && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
-                    {/* Variable insert buttons */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="text-[10px] text-muted-foreground/50 font-medium self-center mr-1">Inserir:</span>
-                      {VARIABLES.map(v => (
-                        <button
-                          key={v.key}
-                          onClick={() => insertVariable(tpl.id, v.key)}
-                          className="text-[10px] px-2 py-1 rounded-md bg-primary/8 text-primary/80 border border-primary/15 font-mono hover:bg-primary/15 transition-colors"
-                        >
-                          {v.key}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Editor / Preview toggle */}
-                    <div className="flex gap-1 bg-muted/20 rounded-lg p-0.5 w-fit border border-border/30">
-                      <button
-                        onClick={() => setPreviewId(null)}
-                        className={cn(
-                          "px-3 py-1.5 text-[10px] font-medium rounded-md transition-all",
-                          !isPreviewing ? "bg-card text-foreground shadow-sm border border-border/50" : "text-muted-foreground/60"
-                        )}
-                      >
-                        <FileText size={10} className="inline mr-1" /> Editar
-                      </button>
-                      <button
-                        onClick={() => setPreviewId(isPreviewing ? null : tpl.id)}
-                        className={cn(
-                          "px-3 py-1.5 text-[10px] font-medium rounded-md transition-all",
-                          isPreviewing ? "bg-card text-foreground shadow-sm border border-border/50" : "text-muted-foreground/60"
-                        )}
-                      >
-                        <Eye size={10} className="inline mr-1" /> Preview
-                      </button>
-                    </div>
-
-                    {isPreviewing ? (
-                      <div className="bg-muted/20 border border-border/30 rounded-xl p-4">
-                        <p className="text-[10px] text-muted-foreground/40 mb-2 font-medium">Pré-visualização com dados fictícios:</p>
-                        <pre className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
-                          {getPreviewContent(currentContent)}
-                        </pre>
-                      </div>
-                    ) : (
-                      <Textarea
-                        value={currentContent}
-                        onChange={e => setEditContent(prev => ({ ...prev, [tpl.id]: e.target.value }))}
-                        className="min-h-[200px] bg-muted/10 border-border/30 text-sm font-mono resize-y"
-                        placeholder="Escreva sua mensagem aqui..."
-                      />
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-muted-foreground/30">
-                        Última edição: {new Date(tpl.updated_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                      </p>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSave(tpl)}
-                        disabled={!hasChanges || updateMutation.isPending}
-                        className="h-8 text-[11px] gap-1.5 rounded-lg"
-                      >
-                        {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                        Salvar alterações
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -308,6 +274,139 @@ const AdminAutoTemplates = () => {
           })}
         </div>
       )}
+
+      {/* ═══ EDIT DIALOG ═══ */}
+      <Dialog open={!!editingTemplate} onOpenChange={(open) => { if (!open) setEditingTemplate(null); }}>
+        <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto bg-card border-border p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              Editar modelo
+              {editingTemplate && editConfig && (
+                <Badge variant="outline" className={cn("text-[9px] px-1.5", editConfig.border, editConfig.color, editConfig.bg)}>
+                  {editingTemplate.label}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingTemplate && (
+            <div className="px-6 pb-6 space-y-4">
+              {/* Label display */}
+              <div>
+                <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary mb-1.5 block">
+                  Nome do modelo
+                </label>
+                <div className="h-11 flex items-center px-4 rounded-xl border border-primary/40 bg-muted/10 text-foreground text-sm font-medium">
+                  {editingTemplate.label}
+                </div>
+              </div>
+
+              {/* Message section */}
+              <div className="border border-border/40 rounded-xl p-4 space-y-3 bg-muted/5">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
+                  MENSAGEM
+                </h3>
+
+                {/* Formatting toolbar */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button
+                    onClick={() => insertAtCursor("{{nome}}")}
+                    className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-primary/8 text-primary/80 border border-primary/15 hover:bg-primary/15 transition-colors font-medium"
+                  >
+                    <ClipboardPaste size={11} /> Variável
+                  </button>
+                  <div className="w-px h-5 bg-border/30 mx-1" />
+                  <button onClick={() => wrapSelection("*", "*")} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 transition-colors" title="Negrito">
+                    <Bold size={14} />
+                  </button>
+                  <button onClick={() => wrapSelection("_", "_")} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 transition-colors" title="Itálico">
+                    <Italic size={14} />
+                  </button>
+                  <button onClick={() => wrapSelection("~", "~")} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 transition-colors" title="Tachado">
+                    <Strikethrough size={14} />
+                  </button>
+                  <button onClick={() => wrapSelection("```", "```")} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 transition-colors" title="Código">
+                    <Code size={14} />
+                  </button>
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={cn("p-1.5 rounded-lg transition-colors", showEmojiPicker ? "text-primary bg-primary/10" : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/20")}
+                    title="Emojis"
+                  >
+                    <Smile size={14} />
+                  </button>
+                </div>
+
+                {/* Emoji picker */}
+                {showEmojiPicker && (
+                  <div className="border border-border/40 rounded-xl p-3 bg-muted/10 max-h-[180px] overflow-y-auto">
+                    {Object.entries(commonEmojis).map(([group, emojis]) => (
+                      <div key={group} className="mb-2">
+                        <p className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-1">{group}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {emojis.map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={() => insertAtCursor(emoji)}
+                              className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-muted/30 transition-colors text-base"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Textarea editor */}
+                <Textarea
+                  ref={textareaRef}
+                  value={dialogContent}
+                  onChange={e => setDialogContent(e.target.value)}
+                  className="min-h-[220px] bg-muted/15 border-border/30 text-sm resize-y rounded-xl"
+                  placeholder="Olá, {{nome}} \n\nEscreva sua mensagem aqui..."
+                />
+
+                {/* Variable chips */}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] text-muted-foreground/40 font-medium">Variáveis:</span>
+                  {VARIABLES.map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => insertAtCursor(v.key)}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 font-mono hover:bg-primary/20 transition-colors"
+                    >
+                      {v.key}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-[10px] text-muted-foreground/30">
+                  Última edição: {new Date(editingTemplate.updated_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setEditingTemplate(null)} className="h-9 text-[11px] rounded-lg">
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleDialogSave}
+                    disabled={dialogContent === editingTemplate.content || updateMutation.isPending}
+                    className="h-9 text-[11px] gap-1.5 rounded-lg"
+                  >
+                    {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                    Salvar alterações
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
