@@ -63,6 +63,7 @@ const AdminAutoTemplates = () => {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<AutoTemplate | null>(null);
   const [dialogContent, setDialogContent] = useState("");
+  const [dialogButtons, setDialogButtons] = useState<TemplateButton[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
