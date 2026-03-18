@@ -197,8 +197,20 @@ Deno.serve(async (req) => {
     const event = body.event || body.EventType || body.type || "";
     const msgData = body.data || body;
 
-    // Log raw payload for debugging (first 1200 chars)
-    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 1200)}`);
+    // Log raw payload for debugging (first 3000 chars)
+    console.log(`[autoreply] RAW event="${event}" payload=${JSON.stringify(body).substring(0, 3000)}`);
+    
+    // Log button-specific fields for debugging
+    const btnDebug = {
+      type: body.type, wa_type: body.wa_type, messageType: body.messageType,
+      selectedButtonId: body.selectedButtonId, selectedId: body.selectedId,
+      text: body.text?.substring?.(0, 50), messageBody: body.messageBody?.substring?.(0, 50),
+      body_body: body.body?.substring?.(0, 50),
+      fromMe: body.fromMe ?? body.isFromMe ?? body.wa_fromMe,
+      wasSentByApi: body.wasSentByApi ?? body.wa_sentByApi,
+      hasMessage: !!body.message, hasData: !!body.data,
+    };
+    console.log(`[autoreply] BTN_DEBUG: ${JSON.stringify(btnDebug)}`);
 
     // Extract message details
     let fromPhone = "";
