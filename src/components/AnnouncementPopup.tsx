@@ -70,7 +70,7 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
           className="relative z-10 w-full max-w-[420px]"
         >
           {/* Outer glow ring */}
-          <div className="absolute -inset-[1px] rounded-[22px] bg-gradient-to-b from-primary/40 via-primary/10 to-transparent blur-[1px]" />
+          <div className="absolute -inset-[1px] rounded-[22px] bg-gradient-to-b from-primary/40 via-primary/10 to-transparent blur-[1px] pointer-events-none" />
 
           <div className="relative overflow-hidden rounded-[20px] border border-border/40 bg-card shadow-[0_25px_80px_-15px_hsl(var(--primary)/0.25),0_0_0_1px_hsl(var(--border)/0.1)]">
             {/* Animated gradient top bar */}
@@ -113,15 +113,13 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
 
             {/* Close button */}
             {announcement.allow_close && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, type: "spring" }}
-                onClick={handleClose}
-                className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-muted/60 hover:bg-muted border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110"
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleClose(); }}
+                className="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-muted/60 hover:bg-muted border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 cursor-pointer"
               >
                 <X size={14} />
-              </motion.button>
+              </button>
             )}
 
             <div className="px-7 pt-7 pb-3 space-y-5 relative z-10">
@@ -206,8 +204,9 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
 
               {/* Main button — premium style */}
               <Button
-                onClick={handleButtonClick}
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/25 text-sm relative overflow-hidden group transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleButtonClick(); }}
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/25 text-sm relative overflow-hidden group transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] z-20"
               >
                 {/* Button shimmer */}
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
