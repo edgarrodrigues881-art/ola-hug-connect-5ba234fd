@@ -333,13 +333,13 @@ export default function AdminConexao() {
     );
   }
 
-  if (!deviceId) {
+  if (!deviceId && !deviceLoading) {
     return (
       <div className="text-center py-16">
         <Plug size={40} className="mx-auto mb-3 text-muted-foreground/40" />
-        <p className="text-sm text-muted-foreground">Nenhum dispositivo de envio configurado.</p>
+        <p className="text-sm text-muted-foreground">A instância principal ainda não foi preparada.</p>
         <p className="text-xs text-muted-foreground/60 mt-1">
-          Configure <code className="bg-muted px-1 rounded">wa_report_device_id</code> em community_settings.
+          Clique em <code className="bg-muted px-1 rounded">Conectar WhatsApp</code> para recriar a conexão admin automaticamente.
         </p>
       </div>
     );
