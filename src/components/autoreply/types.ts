@@ -15,6 +15,9 @@ export interface FlowNodeData extends Record<string, unknown> {
   imageCaption?: string;
   delay?: number;
   buttons?: FlowButton[];
+  // Model integration
+  templateId?: string;
+  templateName?: string;
   // End node
   action?: "end_flow" | "wait_response" | "transfer_human";
 }
