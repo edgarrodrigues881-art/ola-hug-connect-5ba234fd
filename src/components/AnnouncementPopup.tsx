@@ -164,9 +164,9 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
                   className="text-center space-y-1"
                 >
                   <div className="flex items-center justify-center gap-3 mb-3">
-                    <div className="h-px w-8 bg-gradient-to-r from-transparent to-primary/40" />
-                    <Sparkles size={14} className="text-primary/60" />
-                    <div className="h-px w-8 bg-gradient-to-l from-transparent to-primary/40" />
+                    <div className="h-px w-8" style={{ background: "linear-gradient(to right, transparent, hsl(43 96% 56% / 0.3))" }} />
+                    <Sparkles size={14} style={{ color: "hsl(43 96% 56% / 0.5)" }} />
+                    <div className="h-px w-8" style={{ background: "linear-gradient(to left, transparent, hsl(43 96% 56% / 0.3))" }} />
                   </div>
                   <h2 className="text-[22px] font-bold text-foreground leading-tight tracking-tight">
                     {announcement.title}
