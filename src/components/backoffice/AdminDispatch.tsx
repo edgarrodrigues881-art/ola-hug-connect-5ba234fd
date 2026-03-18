@@ -923,34 +923,26 @@ export default function AdminDispatch() {
             {/* WhatsApp-style message preview */}
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-2">Prévia da Mensagem</p>
-              <div className="bg-[#0b1418] rounded-xl p-4 max-w-sm mx-auto">
-                <div className="bg-[#005c4b] rounded-lg p-3 ml-auto max-w-[90%]">
-                  {selectedTemplate?.media_url && (
-                    <div className="mb-2 rounded overflow-hidden bg-black/20 flex items-center justify-center h-32 text-xs text-white/40">
-                      📎 Mídia anexada
-                    </div>
-                  )}
-                  <p className="text-[13px] whitespace-pre-wrap text-white leading-relaxed">{messageContent || "(mensagem vazia)"}</p>
-                  {/* Buttons */}
-                  {(() => {
-                    const buttons = templateId !== "custom" && selectedTemplate
-                      ? (selectedTemplate as any).buttons || (selectedTemplate as any).variables?.buttons
-                      : [];
-                    const btnArray = Array.isArray(buttons) ? buttons : [];
-                    if (btnArray.length === 0) return null;
-                    return (
+                <div className="bg-[#0b1418] rounded-xl p-4 max-w-sm mx-auto">
+                  <div className="bg-[#005c4b] rounded-lg p-3 ml-auto max-w-[90%]">
+                    {selectedTemplateMedia.length > 0 && (
+                      <div className="mb-2 rounded overflow-hidden bg-black/20 flex items-center justify-center h-32 text-xs text-white/40">
+                        📎 {selectedTemplateMedia.length} mídia{selectedTemplateMedia.length > 1 ? "s" : ""}
+                      </div>
+                    )}
+                    <p className="text-[13px] whitespace-pre-wrap text-white leading-relaxed">{messageContent || "(mensagem vazia)"}</p>
+                    {selectedTemplateButtons.length > 0 && (
                       <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
-                        {btnArray.map((btn: any, i: number) => (
+                        {selectedTemplateButtons.map((btn: any, i: number) => (
                           <div key={i} className="text-center py-1.5 rounded bg-white/5 text-[12px] text-[#53bdeb] font-medium">
                             {btn.text || btn.label || btn.title || `Botão ${i + 1}`}
                           </div>
                         ))}
                       </div>
-                    );
-                  })()}
-                  <p className="text-[10px] text-white/40 text-right mt-1">agora</p>
+                    )}
+                    <p className="text-[10px] text-white/40 text-right mt-1">agora</p>
+                  </div>
                 </div>
-              </div>
             </div>
           </div>
 
