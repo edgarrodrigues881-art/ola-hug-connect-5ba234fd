@@ -166,7 +166,7 @@ const BackOffice = ({ initialTab }: { initialTab?: string }) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <BackOfficeDashboard onLogout={handleLogout} />
+      <BackOfficeDashboard onLogout={handleLogout} initialTab={initialTab} />
     </div>
   );
 };
