@@ -44,13 +44,16 @@ export default function AdminConnectionPurposes() {
     },
   });
 
-  // Load admin devices
+  // Load only the current admin's devices (not all system devices)
   const { data: devices = [] } = useQuery({
-    queryKey: ["admin-devices-list"],
+    queryKey: ["admin-own-devices-list"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       const { data } = await supabase
         .from("devices")
         .select("id, name, number, status, profile_name")
+        .eq("user_id", user.id)
         .order("name");
       return data || [];
     },
