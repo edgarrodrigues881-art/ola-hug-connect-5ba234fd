@@ -23,11 +23,12 @@ interface Props {
   deviceId: string | null;
   onDeviceChange: (id: string | null) => void;
   nodes: Node<FlowNodeData>[];
+  edges?: { id: string; source: string; target: string }[];
 }
 
 const onlineStatuses = new Set(["connected", "Connected", "Ready", "ready", "authenticated"]);
 
-export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange, nodes }: Props) {
+export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange, nodes, edges = [] }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [testing, setTesting] = useState(false);
@@ -89,6 +90,11 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
         body: {
           device_id: deviceId,
           incoming_text: incomingText,
+          draft_flow: {
+            name,
+            nodes,
+            edges,
+          },
         },
       });
 
