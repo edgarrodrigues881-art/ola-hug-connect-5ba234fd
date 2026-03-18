@@ -70,7 +70,7 @@ export function AnnouncementPopup({ announcement, onClose, onDismiss, isPreview 
           className="relative z-10 w-full max-w-[420px]"
         >
           {/* Outer glow ring */}
-          <div className="absolute -inset-[1px] rounded-[22px] bg-gradient-to-b from-primary/40 via-primary/10 to-transparent blur-[1px]" />
+          <div className="absolute -inset-[1px] rounded-[22px] bg-gradient-to-b from-primary/40 via-primary/10 to-transparent blur-[1px] pointer-events-none" />
 
           <div className="relative overflow-hidden rounded-[20px] border border-border/40 bg-card shadow-[0_25px_80px_-15px_hsl(var(--primary)/0.25),0_0_0_1px_hsl(var(--border)/0.1)]">
             {/* Animated gradient top bar */}
