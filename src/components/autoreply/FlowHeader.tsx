@@ -1,4 +1,4 @@
-import { Save, Play, BotMessageSquare, ArrowLeft } from "lucide-react";
+import { Save, Play, BotMessageSquare, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -9,9 +9,11 @@ interface Props {
   onNameChange: (n: string) => void;
   isActive: boolean;
   onToggleActive: () => void;
+  onSave: () => void;
+  saving?: boolean;
 }
 
-export function FlowHeader({ name, onNameChange, isActive, onToggleActive }: Props) {
+export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving }: Props) {
   const navigate = useNavigate();
   return (
     <div className="flex items-center gap-4 px-5 py-3 border-b border-border/40 bg-card/50 backdrop-blur-sm shrink-0">
@@ -56,9 +58,11 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive }: Pro
         <Button
           size="sm"
           className="h-8 text-xs"
-          onClick={() => toast.success("Fluxo salvo com sucesso!")}
+          onClick={onSave}
+          disabled={saving}
         >
-          <Save className="w-3.5 h-3.5 mr-1.5" /> Salvar
+          {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+          Salvar
         </Button>
       </div>
     </div>
