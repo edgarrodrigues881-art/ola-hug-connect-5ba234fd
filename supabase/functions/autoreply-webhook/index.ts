@@ -374,7 +374,7 @@ Deno.serve(async (req) => {
     if (!device && instanceToken) {
       const { data } = await supabase
         .from("devices")
-        .select("id, user_id, uazapi_token, uazapi_base_url, status")
+        .select("id, user_id, uazapi_token, uazapi_base_url, status, number")
         .eq("uazapi_token", instanceToken)
         .maybeSingle();
       device = data;
