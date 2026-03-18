@@ -201,7 +201,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
   const warmupProgress = getWarmupProgress(cycle);
 
-  // Disconnect countdown (24h from updated_at when disconnected)
+  // Disconnect elapsed timer (counts UP from disconnection moment)
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
     const disconnectSince = device.updated_at ?? device.created_at;
@@ -217,15 +217,12 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
     }
 
     const calc = () => {
-      const deadline = disconnectedAt + 24 * 60 * 60 * 1000;
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        setCountdown("00:00:00");
-        return;
-      }
-      const h = Math.floor(remaining / 3600000);
-      const m = Math.floor((remaining % 3600000) / 60000);
-      const s = Math.floor((remaining % 60000) / 1000);
+      const elapsed = Date.now() - disconnectedAt;
+      if (elapsed < 0) { setCountdown("00:00:00"); return; }
+      const totalSec = Math.floor(elapsed / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
       setCountdown(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
     };
 
