@@ -2,12 +2,13 @@ import { useState, useCallback, lazy, Suspense, memo, useMemo, useEffect } from 
 import { useAdminDashboard, type AdminUser } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard, Users, Bell, ScrollText, Wallet, Database,
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key,
-  Send, FileText, Cable
+  Send, FileText, Cable, Megaphone, List
 } from "lucide-react";
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
