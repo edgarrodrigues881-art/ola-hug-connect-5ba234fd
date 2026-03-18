@@ -527,7 +527,7 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("device_id", deviceId)
         .eq("contact_phone", fromPhone)
-        .eq("status", "active")
+        .in("status", ["active", "paused"])
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
