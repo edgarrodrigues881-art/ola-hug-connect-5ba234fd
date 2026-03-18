@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-webhook-secret, token",
+    "authorization, x-client-info, apikey, content-type, x-webhook-secret, x-device-id, token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const json = (data: unknown, status = 200) =>
@@ -18,6 +18,7 @@ const json = (data: unknown, status = 200) =>
 
 async function uazapiSend(baseUrl: string, token: string, endpoint: string, payload: any) {
   const url = `${baseUrl}${endpoint}`;
+  console.log(`[autoreply] Sending to ${endpoint}: ${JSON.stringify(payload).substring(0, 200)}`);
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", token },
@@ -26,9 +27,13 @@ async function uazapiSend(baseUrl: string, token: string, endpoint: string, payl
   const text = await res.text();
   if (!res.ok) {
     console.error(`[autoreply] API error ${res.status}: ${text}`);
-    throw new Error(`API error ${res.status}`);
+    throw new Error(`API error ${res.status}: ${text.substring(0, 200)}`);
   }
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
 }
 
 async function sendFlowMessage(
@@ -101,10 +106,33 @@ interface FlowEdge {
   targetHandle?: string;
 }
 
+// Find all next nodes from a given node (no handle filter)
 function findNextNodes(nodeId: string, edges: FlowEdge[]): string[] {
   return edges
     .filter((e) => e.source === nodeId)
     .map((e) => e.target);
+}
+
+// Find the next node for a specific button handle
+function findNextNodeForButton(nodeId: string, buttonId: string, edges: FlowEdge[]): string | null {
+  // Edges from button handles use sourceHandle like "btn-{buttonId}"
+  const possibleHandles = [
+    `btn-${buttonId}`,
+    buttonId,
+  ];
+
+  for (const handle of possibleHandles) {
+    const edge = edges.find((e) => e.source === nodeId && e.sourceHandle === handle);
+    if (edge) return edge.target;
+  }
+
+  // Also try partial match (handle contains buttonId)
+  const partialMatch = edges.find(
+    (e) => e.source === nodeId && e.sourceHandle && e.sourceHandle.includes(buttonId)
+  );
+  if (partialMatch) return partialMatch.target;
+
+  return null;
 }
 
 function findNodeById(nodeId: string, nodes: FlowNode[]): FlowNode | undefined {
@@ -125,7 +153,6 @@ function matchesTrigger(
     case "keyword": {
       const keyword = (startNode.data.keyword || "").trim().toLowerCase();
       if (!keyword) return false;
-      // Support multiple keywords separated by comma
       const keywords = keyword.split(",").map((k) => k.trim()).filter(Boolean);
       const msgLower = messageText.toLowerCase().trim();
       return keywords.some((kw) => msgLower.includes(kw));
@@ -135,7 +162,6 @@ function matchesTrigger(
     case "start_chat":
       return isFirstMessage;
     case "template":
-      // Template trigger = keyword match or any message based on config
       return true;
     default:
       return false;
@@ -234,6 +260,11 @@ Deno.serve(async (req) => {
       messageText = msgData.body || msgData.text || msgData.messageBody || "";
     }
 
+    // Also check for button response at top level (some UaZapi versions)
+    if (!buttonResponseId) {
+      buttonResponseId = msgData.selectedButtonId || msgData.buttonId || body.selectedButtonId || "";
+    }
+
     // Skip messages from ourselves or group messages
     if (isFromMe || !fromPhone || fromPhone.includes("g.us")) {
       return json({ ok: true, skipped: true, reason: "self_or_group" });
@@ -279,7 +310,7 @@ Deno.serve(async (req) => {
     const deviceId = device.id;
     const userId = device.user_id;
     const baseUrl = (device.uazapi_base_url || "").replace(/\/+$/, "");
-    const token = device.uazapi_token!;
+    const deviceToken = device.uazapi_token!;
 
     // ── Find active flows for this device ──
     const { data: flows } = await supabase
@@ -321,47 +352,91 @@ Deno.serve(async (req) => {
           const currentNode = findNodeById(session.current_node_id, nodes);
 
           if (currentNode?.data.buttons) {
-            // Find button that was clicked
             const clickedButton = currentNode.data.buttons.find(
               (b) => b.id === buttonResponseId || b.label === buttonResponseId
             );
 
+            // 1. Try explicit targetNodeId on the button
             if (clickedButton?.targetNodeId) {
-              // Navigate to the target node
-              await processNodeChain(
-                supabase,
-                baseUrl,
-                token,
-                fromPhone,
-                clickedButton.targetNodeId,
-                nodes,
-                edges,
-                session.id,
-                flow.id,
-                deviceId,
-                userId
-              );
+              console.log(`[autoreply] Button "${clickedButton.label}" → targetNodeId ${clickedButton.targetNodeId}`);
+              await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, clickedButton.targetNodeId, nodes, edges, session.id, flow.id, deviceId, userId);
               return json({ ok: true, action: "button_navigation" });
+            }
+
+            // 2. Try resolving via edge sourceHandle (the correct approach for flow editor)
+            if (clickedButton) {
+              const targetFromEdge = findNextNodeForButton(currentNode.id, clickedButton.id, edges);
+              if (targetFromEdge) {
+                console.log(`[autoreply] Button "${clickedButton.label}" → edge target ${targetFromEdge}`);
+                await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, targetFromEdge, nodes, edges, session.id, flow.id, deviceId, userId);
+                return json({ ok: true, action: "button_edge_navigation" });
+              }
+            }
+
+            // 3. Also try matching by label text in button response
+            if (!clickedButton) {
+              const labelMatch = currentNode.data.buttons.find(
+                (b) => b.label.toLowerCase() === messageText.toLowerCase().trim()
+              );
+              if (labelMatch) {
+                const targetFromEdge = findNextNodeForButton(currentNode.id, labelMatch.id, edges);
+                if (targetFromEdge) {
+                  console.log(`[autoreply] Button label match "${labelMatch.label}" → edge target ${targetFromEdge}`);
+                  await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, targetFromEdge, nodes, edges, session.id, flow.id, deviceId, userId);
+                  return json({ ok: true, action: "button_label_navigation" });
+                }
+                if (labelMatch.targetNodeId) {
+                  await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, labelMatch.targetNodeId, nodes, edges, session.id, flow.id, deviceId, userId);
+                  return json({ ok: true, action: "button_label_target_navigation" });
+                }
+              }
             }
           }
 
-          // Button not mapped — try next nodes in sequence
+          // Fallback: try next nodes in sequence (first edge from current node)
           const nextNodes = findNextNodes(session.current_node_id, edges);
           if (nextNodes.length > 0) {
-            await processNodeChain(
-              supabase,
-              baseUrl,
-              token,
-              fromPhone,
-              nextNodes[0],
-              nodes,
-              edges,
-              session.id,
-              flow.id,
-              deviceId,
-              userId
-            );
+            console.log(`[autoreply] Button fallback → first edge target ${nextNodes[0]}`);
+            await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, nextNodes[0], nodes, edges, session.id, flow.id, deviceId, userId);
             return json({ ok: true, action: "sequence_next" });
+          }
+        }
+      }
+    }
+
+    // ── Check for existing active session with text matching a button label ──
+    {
+      const { data: activeSession } = await supabase
+        .from("autoreply_sessions")
+        .select("*")
+        .eq("device_id", deviceId)
+        .eq("contact_phone", fromPhone)
+        .eq("status", "active")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeSession && messageText) {
+        const flow = matchingFlows.find((f) => f.id === activeSession.flow_id);
+        if (flow) {
+          const nodes = flow.nodes as FlowNode[];
+          const edges = flow.edges as FlowEdge[];
+          const currentNode = findNodeById(activeSession.current_node_id, nodes);
+
+          // Check if the text matches a button label (user typed the button text)
+          if (currentNode?.data.buttons?.length) {
+            const labelMatch = currentNode.data.buttons.find(
+              (b) => b.label.toLowerCase().trim() === messageText.toLowerCase().trim()
+            );
+            if (labelMatch) {
+              const targetFromEdge = findNextNodeForButton(currentNode.id, labelMatch.id, edges);
+              const targetNode = targetFromEdge || labelMatch.targetNodeId || null;
+              if (targetNode) {
+                console.log(`[autoreply] Text matches button label "${labelMatch.label}" → ${targetNode}`);
+                await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, targetNode, nodes, edges, activeSession.id, flow.id, deviceId, userId);
+                return json({ ok: true, action: "text_as_button" });
+              }
+            }
           }
         }
       }
@@ -387,19 +462,7 @@ Deno.serve(async (req) => {
           const nextNodes = findNextNodes(existingSession.current_node_id, edges);
 
           if (nextNodes.length > 0) {
-            await processNodeChain(
-              supabase,
-              baseUrl,
-              token,
-              fromPhone,
-              nextNodes[0],
-              nodes,
-              edges,
-              existingSession.id,
-              flow.id,
-              deviceId,
-              userId
-            );
+            await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, nextNodes[0], nodes, edges, existingSession.id, flow.id, deviceId, userId);
             return json({ ok: true, action: "waiting_response_continued" });
           }
         }
@@ -407,7 +470,6 @@ Deno.serve(async (req) => {
     }
 
     // ── No active session — check if message matches any flow trigger ──
-    // Check if this is a first-time message (no prior sessions)
     const { count: priorSessions } = await supabase
       .from("autoreply_sessions")
       .select("id", { count: "exact", head: true })
@@ -427,7 +489,7 @@ Deno.serve(async (req) => {
 
       console.log(`[autoreply] Flow ${flow.id} matched for ${fromPhone}`);
 
-      // Create session
+      // Create or reset session
       const { data: newSession, error: sessErr } = await supabase
         .from("autoreply_sessions")
         .upsert(
@@ -450,26 +512,29 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Start processing from nodes connected to start
-      const nextNodes = findNextNodes(startNode.id, edges);
-
       // If start node has text (template mode), send it first
       if (startNode.data.text) {
-        await sendFlowMessage(
-          baseUrl,
-          token,
-          fromPhone,
-          startNode.data.text,
-          startNode.data.imageUrl || undefined,
-          startNode.data.buttons?.map((b) => ({ id: b.id, label: b.label }))
-        );
+        try {
+          await sendFlowMessage(
+            baseUrl,
+            deviceToken,
+            fromPhone,
+            startNode.data.text,
+            startNode.data.imageUrl || undefined,
+            startNode.data.buttons?.map((b) => ({ id: b.id, label: b.label }))
+          );
+          console.log(`[autoreply] Start message sent to ${fromPhone}`);
+        } catch (sendErr) {
+          console.error(`[autoreply] Failed to send start message: ${sendErr}`);
+          return json({ error: "Failed to send start message", details: sendErr instanceof Error ? sendErr.message : String(sendErr) }, 502);
+        }
 
-        // Update session to start node (for button handling)
+        // Update session to start node
         await supabase
           .from("autoreply_sessions")
           .update({
             current_node_id: startNode.id,
-            status: startNode.data.buttons?.length ? "active" : "active",
+            status: "active",
             last_message_at: new Date().toISOString(),
           })
           .eq("id", newSession!.id);
@@ -481,20 +546,9 @@ Deno.serve(async (req) => {
       }
 
       // Process the chain of connected nodes
+      const nextNodes = findNextNodes(startNode.id, edges);
       if (nextNodes.length > 0) {
-        await processNodeChain(
-          supabase,
-          baseUrl,
-          token,
-          fromPhone,
-          nextNodes[0],
-          nodes,
-          edges,
-          newSession!.id,
-          flow.id,
-          deviceId,
-          userId
-        );
+        await processNodeChain(supabase, baseUrl, deviceToken, fromPhone, nextNodes[0], nodes, edges, newSession!.id, flow.id, deviceId, userId);
       }
 
       return json({ ok: true, action: "flow_started" });
@@ -503,7 +557,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, skipped: true, reason: "no_trigger_match" });
   } catch (err) {
     console.error("[autoreply] Error:", err);
-    return json({ error: "Internal error", details: err.message }, 500);
+    return json({ error: "Internal error", details: err instanceof Error ? err.message : String(err) }, 500);
   }
 });
 
@@ -525,7 +579,7 @@ async function processNodeChain(
   userId: string
 ) {
   let currentNodeId = startNodeId;
-  let maxSteps = 20; // Safety limit
+  let maxSteps = 20;
 
   while (currentNodeId && maxSteps-- > 0) {
     const node = findNodeById(currentNodeId, nodes);
@@ -535,14 +589,20 @@ async function processNodeChain(
       case "messageNode": {
         const text = node.data.text || "";
         if (text) {
-          await sendFlowMessage(
-            baseUrl,
-            token,
-            phone,
-            text,
-            node.data.imageUrl || undefined,
-            node.data.buttons?.map((b) => ({ id: b.id, label: b.label }))
-          );
+          try {
+            await sendFlowMessage(
+              baseUrl,
+              token,
+              phone,
+              text,
+              node.data.imageUrl || undefined,
+              node.data.buttons?.map((b) => ({ id: b.id, label: b.label }))
+            );
+            console.log(`[autoreply] Message sent: "${text.substring(0, 50)}..." to ${phone}`);
+          } catch (sendErr) {
+            console.error(`[autoreply] Failed to send message node ${node.id}: ${sendErr}`);
+            // Don't break chain for send errors - log and continue
+          }
         }
 
         // Update session
@@ -555,10 +615,16 @@ async function processNodeChain(
           })
           .eq("id", sessionId);
 
-        // If node has buttons with targets, wait for button click
+        // If node has buttons with targets or edge connections, wait for button click
         const hasButtonTargets = node.data.buttons?.some((b) => b.targetNodeId);
-        if (hasButtonTargets) {
+        const hasButtonEdges = node.data.buttons?.some((b) => findNextNodeForButton(node.id, b.id, edges));
+        if (hasButtonTargets || hasButtonEdges) {
           return; // Stop chain, wait for button response
+        }
+
+        // If has buttons at all (even without mapped targets), still wait
+        if (node.data.buttons?.length) {
+          return;
         }
 
         // Continue to next node
@@ -569,16 +635,8 @@ async function processNodeChain(
 
       case "delayNode": {
         const delaySeconds = node.data.delaySeconds || 5;
-        // For delays > 30s, we can't hold the request open
-        // For short delays, wait inline
-        if (delaySeconds <= 30) {
-          await new Promise((r) => setTimeout(r, delaySeconds * 1000));
-        } else {
-          // For longer delays, save state and stop
-          // A scheduler would need to resume this, but for now we cap at 30s
-          const cappedDelay = Math.min(delaySeconds, 30);
-          await new Promise((r) => setTimeout(r, cappedDelay * 1000));
-        }
+        const cappedDelay = Math.min(delaySeconds, 30);
+        await new Promise((r) => setTimeout(r, cappedDelay * 1000));
 
         // Update session
         await supabase
@@ -595,7 +653,6 @@ async function processNodeChain(
       }
 
       case "endNode": {
-        // End the flow
         await supabase
           .from("autoreply_sessions")
           .update({
@@ -614,15 +671,15 @@ async function processNodeChain(
         return;
       }
 
-      default:
-        // Unknown node type, skip
+      default: {
         const nextNodes = findNextNodes(node.id, edges);
         currentNodeId = nextNodes[0] || "";
         break;
+      }
     }
   }
 
-  // Chain ended (no more nodes)
+  // Chain ended
   await supabase
     .from("autoreply_sessions")
     .update({ status: "completed" })
@@ -636,7 +693,6 @@ async function processNodeChain(
 async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
   const { device_id } = body;
 
-  // Auth check: accept user token, service role key, or internal secret
   const authHeader = req.headers.get("authorization") ?? "";
   const bearerToken = authHeader.replace("Bearer ", "");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -646,7 +702,6 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
   const isInternal = internalSecret && cronSecret === internalSecret;
 
   if (isServiceRole || isInternal) {
-    // Internal/service role: get device without user filter
     const { data: device } = await supabase
       .from("devices")
       .select("id, user_id, uazapi_token, uazapi_base_url")
@@ -663,7 +718,6 @@ async function handleRegisterWebhook(supabase: any, body: any, req: Request) {
     return json({ error: "Not authenticated" }, 401);
   }
 
-  // Get device
   const { data: device } = await supabase
     .from("devices")
     .select("id, uazapi_token, uazapi_base_url")
@@ -682,33 +736,115 @@ async function doRegisterWebhook(device: any) {
   const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const webhookUrl = `${supabaseUrl}/functions/v1/autoreply-webhook`;
+  const webhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
 
-  try {
-    const webhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    token: device.uazapi_token,
+  };
 
-    // UaZapi GO uses POST /webhook with webhookURL field
-    const res = await fetch(`${baseUrl}/webhook`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: device.uazapi_token,
+  const webhookHeaders: Record<string, string> = {
+    token: device.uazapi_token,
+    "x-device-id": device.id,
+  };
+  if (webhookSecret) {
+    webhookHeaders["x-webhook-secret"] = webhookSecret;
+  }
+
+  // Try multiple endpoint formats for different UaZapi versions
+  const attempts = [
+    // UaZapi GO v2 format
+    {
+      url: `${baseUrl}/webhook`,
+      body: {
+        url: webhookUrl,
+        events: ["messages"],
+        headers: webhookHeaders,
       },
-      body: JSON.stringify({
+    },
+    // UaZapi GO alternate format
+    {
+      url: `${baseUrl}/webhook`,
+      body: {
         webhookURL: webhookUrl,
-        webhookHeaders: {
-          token: device.uazapi_token,
-          "x-device-id": device.id,
-          ...(webhookSecret ? { "x-webhook-secret": webhookSecret } : {}),
-        },
+        webhookHeaders,
+      },
+    },
+    // UaZapi legacy format
+    {
+      url: `${baseUrl}/webhook/set`,
+      body: {
+        url: webhookUrl,
+        headers: webhookHeaders,
+      },
+    },
+  ];
+
+  let lastError = "";
+  let lastStatus = 0;
+
+  for (const attempt of attempts) {
+    try {
+      const res = await fetch(attempt.url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(attempt.body),
+      });
+
+      const text = await res.text();
+      console.log(`[autoreply] Webhook attempt ${attempt.url}: ${res.status} ${text.substring(0, 300)}`);
+
+      if (res.ok || res.status === 200 || res.status === 201) {
+        return json({ ok: true, webhook_url: webhookUrl, endpoint: attempt.url });
+      }
+
+      lastError = text;
+      lastStatus = res.status;
+
+      // If method not allowed, try next format
+      if (res.status === 405) continue;
+      // If bad request, try next format
+      if (res.status === 400) continue;
+
+      // For other errors, return immediately
+      return json({ error: `Webhook registration failed (${res.status})`, details: text.substring(0, 300) }, 502);
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.error(`[autoreply] Webhook attempt ${attempt.url} error:`, lastError);
+      continue;
+    }
+  }
+
+  // Also try PUT method as some versions use that
+  try {
+    const res = await fetch(`${baseUrl}/webhook`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: ["messages"],
+        headers: webhookHeaders,
       }),
     });
 
     const text = await res.text();
-    console.log(`[autoreply] Webhook registered for device ${device.id}: ${res.status} ${text}`);
+    console.log(`[autoreply] Webhook PUT attempt: ${res.status} ${text.substring(0, 300)}`);
 
-    return json({ ok: true, webhook_url: webhookUrl });
+    if (res.ok) {
+      return json({ ok: true, webhook_url: webhookUrl, endpoint: "PUT /webhook" });
+    }
+
+    lastError = text;
+    lastStatus = res.status;
   } catch (err) {
-    console.error("[autoreply] Webhook registration error:", err);
-    return json({ error: "Failed to register webhook", details: err.message }, 500);
+    lastError = err instanceof Error ? err.message : String(err);
   }
+
+  console.error(`[autoreply] All webhook registration attempts failed. Last: ${lastStatus} ${lastError}`);
+  return json({
+    error: "Falha ao registrar webhook em todos os formatos",
+    details: `Status ${lastStatus}: ${lastError.substring(0, 300)}`,
+    webhook_url: webhookUrl,
+    manual_setup: "Configure manualmente: cole a URL acima no campo 'URL' do webhook na UaZapi, evento 'messages', exclua 'wasSentByApi'",
+  }, 502);
 }
