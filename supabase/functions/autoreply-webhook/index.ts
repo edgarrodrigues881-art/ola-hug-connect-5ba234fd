@@ -158,10 +158,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
-    // ── Parse incoming message from UaZapi webhook ──
-    // UaZapi V2 sends: { event, data: { key: { remoteJid, fromMe }, message: { conversation, ... } } }
-    // Also handles button responses: { event: "messages.upsert", data: { key: {...}, message: { buttonsResponseMessage: { selectedButtonId } } } }
+    // ── Handle webhook registration request from frontend ──
+    if (body.action === "register_webhook") {
+      return await handleRegisterWebhook(supabase, body, req);
+    }
 
+    // ── Parse incoming message from UaZapi webhook ──
     const event = body.event || body.type || "";
     const msgData = body.data || body;
 
