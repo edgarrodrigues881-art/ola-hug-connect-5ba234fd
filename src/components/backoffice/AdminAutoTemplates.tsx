@@ -11,16 +11,26 @@ import { cn } from "@/lib/utils";
 import {
   Mail, Clock, AlertTriangle, XCircle, Skull, Loader2, Pencil,
   Save, Eye, EyeOff, Sparkles, RefreshCw, Bold, Italic,
-  Strikethrough, Code, Smile, X, ClipboardPaste
+  Strikethrough, Code, Smile, Plus, Trash2, Link, Phone,
+  MessageSquare, ClipboardPaste
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+
+interface TemplateButton {
+  id: number;
+  type: "reply" | "url" | "phone";
+  text: string;
+  value: string;
+}
 
 interface AutoTemplate {
   id: string;
   message_type: string;
   label: string;
   content: string;
-  buttons: any[];
+  buttons: TemplateButton[];
   variables: any[];
   is_active: boolean;
   updated_at: string;
@@ -53,6 +63,7 @@ const AdminAutoTemplates = () => {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<AutoTemplate | null>(null);
   const [dialogContent, setDialogContent] = useState("");
+  const [dialogButtons, setDialogButtons] = useState<TemplateButton[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -69,9 +80,10 @@ const AdminAutoTemplates = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, content, is_active }: { id: string; content?: string; is_active?: boolean }) => {
+    mutationFn: async ({ id, content, buttons, is_active }: { id: string; content?: string; buttons?: TemplateButton[]; is_active?: boolean }) => {
       const updates: any = { updated_at: new Date().toISOString(), updated_by: session?.user?.id };
       if (content !== undefined) updates.content = content;
+      if (buttons !== undefined) updates.buttons = buttons;
       if (is_active !== undefined) updates.is_active = is_active;
       const { error } = await (supabase
         .from("auto_message_templates" as any)
@@ -96,17 +108,20 @@ const AdminAutoTemplates = () => {
   const openEditor = (tpl: AutoTemplate) => {
     setEditingTemplate(tpl);
     setDialogContent(tpl.content);
+    setDialogButtons(tpl.buttons || []);
     setShowEmojiPicker(false);
   };
 
   const handleDialogSave = async () => {
     if (!editingTemplate) return;
-    if (dialogContent === editingTemplate.content) {
+    const contentChanged = dialogContent !== editingTemplate.content;
+    const buttonsChanged = JSON.stringify(dialogButtons) !== JSON.stringify(editingTemplate.buttons || []);
+    if (!contentChanged && !buttonsChanged) {
       toast.info("Nenhuma alteração detectada");
       return;
     }
     try {
-      await updateMutation.mutateAsync({ id: editingTemplate.id, content: dialogContent });
+      await updateMutation.mutateAsync({ id: editingTemplate.id, content: dialogContent, buttons: dialogButtons });
       toast.success(`Modelo "${editingTemplate.label}" salvo com sucesso`);
       setEditingTemplate(null);
     } catch {
@@ -383,6 +398,75 @@ const AdminAutoTemplates = () => {
                 </div>
               </div>
 
+              {/* ═══ BUTTONS SECTION ═══ */}
+              <div className="border border-border/40 rounded-xl p-4 space-y-3 bg-muted/5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
+                    BOTÕES INTERATIVOS
+                  </h3>
+                  <span className="text-[10px] text-muted-foreground/40">{dialogButtons.length}/3 ativos</span>
+                </div>
+
+                {dialogButtons.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground/30 py-2">Nenhum botão adicionado</p>
+                )}
+
+                {dialogButtons.map((btn, idx) => (
+                  <div key={btn.id} className="flex items-start gap-2 bg-muted/10 border border-border/30 rounded-lg p-3">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <Select
+                          value={btn.type}
+                          onValueChange={(val: "reply" | "url" | "phone") => {
+                            setDialogButtons(prev => prev.map((b, i) => i === idx ? { ...b, type: val, value: val === "reply" ? "" : b.value } : b));
+                          }}
+                        >
+                          <SelectTrigger className="h-8 w-[130px] text-[11px] bg-background border-border/40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="reply"><div className="flex items-center gap-1.5"><MessageSquare size={11} /> Resposta</div></SelectItem>
+                            <SelectItem value="url"><div className="flex items-center gap-1.5"><Link size={11} /> URL</div></SelectItem>
+                            <SelectItem value="phone"><div className="flex items-center gap-1.5"><Phone size={11} /> Telefone</div></SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={btn.text}
+                          onChange={e => setDialogButtons(prev => prev.map((b, i) => i === idx ? { ...b, text: e.target.value } : b))}
+                          placeholder="Texto do botão"
+                          className="h-8 text-[11px] flex-1 bg-background border-border/40"
+                        />
+                      </div>
+                      {btn.type !== "reply" && (
+                        <Input
+                          value={btn.value}
+                          onChange={e => setDialogButtons(prev => prev.map((b, i) => i === idx ? { ...b, value: e.target.value } : b))}
+                          placeholder={btn.type === "url" ? "https://..." : "+5562999999999"}
+                          className="h-8 text-[11px] bg-background border-border/40"
+                        />
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setDialogButtons(prev => prev.filter((_, i) => i !== idx))}
+                      className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors mt-0.5"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+
+                {dialogButtons.length < 3 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDialogButtons(prev => [...prev, { id: Date.now(), type: "reply", text: "", value: "" }])}
+                    className="h-8 text-[11px] gap-1.5 rounded-lg border-dashed border-border/40 text-muted-foreground/60 hover:text-foreground w-full"
+                  >
+                    <Plus size={12} /> Adicionar botão
+                  </Button>
+                )}
+              </div>
+
               {/* Footer */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-[10px] text-muted-foreground/30">
@@ -395,7 +479,7 @@ const AdminAutoTemplates = () => {
                   <Button
                     size="sm"
                     onClick={handleDialogSave}
-                    disabled={dialogContent === editingTemplate.content || updateMutation.isPending}
+                    disabled={(dialogContent === editingTemplate.content && JSON.stringify(dialogButtons) === JSON.stringify(editingTemplate.buttons || [])) || updateMutation.isPending}
                     className="h-9 text-[11px] gap-1.5 rounded-lg"
                   >
                     {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
