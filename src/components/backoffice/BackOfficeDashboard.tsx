@@ -340,7 +340,11 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleSelectClient = useCallback((u: AdminUser) => {
+  // Sync activeTab when initialTab changes (route navigation)
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) setActiveTab(initialTab);
+  }, [initialTab]);
+
     setSelectedClient(u);
     window.history.pushState({ backofficeClient: true }, "");
   }, []);
