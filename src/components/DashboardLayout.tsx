@@ -43,11 +43,18 @@ const typeColors = {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
+  const { isFeatureBlocked } = useFeatureControls();
+  const [maintenanceModal, setMaintenanceModal] = useState<{ name: string; message: string | null } | null>(null);
 
   // Global auto-sync of device statuses every 5s across all dashboard pages
   useAutoSyncDevices(15_000);
+
+  // Check if current route is blocked
+  const blockedFeature = isFeatureBlocked(location.pathname);
+  const showMaintenance = !!blockedFeature;
 
   return (
     <SidebarProvider>
