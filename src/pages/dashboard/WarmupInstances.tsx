@@ -201,6 +201,25 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
   const warmupProgress = getWarmupProgress(cycle);
 
+  // Disconnect countdown (24h from updated_at when disconnected)
+  const [countdown, setCountdown] = useState("");
+  useEffect(() => {
+    if (connected || !device.updated_at) { setCountdown(""); return; }
+    const calc = () => {
+      const disconnectedAt = new Date(device.updated_at).getTime();
+      const deadline = disconnectedAt + 24 * 60 * 60 * 1000;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) { setCountdown("00:00:00"); return; }
+      const h = Math.floor(remaining / 3600000);
+      const m = Math.floor((remaining % 3600000) / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      setCountdown(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
+    };
+    calc();
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [connected, device.updated_at]);
+
   return (
     <div
       className={cn(
@@ -247,6 +266,12 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             </div>
           )}
         </div>
+        {!connected && countdown && (
+          <div className="flex items-center gap-1 text-[9px] font-mono text-destructive/70 mt-0.5">
+            <Timer className="w-2.5 h-2.5" />
+            <span>{countdown}</span>
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-5 pb-3 flex items-center gap-4">
