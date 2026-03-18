@@ -126,7 +126,7 @@ function FlowCanvas() {
       if (flowId) {
         const { error } = await supabase
           .from("autoreply_flows")
-          .update({ name: payload.name, is_active: payload.is_active, nodes: payload.nodes, edges: payload.edges })
+          .update({ name: payload.name, is_active: payload.is_active, device_id: payload.device_id, nodes: payload.nodes, edges: payload.edges })
           .eq("id", flowId);
         if (error) throw error;
         toast.success("Fluxo salvo com sucesso!");
