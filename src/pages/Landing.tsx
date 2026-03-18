@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Zap, Shield, BarChart3, Smartphone, Settings, Globe,
   ArrowRight, CheckCircle2, MessageSquare, Users, Layers,
-  ChevronDown, Star, Rocket, Clock, Lock, UsersRound, MessageCircle, ShieldCheck, Megaphone
+  ChevronDown, Star, Rocket, Clock, Lock, UsersRound, MessageCircle, ShieldCheck, Megaphone, Flame
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-new.png";
@@ -227,10 +227,10 @@ const Features = () => (
 
 // ─── 5. Planos ───
 const plans = [
-  { name: "Start", instances: 10, price: "149,90", popular: false, whatsappReports: false },
-  { name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false },
-  { name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true },
-  { name: "Elite", instances: 100, price: "899,90", popular: false, whatsappReports: true },
+  { name: "Start", instances: 10, price: "149,90", popular: false, whatsappReports: false, warmup: 65 },
+  { name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false, warmup: 87 },
+  { name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true, warmup: 94 },
+  { name: "Elite", instances: 100, price: "899,90", popular: false, whatsappReports: true, warmup: 99 },
 ];
 
 const Plans = () => {
@@ -256,6 +256,11 @@ const Plans = () => {
                 Mais escolhido
               </span>
             )}
+            {/* Warmup badge */}
+            <div className="absolute top-4 right-4 flex items-center gap-1 bg-orange-500/10 border border-orange-500/25 rounded-full px-2.5 py-1">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-[11px] font-bold text-orange-400">{p.warmup}%</span>
+            </div>
             <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
             <p className="text-[13px] text-white/40 font-medium mb-4">até {p.instances} instâncias</p>
             <div className="flex items-baseline gap-1 mb-6">
