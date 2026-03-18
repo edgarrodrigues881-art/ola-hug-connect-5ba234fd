@@ -119,11 +119,26 @@ export default function AutoReplyList() {
         }
       }
     },
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ["autoreply_flows", user?.id] });
+      const previousFlows = queryClient.getQueryData<any[]>(["autoreply_flows", user?.id]);
+
+      queryClient.setQueryData<any[]>(["autoreply_flows", user?.id], (old = []) =>
+        old.map((flow) =>
+          flow.id === vars.id ? { ...flow, is_active: vars.is_active } : flow
+        )
+      );
+
+      return { previousFlows };
+    },
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
       toast.success(vars.is_active ? "Automação ativada" : "Automação desativada");
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context) => {
+      if (context?.previousFlows) {
+        queryClient.setQueryData(["autoreply_flows", user?.id], context.previousFlows);
+      }
+
       if (err.message === "NO_DEVICE") {
         toast.error("Selecione uma instância antes de ativar a automação");
       } else if (err.message === "DEVICE_OFFLINE") {
@@ -133,6 +148,9 @@ export default function AutoReplyList() {
       } else {
         toast.error("Erro ao alterar status da automação");
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows", user?.id] });
     },
   });
 
