@@ -240,8 +240,8 @@ export default function AdminDispatchTemplates() {
     setFormMessages(msgs);
     setActiveMessageTab(0);
     setRotationMode(t.content.includes("|&&|") ? "all" : "random");
-    setFormMediaFiles([]);
-    setFormButtons([]);
+    setFormMediaFiles(parseMediaFiles(t.media_url || null));
+    setFormButtons((t.buttons || []).map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
     setDialogOpen(true);
   };
 
