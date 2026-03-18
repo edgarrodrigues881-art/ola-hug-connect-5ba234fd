@@ -57,6 +57,7 @@ export default function AutoReplyList() {
       const { data, error } = await supabase
         .from("devices")
         .select("id, name, number, status")
+        .neq("login_type", "report_wa")
         .order("name");
       if (error) throw error;
       return data;
