@@ -1332,11 +1332,16 @@ export default function AdminDispatch() {
           <CheckCircle2 size={48} className="mx-auto text-emerald-400" />
           <div>
             <p className="text-xl font-bold text-foreground">{result.ok} mensagen{result.ok !== 1 ? "s" : ""} enfileirada{result.ok !== 1 ? "s" : ""}</p>
-            {result.fail > 0 && <p className="text-sm text-red-400 mt-1">{result.fail} falha{result.fail !== 1 ? "s" : ""}</p>}
+            {result.fail > 0 && <p className="text-sm text-destructive mt-1">{result.fail} falha{result.fail !== 1 ? "s" : ""}</p>}
           </div>
-          <Button onClick={resetAll} className="gap-2">
-            <Send size={14} /> Novo Disparo
-          </Button>
+          <div className="flex items-center justify-center gap-3">
+            <Button onClick={resetAll} className="gap-2">
+              <Send size={14} /> Novo Disparo
+            </Button>
+            <Button variant="outline" onClick={() => { setViewMode("history"); refetchHistory(); }} className="gap-2">
+              <History size={14} /> Ver Histórico
+            </Button>
+          </div>
         </div>
       )}
 
