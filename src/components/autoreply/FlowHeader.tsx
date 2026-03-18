@@ -25,6 +25,8 @@ interface Props {
   nodes: Node<FlowNodeData>[];
 }
 
+const onlineStatuses = new Set(["connected", "Connected", "Ready", "ready", "authenticated"]);
+
 export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSave, saving, deviceId, onDeviceChange, nodes }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -36,11 +38,13 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
       const { data, error } = await supabase
         .from("devices")
         .select("id, name, number, status")
+        .neq("login_type", "report_wa")
         .order("name");
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+    refetchInterval: 15_000,
   });
 
   const handleTest = async () => {
@@ -49,33 +53,33 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
       return;
     }
 
-    // Find the first message node connected to start
-    const startNode = nodes.find((n) => n.type === "startNode");
+    const selectedDevice = devices?.find((device) => device.id === deviceId);
+    if (!selectedDevice) {
+      toast.error("Instância não encontrada");
+      return;
+    }
+
+    if (!onlineStatuses.has(selectedDevice.status)) {
+      toast.error("A instância selecionada está offline. Reconecte antes de testar.");
+      return;
+    }
+
+    const startNode = nodes.find((node) => node.type === "startNode");
     if (!startNode) {
       toast.error("Adicione um nó de início ao fluxo");
       return;
     }
 
-    // Get text from start node (if template) or first message node
     const startData = startNode.data as FlowNodeData;
-    let messageText = "";
-    let mediaUrl = "";
+    const trigger = startData.trigger || "any_message";
 
-    if (startData.text) {
-      messageText = startData.text;
-      mediaUrl = startData.imageUrl || "";
-    } else {
-      // Find first message node
-      const msgNode = nodes.find((n) => n.type === "messageNode");
-      if (msgNode) {
-        const msgData = msgNode.data as FlowNodeData;
-        messageText = msgData.text || "";
-        mediaUrl = msgData.imageUrl || "";
-      }
+    let incomingText = "teste";
+    if (trigger === "keyword") {
+      incomingText = startData.keyword?.split(",").map((item) => item.trim()).find(Boolean) || "";
     }
 
-    if (!messageText) {
-      toast.error("Nenhuma mensagem no fluxo para testar");
+    if (!incomingText) {
+      toast.error("Defina uma palavra-chave no gatilho antes de testar");
       return;
     }
 
@@ -84,18 +88,17 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
       const { data, error } = await supabase.functions.invoke("test-autoreply", {
         body: {
           device_id: deviceId,
-          message_text: messageText,
-          media_url: mediaUrl || undefined,
+          incoming_text: incomingText,
         },
       });
 
       if (error) throw error;
       if (data?.error) {
-        toast.error(data.error);
+        toast.error(data.details ? `${data.error} ${data.details}` : data.error);
         return;
       }
 
-      toast.success(`Mensagem de teste enviada para ${data.phone}`);
+      toast.success(data?.message || `Teste executado com a entrada "${incomingText}"`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao enviar teste");
     } finally {
@@ -125,10 +128,9 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
         />
       </div>
 
-      {/* Device selector */}
       <Select
         value={deviceId || "none"}
-        onValueChange={(v) => onDeviceChange(v === "none" ? null : v)}
+        onValueChange={(value) => onDeviceChange(value === "none" ? null : value)}
       >
         <SelectTrigger className="w-[200px] h-8 text-xs bg-card/60 border-border/30 gap-2">
           <Smartphone className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
@@ -136,17 +138,15 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Nenhuma instância</SelectItem>
-          {devices?.map((d) => (
-            <SelectItem key={d.id} value={d.id}>
+          {devices?.map((device) => (
+            <SelectItem key={device.id} value={device.id}>
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                    d.status === "connected" ? "bg-emerald-500" : "bg-muted-foreground/30"
-                  }`}
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${onlineStatuses.has(device.status) ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
                 />
-                <span className="truncate">{d.name}</span>
-                {d.number && (
-                  <span className="text-muted-foreground/40 text-[10px]">{d.number}</span>
+                <span className="truncate">{device.name}</span>
+                {device.number && (
+                  <span className="text-muted-foreground/40 text-[10px]">{device.number}</span>
                 )}
               </div>
             </SelectItem>

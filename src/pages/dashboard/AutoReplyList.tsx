@@ -109,12 +109,15 @@ export default function AutoReplyList() {
       if (is_active) {
         const flow = flows?.find((f) => f.id === id);
         if (flow?.device_id) {
-          try {
-            await supabase.functions.invoke("autoreply-webhook", {
-              body: { action: "register_webhook", device_id: flow.device_id },
-            });
-          } catch (e) {
-            console.warn("Webhook registration failed:", e);
+          const { data, error: webhookError } = await supabase.functions.invoke("autoreply-webhook", {
+            body: { action: "register_webhook", device_id: flow.device_id },
+          });
+
+          const webhookMessage = webhookError?.message || (data?.error ? `${data.error}${data.details ? ` ${data.details}` : ""}` : "");
+
+          if (webhookMessage) {
+            await supabase.from("autoreply_flows").update({ is_active: false }).eq("id", id);
+            throw new Error(`WEBHOOK_REGISTRATION_FAILED:${webhookMessage}`);
           }
         }
       }
@@ -128,6 +131,8 @@ export default function AutoReplyList() {
         toast.error("Selecione uma instância antes de ativar a automação");
       } else if (err.message === "DEVICE_OFFLINE") {
         toast.error("A instância selecionada está desconectada. Reconecte antes de ativar.");
+      } else if (typeof err.message === "string" && err.message.startsWith("WEBHOOK_REGISTRATION_FAILED:")) {
+        toast.error(err.message.replace("WEBHOOK_REGISTRATION_FAILED:", "Falha ao registrar webhook: "));
       } else {
         toast.error("Erro ao alterar status da automação");
       }
