@@ -73,6 +73,11 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
   const [page, setPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showDispatch, setShowDispatch] = useState(false);
+  const [dispatchType, setDispatchType] = useState("custom");
+  const [dispatchMessage, setDispatchMessage] = useState("");
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchResult, setDispatchResult] = useState<{ ok: number; fail: number } | null>(null);
   const queryClient = useQueryClient();
 
   const handleDelete = useCallback(async () => {
