@@ -156,6 +156,8 @@ export default function AdminDispatchTemplates() {
             category: payload.category,
             content: payload.content,
             variables,
+            media_url: payload.media_url ?? null,
+            buttons: payload.buttons || [],
             updated_at: new Date().toISOString(),
           })
           .eq("id", payload.id);
@@ -169,6 +171,8 @@ export default function AdminDispatchTemplates() {
             category: payload.category,
             content: payload.content,
             variables,
+            media_url: payload.media_url ?? null,
+            buttons: payload.buttons || [],
           });
         if (error) throw error;
       }
