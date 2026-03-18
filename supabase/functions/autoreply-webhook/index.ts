@@ -279,7 +279,19 @@ Deno.serve(async (req) => {
         messageText = msg.conversation || msg.extendedTextMessage?.text || msg.text || msg.body || "";
       }
 
-      // UaZapi button response detection
+      // UaZapi button response detection - comprehensive check
+      // Check body.type first (UaZapi GO sends type="buttonsResponseMessage" alongside EventType="messages")
+      if (body.type === "buttonsResponseMessage" || body.type === "templateButtonReplyMessage" || 
+          body.wa_type === "buttonsResponseMessage" || body.wa_type === "templateButtonReplyMessage" ||
+          body.messageType === "buttonsResponseMessage" || body.messageType === "templateButtonReplyMessage") {
+        hasButtonResponse = true;
+        buttonResponseId = body.selectedButtonId || body.selectedId || body.buttonId || "";
+        if (!messageText) {
+          messageText = body.selectedDisplayText || body.title || body.text || body.messageBody || "";
+        }
+        console.log(`[autoreply] UaZapi button type detected via type/wa_type: btnId="${buttonResponseId}" text="${messageText}"`);
+      }
+
       if (body.selectedButtonId || body.selectedId) {
         buttonResponseId = body.selectedButtonId || body.selectedId || "";
         hasButtonResponse = true;
@@ -288,7 +300,7 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Also check for buttonsResponseMessage in body
+      // Also check for buttonsResponseMessage in body (nested)
       if (body.buttonsResponseMessage) {
         buttonResponseId = body.buttonsResponseMessage.selectedButtonId || buttonResponseId;
         messageText = body.buttonsResponseMessage.selectedDisplayText || messageText;
@@ -301,10 +313,20 @@ Deno.serve(async (req) => {
         messageText = body.templateButtonReplyMessage.selectedDisplayText || messageText;
         hasButtonResponse = true;
       }
-
-      // Check for type=button in UaZapi payload
-      if (body.type === "buttonsResponseMessage" || body.type === "templateButtonReplyMessage") {
-        hasButtonResponse = true;
+      
+      // Check nested message object for button responses
+      if (body.message) {
+        const msg = body.message;
+        if (msg.buttonsResponseMessage) {
+          buttonResponseId = msg.buttonsResponseMessage.selectedButtonId || buttonResponseId;
+          messageText = msg.buttonsResponseMessage.selectedDisplayText || messageText;
+          hasButtonResponse = true;
+        }
+        if (msg.templateButtonReplyMessage) {
+          buttonResponseId = msg.templateButtonReplyMessage.selectedId || buttonResponseId;
+          messageText = msg.templateButtonReplyMessage.selectedDisplayText || messageText;
+          hasButtonResponse = true;
+        }
       }
       
       console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} owner="${ownerPhone}" chatName="${chatName}"`);
