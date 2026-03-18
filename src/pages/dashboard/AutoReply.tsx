@@ -272,6 +272,8 @@ function FlowCanvas() {
         data = { label: "Início", trigger: "any_message", keyword: "" };
       } else if (type === "endNode") {
         data = { label: "Finalizar", action: "end_flow" };
+      } else if (type === "delayNode") {
+        data = { label: "Temporizador", delaySeconds: 5 };
       } else {
         data = {
           label: "Nova Mensagem",
