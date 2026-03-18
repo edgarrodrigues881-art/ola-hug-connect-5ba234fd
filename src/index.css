@@ -189,37 +189,37 @@
     --shadow-2xl: 0 24px 48px -4px hsl(0 0% 0% / 0.6);
   }
 
-  /* BackOffice dark premium theme */
+  /* BackOffice dark premium golden theme */
   .backoffice-light,
   .dark.backoffice-light {
-    --background: 215 28% 6%;
-    --foreground: 0 0% 95%;
-    --card: 220 26% 10%;
-    --card-foreground: 0 0% 95%;
-    --popover: 220 26% 12%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 160 84% 34%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 215 28% 17%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 215 28% 14%;
-    --muted-foreground: 218 11% 55%;
-    --accent: 215 28% 15%;
-    --accent-foreground: 0 0% 85%;
+    --background: 30 20% 5%;
+    --foreground: 40 30% 95%;
+    --card: 30 18% 9%;
+    --card-foreground: 40 30% 95%;
+    --popover: 30 18% 11%;
+    --popover-foreground: 40 30% 95%;
+    --primary: 43 96% 56%;
+    --primary-foreground: 30 20% 5%;
+    --secondary: 35 18% 15%;
+    --secondary-foreground: 40 30% 90%;
+    --muted: 30 16% 13%;
+    --muted-foreground: 35 12% 50%;
+    --accent: 35 20% 14%;
+    --accent-foreground: 40 20% 85%;
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
-    --border: 210 27% 18%;
-    --input: 213 30% 15%;
-    --ring: 160 84% 34%;
-    --sidebar-background: 215 28% 7%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 160 84% 34%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 28% 14%;
-    --sidebar-accent-foreground: 0 0% 85%;
-    --sidebar-border: 210 27% 14%;
-    --sidebar-ring: 160 84% 34%;
-    --success: 160 79% 40%;
+    --border: 35 18% 16%;
+    --input: 30 18% 13%;
+    --ring: 43 96% 56%;
+    --sidebar-background: 30 20% 6%;
+    --sidebar-foreground: 40 30% 95%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 30 20% 5%;
+    --sidebar-accent: 35 18% 13%;
+    --sidebar-accent-foreground: 40 20% 85%;
+    --sidebar-border: 35 16% 13%;
+    --sidebar-ring: 43 96% 56%;
+    --success: 43 96% 56%;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.3);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.35);
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
@@ -227,6 +227,12 @@
     --shadow-lg: 0 4px 12px 0px hsl(0 0% 0% / 0.5), 0 4px 6px -1px hsl(0 0% 0% / 0.3);
     color-scheme: dark;
     font-weight: 500;
+  }
+
+  /* BackOffice golden floating particles */
+  @keyframes bo-particle-float {
+    0%, 100% { transform: translateY(0) scale(0.6); opacity: 0.1; }
+    50% { transform: translateY(-30px) scale(1); opacity: 0.4; }
   }
 
   /* Landing page dark scope */

@@ -8,6 +8,7 @@ import {
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key
 } from "lucide-react";
+import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -292,11 +293,36 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
         hidden lg:flex
         ${sidebarOpen ? "!flex translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
-        {/* Brand */}
-        <div className="px-5 py-5 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-base font-bold text-foreground tracking-tight">Painel DG</h1>
+        {/* Brand with logo and particles */}
+        <div className="px-5 py-5 border-b border-border relative overflow-hidden">
+          {/* Golden particle dots */}
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-primary/40"
+              style={{
+                left: `${15 + i * 14}%`,
+                top: `${30 + (i % 3) * 20}%`,
+                animation: `bo-particle-float ${3 + i * 0.5}s ease-in-out infinite`,
+                animationDelay: `${i * 0.4}s`,
+              }}
+            />
+          ))}
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-3">
+              {/* Logo with golden glow */}
+              <div className="relative">
+                <div className="absolute inset-0 rounded-xl bg-primary/20 blur-lg" />
+                <img src={logoNew} alt="DG Logo" className="w-10 h-10 rounded-xl relative z-10" />
+              </div>
+              <div>
+                <h1 className="text-sm font-bold tracking-tight">
+                  <span className="text-primary">DG</span>{" "}
+                  <span className="text-foreground">CONTINGÊNCIA</span>{" "}
+                  <span className="text-primary">PRO</span>
+                </h1>
+                <p className="text-[10px] text-muted-foreground">Painel Administrativo</p>
+              </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-muted-foreground hover:text-foreground">
               <X size={18} />

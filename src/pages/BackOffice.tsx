@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Lock, LogOut, Loader2, Eye, EyeOff } from "lucide-react";
+import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -91,13 +92,34 @@ const BackOffice = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-[400px]">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Golden ambient glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+        {/* Floating particles */}
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1.5 h-1.5 rounded-full bg-primary/30 pointer-events-none"
+            style={{
+              left: `${10 + i * 10}%`,
+              top: `${20 + (i % 4) * 18}%`,
+              animation: `bo-particle-float ${3 + i * 0.6}s ease-in-out infinite`,
+              animationDelay: `${i * 0.3}s`,
+            }}
+          />
+        ))}
+        <div className="w-full max-w-[400px] relative z-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
-              <Lock size={24} className="text-primary" />
+            {/* Logo with golden glow */}
+            <div className="relative inline-block mb-4">
+              <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl scale-150" />
+              <img src={logoNew} alt="DG Logo" className="w-20 h-20 rounded-2xl relative z-10 mx-auto" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Painel DG</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              <span className="text-primary">DG</span>{" "}
+              <span className="text-foreground">CONTINGÊNCIA</span>{" "}
+              <span className="text-primary">PRO</span>
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">Acesso restrito a administradores</p>
           </div>
 
