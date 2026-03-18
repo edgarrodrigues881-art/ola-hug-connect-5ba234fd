@@ -393,6 +393,8 @@ export default function AdminDispatch() {
   const dispatchDeviceName = dispatchDevice?.profile_name || dispatchDevice?.name || dispatchConnection?.label || "Disparos manuais";
   const dispatchDeviceNumber = formatPhone(dispatchDevice?.number);
   const dispatchDeviceConnected = !!dispatchDevice && ["Connected", "Ready", "authenticated"].includes(dispatchDevice.status);
+
+  const audienceLabel = audienceSource === "imported"
     ? `Lista importada (${importedContacts.length})`
     : AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label || "Clientes";
 
