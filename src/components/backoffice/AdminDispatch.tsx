@@ -90,6 +90,7 @@ export default function AdminDispatch() {
   const { data: dashData } = useAdminDashboard();
   const users = dashData?.users || [];
 
+  const [viewMode, setViewMode] = useState<"compose" | "history">("compose");
   const [step, setStep] = useState<"audience" | "message" | "review" | "done">("audience");
   const [audienceSource, setAudienceSource] = useState<AudienceSource>("clients");
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>("all");
