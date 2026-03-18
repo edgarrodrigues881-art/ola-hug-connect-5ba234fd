@@ -681,14 +681,32 @@ const Campaigns = () => {
     toast({ title: `Prefixo "${prefix}" adicionado`, description: `${count} número(s) atualizados.` });
   };
 
+  const filteredBaseContacts = useMemo(() => {
+    let list = adminUsers;
+    const q = importContactSearch.trim().toLowerCase();
+
+    if (importSearchMode === "plan" && selectedPlanFilter !== "all") {
+      list = list.filter(u => {
+        const plan = (u.plan_name || "Sem plano").toLowerCase();
+        return plan.includes(selectedPlanFilter.toLowerCase());
+      });
+    }
+
+    if (q) {
+      if (importSearchMode === "phone") {
+        const phoneQuery = q.replace(/\D/g, "");
+        list = list.filter(u => (u.phone || "").replace(/\D/g, "").includes(phoneQuery));
+      } else if (importSearchMode === "name") {
+        list = list.filter(u => (u.full_name || "").toLowerCase().includes(q));
+      }
+    }
+
+    return list;
+  }, [adminUsers, selectedPlanFilter, importContactSearch, importSearchMode]);
+
   const filteredSavedContacts = useMemo(() => {
     let list = savedContacts;
     const q = importContactSearch.trim().toLowerCase();
-
-    if (importSearchMode === "tag" && selectedContactTags.length > 0) {
-      list = list.filter(c => c.tags?.some(t => selectedContactTags.includes(t)));
-    }
-
     if (q) {
       if (importSearchMode === "phone") {
         const phoneQuery = q.replace(/\D/g, "");
@@ -697,9 +715,8 @@ const Campaigns = () => {
         list = list.filter(c => c.name.toLowerCase().includes(q));
       }
     }
-
     return list;
-  }, [savedContacts, selectedContactTags, importContactSearch, importSearchMode]);
+  }, [savedContacts, importContactSearch, importSearchMode]);
 
   const handleImportFromDB = () => {
     const toImport = selectedSavedContactIds.size > 0
