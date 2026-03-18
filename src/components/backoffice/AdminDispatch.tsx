@@ -82,7 +82,7 @@ interface ConnectionPurpose {
   device: ConnectionDevice | null;
 }
 
-type AudienceSource = "clients" | "imported";
+type AudienceSource = "clients" | "imported" | "manual";
 
 export default function AdminDispatch() {
   const queryClient = useQueryClient();
