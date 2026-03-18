@@ -2369,12 +2369,16 @@ async function handleTick(db: any) {
         });
 
         if (!uniquePairs.length) {
+          const retryAt = new Date(Date.now() + randInt(300, 900) * 1000).toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "pending", run_at: retryAt, last_error: "Nenhum par ativo para conversar" })
+            .eq("id", job.id);
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "community_no_pairs",
             message: "Nenhum par ativo para conversar",
           });
-          break;
+          return false;
         }
 
         // ── Classificar pares por prioridade ──
@@ -2428,13 +2432,17 @@ async function handleTick(db: any) {
         }
 
         if (!scored.length) {
+          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "pending", run_at: retryAt, last_error: "Todos os pares ocupados ou em cooldown" })
+            .eq("id", job.id);
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "info", event_type: "community_all_busy",
             message: "Todos os pares ocupados ou em cooldown — nada a fazer agora",
             meta: { total_pairs: uniquePairs.length },
           });
-          break;
+          return false;
         }
 
         // Ordenar: prioridade 1 > 2 > 3, depois por tempo sem contato
@@ -2469,6 +2477,14 @@ async function handleTick(db: any) {
             result: pickedResult, candidates: scored.length, total_pairs: uniquePairs.length,
           },
         });
+
+        if (pickedResult !== "ok") {
+          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+          await db.from("warmup_jobs")
+            .update({ status: "pending", run_at: retryAt, last_error: `Comunidade sem envio efetivo: ${pickedResult}` })
+            .eq("id", job.id);
+          return false;
+        }
 
         break;
       }
