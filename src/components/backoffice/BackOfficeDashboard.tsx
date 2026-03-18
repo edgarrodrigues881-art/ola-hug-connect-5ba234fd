@@ -239,51 +239,53 @@ const PendenciasTab = memo(() => {
             <span className="text-[10px] text-muted-foreground">Atualiza a cada 30s</span>
           </div>
 
-      {grouped.map(([type, items]) => {
-        const config = MESSAGE_TYPE_CONFIG[type] || { label: type, icon: Mail, color: "text-muted-foreground" };
-        const Icon = config.icon;
-        return (
-          <div key={type} className="border border-border rounded-xl p-4 bg-card">
-            <div className="flex items-center gap-2 mb-3">
-              <Icon size={16} className={config.color} />
-              <h3 className="text-sm font-semibold text-foreground">{config.label}</h3>
-              <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge>
-            </div>
-            <div className="space-y-2">
-              {items.map((item: any) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground font-medium truncate">{item.client_name || item.client_email}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[11px] text-muted-foreground">{item.client_email}</span>
-                      {item.client_phone && (
-                        <>
-                          <span className="text-[11px] text-muted-foreground/40">·</span>
-                          <span className="text-[11px] text-muted-foreground">{item.client_phone}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    <span className="text-[11px] text-muted-foreground">{item.plan_name || "—"}</span>
-                    {item.expires_at && (
-                      <>
-                        <span className="text-[11px] text-muted-foreground/40">·</span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {new Date(item.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                        </span>
-                      </>
-                    )}
-                    <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500 bg-amber-500/5 ml-1">
-                      <Clock size={8} className="mr-0.5" /> Aguardando
-                    </Badge>
-                  </div>
+          {grouped.map(([type, items]) => {
+            const config = MESSAGE_TYPE_CONFIG[type] || { label: type, icon: Mail, color: "text-muted-foreground" };
+            const Icon = config.icon;
+            return (
+              <div key={type} className="border border-border rounded-xl p-4 bg-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <Icon size={16} className={config.color} />
+                  <h3 className="text-sm font-semibold text-foreground">{config.label}</h3>
+                  <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge>
                 </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+                <div className="space-y-2">
+                  {items.map((item: any) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground font-medium truncate">{item.client_name || item.client_email}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground">{item.client_email}</span>
+                          {item.client_phone && (
+                            <>
+                              <span className="text-[11px] text-muted-foreground/40">·</span>
+                              <span className="text-[11px] text-muted-foreground">{item.client_phone}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        <span className="text-[11px] text-muted-foreground">{item.plan_name || "—"}</span>
+                        {item.expires_at && (
+                          <>
+                            <span className="text-[11px] text-muted-foreground/40">·</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(item.expires_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                            </span>
+                          </>
+                        )}
+                        <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5 ml-1">
+                          <Clock size={8} className="mr-0.5" /> Aguardando
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 });
