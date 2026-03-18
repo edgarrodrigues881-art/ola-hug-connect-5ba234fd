@@ -750,7 +750,7 @@ async function handleStart(db: any, userId: string | null, body: any) {
   // 6. Schedule first daily_reset
   const resetBase = skipPre24h ? now : first24hEnds;
   const firstReset = new Date(resetBase);
-  firstReset.setUTCHours(3, 5, 0, 0);
+  firstReset.setUTCHours(9, 50, 0, 0);
   if (firstReset.getTime() <= now.getTime()) {
     firstReset.setUTCDate(firstReset.getUTCDate() + 1);
   }
