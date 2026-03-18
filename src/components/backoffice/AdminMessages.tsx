@@ -254,7 +254,7 @@ const AdminMessages = () => {
           <p className="text-muted-foreground/30 text-xs">Mensagens são geradas automaticamente pelo sistema</p>
         </div>
       ) : (
-        <ScrollArea className="max-h-[calc(100vh-420px)]">
+        <div className="overflow-y-auto max-h-[calc(100vh-380px)] min-h-[200px] md:max-h-[calc(100vh-420px)]">
           <div className="space-y-1.5">
             {filtered.map((m: any) => {
               const config = MESSAGE_TYPE_CONFIG[m.message_type] || { label: m.message_type, shortLabel: m.message_type, icon: Mail, color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border" };
@@ -321,7 +321,7 @@ const AdminMessages = () => {
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );
