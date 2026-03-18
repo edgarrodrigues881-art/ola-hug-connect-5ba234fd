@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, BotMessageSquare, Pencil, Copy, Trash2, MoreHorizontal,
   Zap, Clock, Search, Filter, GitBranch, MousePointerClick,
-  FileText, Loader2
+  FileText, Loader2, Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -49,6 +49,36 @@ export default function AutoReplyList() {
       return data;
     },
     enabled: !!user,
+  });
+
+  const { data: devices } = useQuery({
+    queryKey: ["devices-list", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("devices")
+        .select("id, name, number, status")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const deviceMap = useMemo(() => {
+    const map = new Map<string, { name: string; number: string | null; status: string }>();
+    devices?.forEach((d) => map.set(d.id, { name: d.name, number: d.number, status: d.status }));
+    return map;
+  }, [devices]);
+
+  const deviceMutation = useMutation({
+    mutationFn: async ({ id, device_id }: { id: string; device_id: string | null }) => {
+      const { error } = await supabase.from("autoreply_flows").update({ device_id } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["autoreply_flows"] });
+      toast.success("Instância atualizada");
+    },
   });
 
   const toggleMutation = useMutation({
@@ -226,6 +256,26 @@ export default function AutoReplyList() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <Select
+                      value={(flow as any).device_id || "none"}
+                      onValueChange={(v) => deviceMutation.mutate({ id: flow.id, device_id: v === "none" ? null : v })}
+                    >
+                      <SelectTrigger className="w-[160px] h-8 text-xs bg-card/60 border-border/30 gap-1.5">
+                        <Smartphone className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                        <SelectValue placeholder="Instância" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem instância</SelectItem>
+                        {devices?.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${d.status === "connected" ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                              <span className="truncate">{d.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Switch
                       checked={flow.is_active}
                       onCheckedChange={(val) => toggleMutation.mutate({ id: flow.id, is_active: val })}
