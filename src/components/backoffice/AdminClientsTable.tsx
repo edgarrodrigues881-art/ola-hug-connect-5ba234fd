@@ -37,6 +37,26 @@ function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | n
 const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
 const statusTextColor: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
 
+function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "—";
+  const digits = phone.replace(/\D/g, "");
+  // Brazilian: 55 + DDD(2) + number(8-9)
+  if (digits.length === 13 && digits.startsWith("55")) {
+    return `+${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4, 9)} ${digits.slice(9)}`;
+  }
+  if (digits.length === 12 && digits.startsWith("55")) {
+    return `+${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4, 8)} ${digits.slice(8)}`;
+  }
+  if (digits.length === 11) {
+    return `+55 ${digits.slice(0, 2)} ${digits.slice(2, 7)} ${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `+55 ${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
+  }
+  // Generic: country(1-3) + rest, just space every 4
+  return `+${digits.replace(/(\d{2})(\d{2,5})(\d{4,})/, "$1 $2 $3")}`;
+}
+
 const PAGE_SIZE = 30;
 
 const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
@@ -298,7 +318,7 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-xs">{u.phone || "—"}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs font-mono tracking-wide whitespace-nowrap">{formatPhone(u.phone)}</td>
                     <td className="px-3 py-2.5">
                       <span className={`text-xs font-medium ${planColors[u.plan_name || ""] || "text-muted-foreground"}`}>
                         {u.plan_name || "—"}
