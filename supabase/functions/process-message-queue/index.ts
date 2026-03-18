@@ -287,8 +287,27 @@ Deno.serve(async (req) => {
     // Load templates from DB
     const templates = await loadTemplates(adminClient);
 
-    // Process only 1 message per cron tick (delay of 1-4 min between messages is handled by cron interval)
-    const { data: claimed, error: claimErr } = await adminClient.rpc("claim_pending_messages", { _limit: 1 });
+    // Force mode: process specific message by ID
+    let claimed: any[] | null = null;
+    let claimErr: any = null;
+
+    if (forceId) {
+      // Directly update status and fetch the specific message
+      const { data, error } = await adminClient
+        .from("message_queue")
+        .update({ status: "sent", updated_at: new Date().toISOString() })
+        .eq("id", forceId)
+        .eq("status", "pending")
+        .select("*");
+      claimed = data;
+      claimErr = error;
+      console.log(`[process-mq] FORCE MODE: processing message ${forceId}`);
+    } else {
+      // Process only 1 message per cron tick
+      const result = await adminClient.rpc("claim_pending_messages", { _limit: 1 });
+      claimed = result.data;
+      claimErr = result.error;
+    }
 
     if (claimErr) {
       console.error("[process-mq] Claim error:", claimErr.message);
