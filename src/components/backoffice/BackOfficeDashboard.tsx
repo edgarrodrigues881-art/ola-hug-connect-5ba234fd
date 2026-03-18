@@ -370,7 +370,7 @@ const BackOfficeDashboard = ({ onLogout }: { onLogout: () => void }) => {
       switch (activeTab) {
         case "overview": return data ? <AdminOverview data={data} /> : null;
         case "clients": return <AdminClientsTable users={data?.users || []} onSelectClient={handleSelectClient} />;
-        case "pendencias": return <PendenciasTab />;
+        case "pendencias": return <PendenciasTab onSelectClient={handleSelectClient} users={data?.users || []} />;
         case "messages": return <AdminMessages />;
         case "conexao": return <AdminConexao />;
         case "logs": return <AdminLogs />;
