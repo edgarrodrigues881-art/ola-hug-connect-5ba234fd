@@ -13,24 +13,36 @@ export function StartNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
   return (
     <div
-      className={`rounded-2xl border-2 bg-card shadow-lg min-w-[200px] transition-all duration-150
-        ${selected ? "border-emerald-500 shadow-emerald-500/20 shadow-xl" : "border-emerald-500/30 hover:border-emerald-500/60"}`}
+      className={`group rounded-2xl bg-card/95 backdrop-blur-sm min-w-[210px] transition-all duration-200 ease-out
+        ${selected
+          ? "shadow-[0_0_0_2px_hsl(var(--primary)),0_8px_32px_-8px_hsl(var(--primary)/0.25)] scale-[1.02]"
+          : "shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.08)] hover:shadow-[0_4px_20px_-6px_hsl(var(--foreground)/0.12)] hover:scale-[1.01] border border-border/40"
+        }`}
     >
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-emerald-500/5 rounded-t-2xl">
-        <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+      <div className="flex items-center gap-2.5 px-4 py-3.5">
+        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20">
           <Zap className="w-4 h-4 text-emerald-500" />
         </div>
-        <span className="font-semibold text-sm text-foreground">{d.label}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-foreground leading-tight">{d.label}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {triggerLabels[d.trigger || "any_message"]}
+          </p>
+        </div>
       </div>
-      <div className="px-4 py-3">
-        <p className="text-xs text-muted-foreground">
-          {triggerLabels[d.trigger || "any_message"]}
-        </p>
-        {d.trigger === "keyword" && d.keyword && (
-          <p className="text-xs font-mono mt-1 text-emerald-500">"{d.keyword}"</p>
-        )}
-      </div>
-      <Handle type="source" position={Position.Right} id="out" className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-card" />
+      {d.trigger === "keyword" && d.keyword && (
+        <div className="px-4 pb-3">
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/8 text-emerald-500 border border-emerald-500/15">
+            "{d.keyword}"
+          </span>
+        </div>
+      )}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        className="!w-3 !h-3 !bg-emerald-500 !border-[2.5px] !border-card !rounded-full !shadow-[0_0_6px_hsl(142_71%_45%/0.3)] !transition-all !duration-150 hover:!scale-125 hover:!shadow-[0_0_10px_hsl(142_71%_45%/0.5)]"
+      />
     </div>
   );
 }

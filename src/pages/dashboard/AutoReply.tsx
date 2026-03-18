@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useMemo } from "react";
 import {
   ReactFlow,
   Controls,
-  MiniMap,
   Background,
   BackgroundVariant,
   useNodesState,
@@ -12,7 +11,6 @@ import {
   Node,
   Edge,
   MarkerType,
-  Panel,
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
@@ -34,8 +32,8 @@ const nodeTypes = {
 const defaultEdgeOptions = {
   type: "smoothstep",
   animated: true,
-  style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
-  markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary))" },
+  style: { stroke: "hsl(var(--primary) / 0.5)", strokeWidth: 1.5 },
+  markerEnd: { type: MarkerType.ArrowClosed, color: "hsl(var(--primary) / 0.6)", width: 16, height: 16 },
 };
 
 const initialNodes: Node<FlowNodeData>[] = [
@@ -232,17 +230,15 @@ function FlowCanvas() {
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             fitView
-            fitViewOptions={{ padding: 0.2 }}
+            fitViewOptions={{ padding: 0.3 }}
             deleteKeyCode={["Backspace", "Delete"]}
             className="bg-background"
             proOptions={{ hideAttribution: true }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} className="!bg-background" color="hsl(var(--muted-foreground) / 0.15)" />
-            <Controls className="!bg-card !border-border !shadow-lg !rounded-xl [&>button]:!bg-card [&>button]:!border-border [&>button]:!text-foreground [&>button:hover]:!bg-muted" />
-            <MiniMap
-              className="!bg-card !border-border !shadow-lg !rounded-xl"
-              nodeColor="hsl(var(--primary))"
-              maskColor="hsl(var(--background) / 0.8)"
+            <Background variant={BackgroundVariant.Dots} gap={24} size={0.8} className="!bg-background" color="hsl(var(--muted-foreground) / 0.08)" />
+            <Controls
+              showInteractive={false}
+              className="!bg-card/90 !backdrop-blur-sm !border-border/50 !shadow-xl !rounded-2xl !overflow-hidden [&>button]:!bg-transparent [&>button]:!border-b [&>button]:!border-border/30 [&>button]:!text-muted-foreground [&>button:hover]:!bg-muted/50 [&>button:hover]:!text-foreground [&>button]:!transition-colors [&>button]:!duration-150 [&>button:last-child]:!border-b-0"
             />
           </ReactFlow>
         </div>
