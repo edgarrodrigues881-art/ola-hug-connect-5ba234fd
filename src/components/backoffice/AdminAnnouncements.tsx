@@ -176,9 +176,11 @@ export default function AdminAnnouncements() {
     saveMutation.mutate({ id: editing?.id, data: payload });
   };
 
-  const openPreview = (data: typeof defaultForm) => {
+  const openPreview = (data: typeof defaultForm, fromEditor = false) => {
     setPreviewData(data);
+    setPreviewFromEditor(fromEditor);
     setPreviewOpen(true);
+    if (fromEditor) setCreating(false);
   };
 
   const displayModeLabels: Record<string, string> = {
