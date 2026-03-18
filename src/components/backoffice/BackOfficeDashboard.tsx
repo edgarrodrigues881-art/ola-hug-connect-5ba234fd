@@ -506,6 +506,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "community": return <AdminCommunityWarmer />;
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
         case "msg-generator": return <MessageGeneratorPreview />;
+        case "announcements": return <AdminAnnouncements />;
         default: return null;
       }
     })();
