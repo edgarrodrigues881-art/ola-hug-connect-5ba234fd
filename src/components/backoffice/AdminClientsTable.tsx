@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback, memo } from "react";
-import { Search, ChevronRight, Shield, ChevronDown, Trash2 } from "lucide-react";
+import { Search, ChevronRight, Shield, ChevronDown, Trash2, Users, Filter, Phone, Calendar, Layers, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,11 +14,12 @@ interface Props {
   onSelectClient: (u: AdminUser) => void;
 }
 
-const planColors: Record<string, string> = {
-  Start: "text-zinc-400",
-  Pro: "text-teal-400",
-  Scale: "text-purple-400",
-  Elite: "text-amber-500",
+const planConfig: Record<string, { color: string; bg: string; border: string }> = {
+  Trial: { color: "text-zinc-400", bg: "bg-zinc-500/10", border: "border-zinc-500/20" },
+  Start: { color: "text-zinc-400", bg: "bg-zinc-500/10", border: "border-zinc-500/20" },
+  Pro: { color: "text-teal-400", bg: "bg-teal-500/10", border: "border-teal-500/20" },
+  Scale: { color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+  Elite: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
 };
 
 function getDaysLeft(expiresAt: string | null): number | null {
@@ -25,22 +27,25 @@ function getDaysLeft(expiresAt: string | null): number | null {
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
 }
 
-function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | null }): { label: string; color: string } {
-  if (!u.plan_name) return { label: "Sem plano", color: "text-muted-foreground" };
+function getSubStatus(u: { plan_name: string | null; plan_expires_at: string | null }): { label: string; color: string; bg: string; border: string } {
+  if (!u.plan_name) return { label: "Sem plano", color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border" };
   const d = getDaysLeft(u.plan_expires_at);
-  if (d === null) return { label: "Sem plano", color: "text-muted-foreground" };
-  if (d <= 0) return { label: "Vencida", color: "text-destructive" };
-  if (d <= 3) return { label: "Vencendo", color: "text-yellow-500" };
-  return { label: "Ativa", color: "text-green-500" };
+  if (d === null) return { label: "Sem plano", color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border" };
+  if (d <= 0) return { label: "Vencida", color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" };
+  if (d <= 3) return { label: "Vencendo", color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" };
+  return { label: "Ativa", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
 }
 
 const statusLabels: Record<string, string> = { active: "Ativo", suspended: "Suspenso", cancelled: "Cancelado" };
-const statusTextColor: Record<string, string> = { active: "text-green-500", suspended: "text-yellow-500", cancelled: "text-destructive" };
+const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
+  active: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  suspended: { color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+  cancelled: { color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
+};
 
 function formatPhone(phone: string | null | undefined): string {
   if (!phone) return "—";
   const digits = phone.replace(/\D/g, "");
-  // Brazilian: 55 + DDD(2) + number(8-9)
   if (digits.length === 13 && digits.startsWith("55")) {
     return `+${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4, 9)} ${digits.slice(9)}`;
   }
@@ -53,7 +58,6 @@ function formatPhone(phone: string | null | undefined): string {
   if (digits.length === 10) {
     return `+55 ${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
   }
-  // Generic: country(1-3) + rest, just space every 4
   return `+${digits.replace(/(\d{2})(\d{2,5})(\d{4,})/, "$1 $2 $3")}`;
 }
 
@@ -103,8 +107,7 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
       const sub = getSubStatus(u);
       if (filter === "expiring" && sub.label !== "Vencendo") return false;
       if (filter === "expired" && sub.label !== "Vencida") return false;
-      
-      if (["Start", "Pro", "Scale", "Elite"].includes(filter) && u.plan_name !== filter) return false;
+      if (["Start", "Pro", "Scale", "Elite", "Trial"].includes(filter) && u.plan_name !== filter) return false;
       if (filter === "active" && u.status !== "active") return false;
       if (filter === "suspended" && u.status !== "suspended") return false;
       if (filter === "cancelled" && u.status !== "cancelled") return false;
@@ -113,9 +116,8 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
     });
   }, [users, search, filter]);
 
-  // Reset page when filters change
   const handleSearch = useCallback((val: string) => { setSearch(val); setPage(0); }, []);
-  const handleFilter = useCallback((val: string) => { setFilter(val); setPage(0); }, []);
+  const handleFilter = useCallback((val: string) => { setFilter(f => f === val ? "all" : val); setPage(0); }, []);
 
   const paginatedItems = useMemo(() => {
     const start = page * PAGE_SIZE;
@@ -127,88 +129,97 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
   const counts = useMemo(() => {
     const exp = users.filter(u => getSubStatus(u).label === "Vencida").length;
     const expiring = users.filter(u => getSubStatus(u).label === "Vencendo").length;
-    return { exp, expiring };
+    const active = users.filter(u => u.status === "active").length;
+    return { exp, expiring, active };
   }, [users]);
 
-  const filterGroups = [
-    {
-      label: null,
-      items: [{ label: "Todos", value: "all" }],
-    },
-    {
-      label: "Status",
-      items: [
-        { label: "Ativos", value: "active" },
-        { label: "Suspensos", value: "suspended" },
-        { label: `Vencendo (${counts.expiring})`, value: "expiring" },
-        { label: `Vencidos (${counts.exp})`, value: "expired" },
-      ],
-    },
-    {
-      label: "Planos",
-      items: [
-        { label: "Start", value: "Start" },
-        { label: "Pro", value: "Pro" },
-        { label: "Scale", value: "Scale" },
-        { label: "Elite", value: "Elite" },
-      ],
-    },
-  ];
-
-  const renderFilterBtn = (f: { label: string; value: string }) => {
-    const isActive = filter === f.value;
-    const isDanger = f.value === "expired";
+  const FilterChip = ({ label, value, count, variant = "default" }: { label: string; value: string; count?: number; variant?: "default" | "danger" | "warning" }) => {
+    const isActive = filter === value;
     return (
       <button
-        key={f.value}
-        onClick={() => handleFilter(f.value)}
+        onClick={() => handleFilter(value)}
         className={`
-          shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150
+          shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all duration-150
           ${isActive
-            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-            : isDanger && counts.exp > 0
-              ? "bg-card border-destructive/30 text-destructive hover:bg-destructive/5"
-              : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            ? "bg-primary/15 text-primary border-primary/40 shadow-sm shadow-primary/10"
+            : variant === "danger" && (count ?? 0) > 0
+              ? "bg-card border-red-500/20 text-red-400/80 hover:bg-red-500/5 hover:border-red-500/30"
+              : variant === "warning" && (count ?? 0) > 0
+                ? "bg-card border-yellow-500/20 text-yellow-400/80 hover:bg-yellow-500/5 hover:border-yellow-500/30"
+                : "bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground/80"
           }
         `}
       >
-        {f.label}
+        {label}
+        {count !== undefined && count > 0 && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+            isActive ? "bg-primary/20 text-primary" :
+            variant === "danger" ? "bg-red-500/15 text-red-400" :
+            variant === "warning" ? "bg-yellow-500/15 text-yellow-400" :
+            "bg-muted text-muted-foreground"
+          }`}>
+            {count}
+          </span>
+        )}
       </button>
     );
   };
 
   return (
     <div className="space-y-4">
-      {/* Search + Filters */}
+      {/* ═══ SEARCH & FILTERS ═══ */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar por" value={search} onChange={e => handleSearch(e.target.value)} className="pl-9 h-9 bg-card border-border text-sm" />
+          <div className="relative flex-1 max-w-sm">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              placeholder="Nome, email ou telefone..."
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              className="pl-9 h-9 bg-card/50 border-border/60 text-sm placeholder:text-muted-foreground/40"
+            />
           </div>
           <button
             onClick={() => setShowFilters(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium border transition-all ${
               showFilters || filter !== "all"
                 ? "bg-primary/10 border-primary/30 text-primary"
-                : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                : "bg-card/50 border-border/60 text-muted-foreground hover:border-border hover:text-foreground/80"
             }`}
           >
+            <Filter size={13} />
             Filtros
-            {filter !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-            <ChevronDown size={14} className={`transition-transform ${showFilters ? "rotate-180" : ""}`} />
+            {filter !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+            <ChevronDown size={13} className={`transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
           </button>
+          <div className="hidden sm:flex items-center gap-1.5 ml-auto">
+            <Users size={13} className="text-muted-foreground/50" />
+            <span className="text-[11px] text-muted-foreground/70 font-medium">{filtered.length} clientes</span>
+          </div>
         </div>
+
         {showFilters && (
-          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 p-3 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
-            {filterGroups.filter(g => g.label).map((group, gi) => (
-              <>
-                <span key={`l-${gi}`} className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold self-center">{group.label}</span>
-                <div key={`f-${gi}`} className="flex items-center gap-1.5 overflow-x-auto">
-                  {group.items.map(f => renderFilterBtn(f))}
-                </div>
-              </>
-            ))}
+          <div className="p-3 bg-card/60 border border-border/50 rounded-xl space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-bold w-14 shrink-0">Status</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                <FilterChip label="Ativos" value="active" count={counts.active} />
+                <FilterChip label="Suspensos" value="suspended" />
+                <FilterChip label="Vencendo" value="expiring" count={counts.expiring} variant="warning" />
+                <FilterChip label="Vencidos" value="expired" count={counts.exp} variant="danger" />
+              </div>
+            </div>
+            <div className="h-px bg-border/30" />
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-bold w-14 shrink-0">Plano</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                <FilterChip label="Trial" value="Trial" />
+                <FilterChip label="Start" value="Start" />
+                <FilterChip label="Pro" value="Pro" />
+                <FilterChip label="Scale" value="Scale" />
+                <FilterChip label="Elite" value="Elite" />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -216,153 +227,181 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
       {/* ═══ MOBILE: Card layout ═══ */}
       <div className="space-y-2 sm:hidden">
         {paginatedItems.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground text-sm">Nenhum cliente encontrado</p>
+          <div className="text-center py-12">
+            <Users size={24} className="mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-muted-foreground/60 text-sm">Nenhum cliente encontrado</p>
+          </div>
         ) : paginatedItems.map(u => {
           const daysLeft = getDaysLeft(u.plan_expires_at);
           const isExpired = daysLeft !== null && daysLeft <= 0;
           const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
           const sub = getSubStatus(u);
+          const plan = planConfig[u.plan_name || ""] || planConfig.Start;
 
           return (
             <div
               key={u.id}
               onClick={() => onSelectClient(u)}
-              className="bg-card border border-border rounded-xl p-3.5 active:bg-muted/30 transition-colors cursor-pointer"
+              className="group bg-card/60 border border-border/50 rounded-xl p-4 active:bg-muted/20 transition-all cursor-pointer hover:border-border"
             >
-              <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <span className="text-foreground font-semibold text-sm truncate">{u.full_name || "—"}</span>
-                    
                     {u.roles.includes("admin") && <Shield size={12} className="text-primary shrink-0" />}
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{u.email}</p>
+                  <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{u.email}</p>
+                  {u.phone && <p className="text-[11px] text-muted-foreground/50 font-mono mt-0.5">{formatPhone(u.phone)}</p>}
                 </div>
-                {!u.roles.includes("admin") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 p-1.5 h-auto shrink-0"
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); }}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${plan.color} ${plan.bg} ${plan.border}`}>
+                    {u.plan_name || "—"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <Layers size={11} className="text-muted-foreground/40" />
+                  <span className={u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-red-400 font-semibold" : "text-foreground/70 font-medium"}>
+                    {u.devices_count}/{u.max_instances}
+                  </span>
+                </div>
+                <span className="text-border">·</span>
+                <span className={`font-medium px-1.5 py-0.5 rounded ${sub.bg} ${sub.color} text-[10px]`}>{sub.label}</span>
+                {daysLeft !== null && (
+                  <>
+                    <span className="text-border">·</span>
+                    <span className={`font-medium ${isExpired ? "text-red-400" : isExpiring ? "text-yellow-400" : "text-muted-foreground/60"}`}>
+                      {isExpired ? `${Math.abs(daysLeft)}d atrás` : `${daysLeft}d`}
+                    </span>
+                  </>
                 )}
+                <ChevronRight size={14} className="ml-auto text-muted-foreground/30 group-active:text-primary transition-colors" />
               </div>
-
-              <div className="grid grid-cols-3 gap-2 text-[11px]">
-                <div>
-                  <p className="text-muted-foreground/60 font-medium">Plano</p>
-                  <p className={`font-semibold ${planColors[u.plan_name || ""] || "text-muted-foreground"}`}>{u.plan_name || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground/60 font-medium">Instâncias</p>
-                  <p className="font-semibold">
-                    <span className={u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-destructive" : "text-foreground"}>{u.devices_count}</span>
-                    <span className="text-muted-foreground">/{u.max_instances}</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground/60 font-medium">Status</p>
-                  <p className={`font-semibold ${sub.color}`}>{sub.label}</p>
-                </div>
-              </div>
-
-              {daysLeft !== null && (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-                  <span className="text-[11px] text-muted-foreground">
-                    {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
-                  </span>
-                  <span className={`text-[11px] font-bold ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-400" : "text-muted-foreground"}`}>
-                    {isExpired ? `${Math.abs(daysLeft)}d vencido` : `${daysLeft}d restantes`}
-                  </span>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
 
       {/* ═══ DESKTOP: Table layout ═══ */}
-      <div className="border border-border rounded-lg overflow-hidden hidden sm:block">
+      <div className="border border-border/50 rounded-xl overflow-hidden hidden sm:block bg-card/30">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
-                <th className="text-left px-3 py-2.5">Cliente</th>
-                <th className="text-left px-3 py-2.5">Telefone</th>
-                <th className="text-left px-3 py-2.5">Plano</th>
-                <th className="text-left px-3 py-2.5">Instâncias</th>
-                <th className="text-left px-3 py-2.5">Conta</th>
-                <th className="text-left px-3 py-2.5">Assinatura</th>
-                <th className="text-left px-3 py-2.5">Vencimento</th>
-                <th className="text-right px-3 py-2.5"></th>
+              <tr className="border-b border-border/50">
+                <th className="text-left px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Cliente</th>
+                <th className="text-left px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Telefone</th>
+                <th className="text-left px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Plano</th>
+                <th className="text-center px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Instâncias</th>
+                <th className="text-center px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Conta</th>
+                <th className="text-center px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Assinatura</th>
+                <th className="text-left px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/50 font-semibold">Vencimento</th>
+                <th className="w-28 px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {paginatedItems.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</td></tr>
+                <tr>
+                  <td colSpan={8} className="text-center py-12">
+                    <Users size={24} className="mx-auto text-muted-foreground/20 mb-2" />
+                    <p className="text-muted-foreground/50 text-sm">Nenhum cliente encontrado</p>
+                  </td>
+                </tr>
               ) : paginatedItems.map(u => {
                 const daysLeft = getDaysLeft(u.plan_expires_at);
                 const isExpired = daysLeft !== null && daysLeft <= 0;
                 const isExpiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
                 const sub = getSubStatus(u);
+                const plan = planConfig[u.plan_name || ""] || planConfig.Start;
+                const sConf = statusConfig[u.status] || statusConfig.active;
 
                 return (
-                  <tr key={u.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onSelectClient(u)}>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-foreground font-medium text-xs">{u.full_name || "—"}</span>
-                        
-                        {u.roles.includes("admin") && <Shield size={12} className="text-primary" />}
+                  <tr
+                    key={u.id}
+                    className="group border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors cursor-pointer"
+                    onClick={() => onSelectClient(u)}
+                  >
+                    {/* Cliente */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-foreground/90 font-medium text-[13px] truncate">{u.full_name || "—"}</span>
+                            {u.roles.includes("admin") && <Shield size={11} className="text-primary shrink-0" />}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground/40 truncate mt-0.5">{u.email}</p>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-xs font-mono tracking-wide whitespace-nowrap">{formatPhone(u.phone)}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={`text-xs font-medium ${planColors[u.plan_name || ""] || "text-muted-foreground"}`}>
+
+                    {/* Telefone */}
+                    <td className="px-4 py-3">
+                      <span className="text-[12px] text-muted-foreground/70 font-mono tracking-wide whitespace-nowrap">
+                        {formatPhone(u.phone)}
+                      </span>
+                    </td>
+
+                    {/* Plano */}
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-md border ${plan.color} ${plan.bg} ${plan.border}`}>
                         {u.plan_name || "—"}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <span className={`font-medium text-xs ${u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-destructive" : "text-foreground"}`}>
+
+                    {/* Instâncias */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-[13px] font-bold ${u.devices_count >= u.max_instances && u.max_instances > 0 ? "text-red-400" : "text-foreground/80"}`}>
                         {u.devices_count}
                       </span>
-                      <span className="text-muted-foreground text-xs">/{u.max_instances}</span>
+                      <span className="text-muted-foreground/30 text-[13px]">/{u.max_instances}</span>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <span className={`text-xs font-medium ${statusTextColor[u.status] || "text-muted-foreground"}`}>
+
+                    {/* Conta */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md border ${sConf.color} ${sConf.bg} ${sConf.border}`}>
                         {statusLabels[u.status] || u.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <span className={`text-xs font-medium ${sub.color}`}>{sub.label}</span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="text-muted-foreground text-[11px]">
-                        {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
+
+                    {/* Assinatura */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md border ${sub.color} ${sub.bg} ${sub.border}`}>
+                        {sub.label}
                       </span>
-                      {daysLeft !== null && (
-                        <span className={`ml-1.5 text-[10px] font-medium ${isExpired ? "text-destructive" : isExpiring ? "text-yellow-500" : "text-muted-foreground"}`}>
-                          ({isExpired ? "vencido" : `${daysLeft}d`})
-                        </span>
-                      )}
                     </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
+
+                    {/* Vencimento */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-muted-foreground/50">
+                          {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString("pt-BR") : "—"}
+                        </span>
+                        {daysLeft !== null && (
+                          <span className={`text-[10px] font-bold ${
+                            isExpired ? "text-red-400" : isExpiring ? "text-yellow-400" : "text-muted-foreground/40"
+                          }`}>
+                            {isExpired ? "(vencido)" : `(${daysLeft}d)`}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Ações */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                         {!u.roles.includes("admin") && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-xs px-2"
+                          <button
+                            className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); }}
                           >
                             <Trash2 size={14} />
-                          </Button>
+                          </button>
                         )}
-                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs px-2">
-                          Gerenciar <ChevronRight size={12} className="ml-1" />
-                        </Button>
+                        <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-primary/70 hover:text-primary hover:bg-primary/10 transition-colors text-[11px] font-semibold">
+                          Gerenciar
+                          <ChevronRight size={12} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -373,16 +412,16 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
         </div>
       </div>
 
-      {/* Pagination + Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">{filtered.length} de {users.length} clientes</p>
+      {/* ═══ PAGINATION ═══ */}
+      <div className="flex items-center justify-between pt-1">
+        <p className="text-[11px] text-muted-foreground/50">{filtered.length} de {users.length} clientes</p>
         {totalPages > 1 && (
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" className="h-7 text-[11px] px-2.5 border-border/50" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
               Anterior
             </Button>
-            <span className="text-xs text-muted-foreground px-2">{page + 1}/{totalPages}</span>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+            <span className="text-[11px] text-muted-foreground/50 px-2 font-medium">{page + 1}/{totalPages}</span>
+            <Button variant="outline" size="sm" className="h-7 text-[11px] px-2.5 border-border/50" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
               Próxima
             </Button>
           </div>
