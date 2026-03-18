@@ -318,7 +318,7 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{u.email}</p>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-xs">{u.phone || "—"}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs font-mono tracking-wide whitespace-nowrap">{formatPhone(u.phone)}</td>
                     <td className="px-3 py-2.5">
                       <span className={`text-xs font-medium ${planColors[u.plan_name || ""] || "text-muted-foreground"}`}>
                         {u.plan_name || "—"}
