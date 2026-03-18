@@ -780,6 +780,32 @@ export default function AdminDispatch() {
               </p>
             </div>
 
+            {/* Pause config */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Pausa automática</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Pausar a cada (min msgs)</label>
+                  <Input type="number" min={1} max={500} value={pauseEveryMin} onChange={e => { const v = Number(e.target.value); setPauseEveryMin(v); if (v > pauseEveryMax) setPauseEveryMax(v); }} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Pausar a cada (max msgs)</label>
+                  <Input type="number" min={1} max={500} value={pauseEveryMax} onChange={e => { const v = Number(e.target.value); setPauseEveryMax(v); if (v < pauseEveryMin) setPauseEveryMin(v); }} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Duração da pausa (min seg)</label>
+                  <Input type="number" min={5} max={600} value={pauseDurationMin} onChange={e => { const v = Number(e.target.value); setPauseDurationMin(v); if (v > pauseDurationMax) setPauseDurationMax(v); }} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground/60 mb-1 block">Duração da pausa (max seg)</label>
+                  <Input type="number" min={5} max={600} value={pauseDurationMax} onChange={e => { const v = Number(e.target.value); setPauseDurationMax(v); if (v < pauseDurationMin) setPauseDurationMin(v); }} className="h-9 text-sm" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground/50">
+                A cada {pauseEveryMin}–{pauseEveryMax} mensagens, pausa de {pauseDurationMin}s–{pauseDurationMax}s
+              </p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Conexão para envio</label>
               <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/50 bg-card/60 px-3 py-2">
