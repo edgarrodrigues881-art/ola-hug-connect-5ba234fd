@@ -479,7 +479,7 @@ const AdminAutoTemplates = () => {
                   <Button
                     size="sm"
                     onClick={handleDialogSave}
-                    disabled={dialogContent === editingTemplate.content || updateMutation.isPending}
+                    disabled={(dialogContent === editingTemplate.content && JSON.stringify(dialogButtons) === JSON.stringify(editingTemplate.buttons || [])) || updateMutation.isPending}
                     className="h-9 text-[11px] gap-1.5 rounded-lg"
                   >
                     {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
