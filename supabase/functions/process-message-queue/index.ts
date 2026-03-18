@@ -256,6 +256,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── RANDOM DELAY 1-4 MINUTES before processing to avoid spam ──
+    const delayMinutes = 1 + Math.random() * 3; // 1 to 4 minutes
+    const delayMs = Math.floor(delayMinutes * 60_000);
+    console.log(`[process-mq] Waiting ${Math.round(delayMinutes * 10) / 10} min (${delayMs}ms) before processing...`);
+    await new Promise((r) => setTimeout(r, delayMs));
+
     console.log("[process-mq] Starting queue processing...");
 
     // Get device credentials for sending
