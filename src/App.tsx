@@ -59,6 +59,7 @@ const AutoSave = lazyRetry(() => import("./pages/dashboard/AutoSave"));
 const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
 const Community = lazyRetry(() => import("./pages/dashboard/Community"));
 const AutoReply = lazyRetry(() => import("./pages/dashboard/AutoReply"));
+const AutoReplyList = lazyRetry(() => import("./pages/dashboard/AutoReplyList"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
@@ -133,7 +134,8 @@ const App = () => (
                           <Route path="warmup-v2" element={<WarmupInstances />} />
                           <Route path="warmup-v2/:deviceId" element={<WarmupInstanceDetail />} />
                           <Route path="autosave" element={<AutoSave />} />
-                          <Route path="auto-reply" element={<AutoReply />} />
+                          <Route path="auto-reply" element={<AutoReplyList />} />
+                          <Route path="auto-reply/:id" element={<AutoReply />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
