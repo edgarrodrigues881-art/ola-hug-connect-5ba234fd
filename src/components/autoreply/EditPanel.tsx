@@ -64,6 +64,7 @@ export function EditPanel({ node, onUpdate, onDelete, onDuplicate, onClose }: Pr
     }));
 
     onUpdate(node.id, {
+      label: isStart ? template.name : d.label,
       templateId: template.id,
       templateName: template.name,
       text: template.content,
