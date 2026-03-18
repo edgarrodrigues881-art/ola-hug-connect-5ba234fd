@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import BackOfficeDashboard from "@/components/backoffice/BackOfficeDashboard";
 
-const BackOffice = () => {
+const BackOffice = ({ initialTab }: { initialTab?: string }) => {
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
