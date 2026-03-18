@@ -2664,6 +2664,14 @@ export type Database = {
         Args: { _campaign_id: string }
         Returns: undefined
       }
+      increment_warmup_budget: {
+        Args: {
+          p_cycle_id: string
+          p_increment?: number
+          p_unique_recipient?: boolean
+        }
+        Returns: Json
+      }
       release_device_lock: {
         Args: { _campaign_id: string; _device_id: string }
         Returns: undefined

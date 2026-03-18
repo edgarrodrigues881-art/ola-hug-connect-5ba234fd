@@ -1370,9 +1370,8 @@ async function handleTick(db: any) {
     batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
     batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id, created_at, updated_at", "user_id", uniqueUserIds, q =>
       q.eq("is_active", true)
-        .order("updated_at", { ascending: false })
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
     ),
     batchLoad<any>("warmup_instance_groups", "group_id, group_jid, device_id, cycle_id, join_status, group_name, invite_link", "device_id", uniqueDeviceIds),
     db.from("warmup_groups").select("id, link, name").then((r: any) => r.data || []),
@@ -1399,17 +1398,14 @@ async function handleTick(db: any) {
     if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
     autosaveMap[c.user_id].push(c);
   });
+  // Sort by created_at ASC for stable rotation — newest contacts are at the END
+  // so dayOffset rotation naturally picks different contacts each day
   Object.values(autosaveMap).forEach((contacts: any[]) => {
     contacts.sort((a, b) => {
-      const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime();
-      const bUpdated = new Date(b.updated_at || b.created_at || 0).getTime();
-      if (aUpdated !== bUpdated) return bUpdated - aUpdated;
-
       const aCreated = new Date(a.created_at || 0).getTime();
       const bCreated = new Date(b.created_at || 0).getTime();
-      if (aCreated !== bCreated) return bCreated - aCreated;
-
-      return String(b.id || "").localeCompare(String(a.id || ""));
+      if (aCreated !== bCreated) return aCreated - bCreated;
+      return String(a.id || "").localeCompare(String(b.id || ""));
     });
   });
   const instanceGroupsMap: Record<string, any[]> = {};
@@ -1490,11 +1486,19 @@ async function handleTick(db: any) {
     const token = device.uazapi_token || "";
     const chipState = cycle.chip_state || "new";
 
-    // Budget check for interaction jobs
+    // Budget check for interaction jobs — fresh DB read to prevent race conditions between concurrent ticks
     if (INTERACTION_JOB_TYPES.includes(job.job_type)) {
       if (!withinWindow && !job.payload?.forced) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
         return false;
+      }
+      // Always read fresh budget from DB to prevent concurrent tick race conditions
+      const { data: freshBudget } = await db.from("warmup_cycles")
+        .select("daily_interaction_budget_used, daily_interaction_budget_target")
+        .eq("id", cycle.id).single();
+      if (freshBudget) {
+        cycle.daily_interaction_budget_used = freshBudget.daily_interaction_budget_used || 0;
+        cycle.daily_interaction_budget_target = freshBudget.daily_interaction_budget_target || 500;
       }
       const used = cycle.daily_interaction_budget_used || 0;
       const limit = cycle.daily_interaction_budget_target || 500;
@@ -1982,11 +1986,11 @@ async function handleTick(db: any) {
           await uazapiSendText(baseUrl, token, groupJid, message);
         }
 
-        // Update budget (increment)
-        await db.from("warmup_cycles").update({
-          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-        }).eq("id", cycle.id);
-        cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+        // Update budget (atomic increment to prevent race conditions)
+        const { data: budgetResult1 } = await db.rpc("increment_warmup_budget", {
+          p_cycle_id: cycle.id, p_increment: 1, p_unique_recipient: false,
+        });
+        if (budgetResult1) cycle.daily_interaction_budget_used = budgetResult1.used;
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
@@ -2149,11 +2153,14 @@ async function handleTick(db: any) {
           });
         } catch { /* duplicate OK */ }
 
-        await db.from("warmup_cycles").update({
-          daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-          daily_unique_recipients_used: (cycle.daily_unique_recipients_used || 0) + (mIdx === 0 ? 1 : 0),
-        }).eq("id", cycle.id);
-        cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+        // Atomic budget increment
+        const { data: budgetResult2 } = await db.rpc("increment_warmup_budget", {
+          p_cycle_id: cycle.id, p_increment: 1, p_unique_recipient: mIdx === 0,
+        });
+        if (budgetResult2) {
+          cycle.daily_interaction_budget_used = budgetResult2.used;
+          cycle.daily_unique_recipients_used = budgetResult2.recipients_used;
+        }
 
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
@@ -2303,10 +2310,11 @@ async function handleTick(db: any) {
 
           await db.from("community_pairs").update({ meta: nextMeta }).eq("id", selectedPair.id);
 
-          await db.from("warmup_cycles").update({
-            daily_interaction_budget_used: (cycle.daily_interaction_budget_used || 0) + 1,
-          }).eq("id", cycle.id);
-          cycle.daily_interaction_budget_used = (cycle.daily_interaction_budget_used || 0) + 1;
+          // Atomic budget increment
+          const { data: budgetResult3 } = await db.rpc("increment_warmup_budget", {
+            p_cycle_id: cycle.id, p_increment: 1, p_unique_recipient: false,
+          });
+          if (budgetResult3) cycle.daily_interaction_budget_used = budgetResult3.used;
 
           if (hasNextTurn && nextCycle) {
             const replyDelaySeconds = randInt(8, 35);
