@@ -245,9 +245,18 @@ const AdminClientsTable = memo(({ users, onSelectClient }: Props) => {
             {filter !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
             <ChevronDown size={13} className={`transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
           </button>
-          <div className="hidden sm:flex items-center gap-1.5 ml-auto">
-            <Users size={13} className="text-muted-foreground/50" />
-            <span className="text-[11px] text-muted-foreground/70 font-medium">{filtered.length} clientes</span>
+          <div className="hidden sm:flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-1.5">
+              <Users size={13} className="text-muted-foreground/50" />
+              <span className="text-[11px] text-muted-foreground/70 font-medium">{filtered.length} clientes</span>
+            </div>
+            <button
+              onClick={() => { setShowDispatch(true); setDispatchResult(null); setDispatchMessage(""); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+            >
+              <Send size={12} />
+              Disparar
+            </button>
           </div>
         </div>
 
