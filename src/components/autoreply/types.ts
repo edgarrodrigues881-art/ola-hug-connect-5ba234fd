@@ -23,3 +23,14 @@ export interface FlowNodeData extends Record<string, unknown> {
   // End node
   action?: "end_flow" | "wait_response" | "transfer_human";
 }
+
+// Unique ID generator to avoid collisions across sessions
+let _nodeIdCounter = Date.now();
+export function nextNodeId(prefix: string): string {
+  return `${prefix}-${++_nodeIdCounter}`;
+}
+
+let _btnIdCounter = Date.now() + 1000;
+export function nextBtnId(): string {
+  return `btn-${++_btnIdCounter}`;
+}

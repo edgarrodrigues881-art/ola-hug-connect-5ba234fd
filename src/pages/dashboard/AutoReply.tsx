@@ -23,6 +23,7 @@ import { FlowSidebar } from "@/components/autoreply/FlowSidebar";
 import { EditPanel } from "@/components/autoreply/EditPanel";
 import { FlowHeader } from "@/components/autoreply/FlowHeader";
 import type { FlowNodeData } from "@/components/autoreply/types";
+import { nextNodeId, nextBtnId } from "@/components/autoreply/types";
 import { MessageSquare, Square, Timer } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,8 +55,6 @@ const defaultNodes: Node<FlowNodeData>[] = [
 
 const defaultEdges: Edge[] = [];
 
-let nodeId = 100;
-
 interface DropMenu {
   x: number;
   y: number;
@@ -81,13 +80,25 @@ function FlowCanvas() {
   const [dropMenu, setDropMenu] = useState<DropMenu | null>(null);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(isNew);
+  const [isDirty, setIsDirty] = useState(false);
   const pendingConnection = useRef<{ source: string; sourceHandle: string } | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  const initialLoadDone = useRef(false);
+
+  // Track dirty state after initial load
+  useEffect(() => {
+    if (!initialLoadDone.current) return;
+    setIsDirty(true);
+  }, [nodes, edges, flowName, isActive, deviceId]);
 
   // Load existing flow
   useEffect(() => {
-    if (isNew || !flowId || !user) { setLoaded(true); return; }
+    if (isNew || !flowId || !user) {
+      setLoaded(true);
+      initialLoadDone.current = true;
+      return;
+    }
     (async () => {
       const { data, error } = await supabase
         .from("autoreply_flows")
@@ -109,15 +120,45 @@ function FlowCanvas() {
         setEdges(data.edges as any);
       }
       setLoaded(true);
+      // Mark initial load done after state settles
+      setTimeout(() => { initialLoadDone.current = true; }, 100);
     })();
   }, [flowId, isNew, user]);
 
+  const validateFlow = useCallback((): boolean => {
+    if (!flowName.trim()) {
+      toast.error("Digite um nome para a automação");
+      return false;
+    }
+
+    const startNode = nodes.find((n) => n.type === "startNode");
+    if (!startNode) {
+      toast.error("O fluxo precisa de um bloco de Início");
+      return false;
+    }
+
+    const startData = startNode.data as FlowNodeData;
+    if (startData.trigger === "keyword" && !startData.keyword?.trim()) {
+      toast.error("Defina uma palavra-chave no bloco de Início");
+      return false;
+    }
+
+    if (startData.trigger === "template" && !startData.templateId) {
+      toast.error("Selecione um modelo no bloco de Início");
+      return false;
+    }
+
+    return true;
+  }, [nodes, flowName]);
+
   const handleSave = useCallback(async () => {
     if (!user) { toast.error("Faça login para salvar"); return; }
+    if (!validateFlow()) return;
+
     setSaving(true);
     try {
       const payload = {
-        name: flowName,
+        name: flowName.trim(),
         is_active: isActive,
         device_id: deviceId,
         nodes: nodes as any,
@@ -143,12 +184,13 @@ function FlowCanvas() {
         navigate(`/dashboard/auto-reply/${data.id}`, { replace: true });
         toast.success("Fluxo criado com sucesso!");
       }
+      setIsDirty(false);
     } catch (err: any) {
       toast.error("Erro ao salvar: " + (err.message || "erro desconhecido"));
     } finally {
       setSaving(false);
     }
-  }, [user, flowId, flowName, isActive, nodes, edges, navigate]);
+  }, [user, flowId, flowName, isActive, deviceId, nodes, edges, navigate, validateFlow]);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedNodeId) || null,
@@ -202,7 +244,7 @@ function FlowCanvas() {
     (type: "messageNode" | "endNode" | "delayNode") => {
       if (!dropMenu) return;
 
-      const id = `${type}-${++nodeId}`;
+      const id = nextNodeId(type);
       let data: FlowNodeData;
 
       if (type === "endNode") {
@@ -264,12 +306,21 @@ function FlowCanvas() {
       const type = e.dataTransfer.getData("application/reactflow");
       if (!type) return;
 
+      // Prevent dropping duplicate start nodes
+      if (type === "startNode") {
+        const hasStart = nodes.some((n) => n.type === "startNode");
+        if (hasStart) {
+          toast.error("Só é permitido um bloco de Início por fluxo");
+          return;
+        }
+      }
+
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const id = `${type}-${++nodeId}`;
+      const id = nextNodeId(type);
 
       let data: FlowNodeData;
       if (type === "startNode") {
-        data = { label: "Início", trigger: "any_message", keyword: "" };
+        data = { label: "Início", trigger: "keyword", keyword: "" };
       } else if (type === "endNode") {
         data = { label: "Finalizar", action: "end_flow" };
       } else if (type === "delayNode") {
@@ -289,7 +340,7 @@ function FlowCanvas() {
       setNodes((nds) => nds.concat(newNode));
       setSelectedNodeId(id);
     },
-    [screenToFlowPosition, setNodes]
+    [screenToFlowPosition, setNodes, nodes]
   );
 
   const updateNodeData = useCallback(
@@ -303,18 +354,24 @@ function FlowCanvas() {
 
   const deleteNode = useCallback(
     (id: string) => {
+      // Prevent deleting the start node
+      const node = nodes.find((n) => n.id === id);
+      if (node?.type === "startNode") {
+        toast.error("O bloco de Início não pode ser removido");
+        return;
+      }
       setNodes((nds) => nds.filter((n) => n.id !== id));
       setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
       if (selectedNodeId === id) setSelectedNodeId(null);
     },
-    [setNodes, setEdges, selectedNodeId]
+    [setNodes, setEdges, selectedNodeId, nodes]
   );
 
   const duplicateNode = useCallback(
     (id: string) => {
       const node = nodes.find((n) => n.id === id);
-      if (!node) return;
-      const newId = `${node.type}-${++nodeId}`;
+      if (!node || node.type === "startNode") return;
+      const newId = nextNodeId(node.type || "node");
       const nodeData = node.data as FlowNodeData;
       const newNode: Node<FlowNodeData> = {
         ...node,
@@ -323,7 +380,7 @@ function FlowCanvas() {
         data: {
           ...nodeData,
           label: `${nodeData.label} (cópia)`,
-          buttons: nodeData.buttons?.map((b) => ({ ...b, id: `btn-${++nodeId}` })),
+          buttons: nodeData.buttons?.map((b) => ({ ...b, id: nextBtnId() })),
         },
         selected: false,
       };
@@ -353,9 +410,10 @@ function FlowCanvas() {
         onDeviceChange={setDeviceId}
         nodes={nodes}
         edges={edges as { id: string; source: string; target: string }[]}
+        isDirty={isDirty}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <FlowSidebar />
+        <FlowSidebar hasStartNode={nodes.some((n) => n.type === "startNode")} />
         <div ref={reactFlowWrapper} className="flex-1 min-w-0 relative">
           <ReactFlow
             nodes={nodes}
