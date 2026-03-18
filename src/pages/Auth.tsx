@@ -241,7 +241,7 @@ const Auth = () => {
                     Número de telefone
                   </Label>
                   <div className="relative group">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400/60 transition-colors" />
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 group-focus-within:text-emerald-400 transition-colors" />
                     <Input id="phone" type="tel" placeholder="(00) 00000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} required maxLength={20} />
                   </div>
                 </div>
