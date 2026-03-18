@@ -499,6 +499,14 @@ export function AppSidebar() {
         onDelete={handleDeleteFolder}
         currentDeviceIds={editingFolder ? (folders.find(f => f.id === editingFolder.id)?.device_ids || []) : []}
       />
+      {maintenanceModal && (
+        <MaintenanceModal
+          open={true}
+          onClose={() => setMaintenanceModal(null)}
+          featureName={maintenanceModal.name}
+          message={maintenanceModal.message}
+        />
+      )}
     </Sidebar>
   );
 }
