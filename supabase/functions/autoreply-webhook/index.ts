@@ -758,7 +758,10 @@ async function doRegisterWebhook(device: any) {
       url: `${baseUrl}/webhook`,
       body: {
         url: webhookUrl,
+        enabled: true,
         events: ["messages"],
+        excludeMessages: ["wasSentByApi"],
+        addUrlEvents: true,
         headers: webhookHeaders,
       },
     },
@@ -767,6 +770,9 @@ async function doRegisterWebhook(device: any) {
       url: `${baseUrl}/webhook`,
       body: {
         webhookURL: webhookUrl,
+        enabled: true,
+        events: ["messages"],
+        excludeMessages: ["wasSentByApi"],
         webhookHeaders,
       },
     },
@@ -775,6 +781,9 @@ async function doRegisterWebhook(device: any) {
       url: `${baseUrl}/webhook/set`,
       body: {
         url: webhookUrl,
+        enabled: true,
+        events: ["messages"],
+        excludeMessages: ["wasSentByApi"],
         headers: webhookHeaders,
       },
     },
