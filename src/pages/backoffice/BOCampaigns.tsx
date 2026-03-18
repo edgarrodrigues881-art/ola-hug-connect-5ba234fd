@@ -33,8 +33,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 // XLSX is dynamically imported when needed to reduce initial bundle
-import { usePlanGate } from "@/hooks/usePlanGate";
-import { PlanGateDialog } from "@/components/PlanGateDialog";
 
 // Compress images client-side before uploading
 const compressImage = (file: File, maxWidth = 1200, quality = 0.8): Promise<File> => {
