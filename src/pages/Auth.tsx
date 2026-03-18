@@ -139,7 +139,7 @@ const Auth = () => {
   };
 
   const inputClass =
-    "pl-11 h-[52px] rounded-2xl border-[#1a2235]/80 bg-[#0d1117]/80 text-white text-sm font-medium placeholder:text-[#4b5563] focus:border-emerald-500/60 focus:bg-[#111827] focus:ring-1 focus:ring-emerald-500/30 transition-all duration-300 backdrop-blur-sm";
+    "pl-11 h-[52px] rounded-2xl border-[#1a2235]/80 bg-[#0d1117]/80 text-white text-sm font-medium placeholder:text-[#4b5563] focus:border-emerald-500/60 focus:bg-[#111827] focus:ring-1 focus:ring-emerald-500/30 transition-all duration-300 backdrop-blur-sm [&~.input-icon]:text-white/50 [&:focus~.input-icon]:text-emerald-400";
 
   return (
     <motion.div
