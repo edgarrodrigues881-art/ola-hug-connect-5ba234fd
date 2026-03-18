@@ -85,6 +85,50 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_dispatch_contacts: {
+        Row: {
+          created_at: string
+          dispatch_id: string
+          error_message: string | null
+          id: string
+          name: string
+          phone: string
+          sent_at: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dispatch_id: string
+          error_message?: string | null
+          id?: string
+          name?: string
+          phone: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dispatch_id?: string
+          error_message?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_dispatch_contacts_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dispatches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_dispatch_templates: {
         Row: {
           admin_id: string
@@ -124,6 +168,78 @@ export type Database = {
           name?: string
           updated_at?: string
           variables?: Json
+        }
+        Relationships: []
+      }
+      admin_dispatches: {
+        Row: {
+          admin_id: string
+          completed_at: string | null
+          connection_purpose: string
+          created_at: string
+          device_id: string | null
+          failed_count: number
+          id: string
+          last_error: string | null
+          max_delay_seconds: number
+          message_content: string
+          min_delay_seconds: number
+          name: string
+          pause_duration_max: number
+          pause_duration_min: number
+          pause_every_max: number
+          pause_every_min: number
+          sent_count: number
+          started_at: string | null
+          status: string
+          total_contacts: number
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          completed_at?: string | null
+          connection_purpose?: string
+          created_at?: string
+          device_id?: string | null
+          failed_count?: number
+          id?: string
+          last_error?: string | null
+          max_delay_seconds?: number
+          message_content: string
+          min_delay_seconds?: number
+          name?: string
+          pause_duration_max?: number
+          pause_duration_min?: number
+          pause_every_max?: number
+          pause_every_min?: number
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          total_contacts?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          completed_at?: string | null
+          connection_purpose?: string
+          created_at?: string
+          device_id?: string | null
+          failed_count?: number
+          id?: string
+          last_error?: string | null
+          max_delay_seconds?: number
+          message_content?: string
+          min_delay_seconds?: number
+          name?: string
+          pause_duration_max?: number
+          pause_duration_min?: number
+          pause_every_max?: number
+          pause_every_min?: number
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          total_contacts?: number
+          updated_at?: string
         }
         Relationships: []
       }
