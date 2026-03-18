@@ -188,37 +188,41 @@ export default function AdminDispatch() {
   const dispatchConnection = connections.find((c: any) => c.purpose === connectionPurpose);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-primary/10">
           <Send size={20} className="text-primary" />
-          Disparar Mensagem
-        </h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Selecione audiência, modelo e conexão para enviar
-        </p>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-foreground">Enviar Mensagem</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Selecione clientes, escreva a mensagem e envie
+          </p>
+        </div>
       </div>
 
       {/* Stepper */}
-      <div className="flex items-center gap-2 mb-2">
-        {["audience", "message", "review"].map((s, i) => {
-          const labels = ["1. Audiência", "2. Mensagem", "3. Revisar"];
+      <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/40 w-fit">
+        {(["audience", "message", "review"] as const).map((s, i) => {
+          const labels = ["1. Clientes", "2. Mensagem", "3. Enviar"];
+          const icons = [Users, FileText, Send];
+          const Icon = icons[i];
           const isActive = step === s;
           const isDone = ["audience", "message", "review", "done"].indexOf(step) > i;
           return (
             <button
               key={s}
               onClick={() => { if (isDone || isActive) setStep(s as any); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 isActive
-                  ? "bg-primary/15 text-primary border-primary/40"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : isDone
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : "bg-card border-border/60 text-muted-foreground"
+                    ? "text-emerald-400 hover:bg-muted/30"
+                    : "text-muted-foreground hover:bg-muted/30"
               }`}
             >
-              {isDone && !isActive ? <CheckCircle2 size={12} /> : null}
+              {isDone && !isActive ? <CheckCircle2 size={13} /> : <Icon size={13} />}
               {labels[i]}
             </button>
           );
@@ -413,7 +417,7 @@ export default function AdminDispatch() {
               disabled={!messageContent.trim()}
               className="gap-2"
             >
-              Próximo: Revisar <ChevronRight size={14} />
+              Próximo: Enviar <ChevronRight size={14} />
             </Button>
           </div>
         </div>
@@ -423,11 +427,11 @@ export default function AdminDispatch() {
       {step === "review" && (
         <div className="space-y-4">
           <div className="bg-card/60 border border-border/50 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-foreground">Resumo do Disparo</h3>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Eye size={16} className="text-primary" /> Resumo do Envio</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-muted/20 rounded-lg p-3">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Audiência</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-bold mb-1">Clientes</p>
                 <p className="text-lg font-bold text-foreground">{effectiveSelected.size}</p>
                 <p className="text-[11px] text-muted-foreground">{AUDIENCE_OPTIONS.find(o => o.value === audienceFilter)?.label}</p>
               </div>
