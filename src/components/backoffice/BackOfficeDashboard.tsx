@@ -8,7 +8,7 @@ import {
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key,
-  Send, FileText, Cable, Megaphone, List, Trash2
+  Send, FileText, Cable, Megaphone, List, Trash2, ToggleLeft
 } from "lucide-react";
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ const AdminClientBase = lazy(() => import("./AdminClientBase"));
 const AdminConnectionPurposes = lazy(() => import("./AdminConnectionPurposes"));
 const AdminAutoTemplates = lazy(() => import("./AdminAutoTemplates"));
 const AdminAnnouncements = lazy(() => import("./AdminAnnouncements"));
+const AdminFeatureControls = lazy(() => import("./AdminFeatureControls"));
 const MessageGeneratorPreview = lazy(() => import("@/components/warmup/MessageGeneratorPreview").then(m => ({ default: m.MessageGeneratorPreview })));
 
 const MESSAGE_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
   { id: "auto-templates", label: "Modelo Automático", shortLabel: "Auto", icon: Sparkles, group: "principal", badge: false },
   { id: "announcements", label: "Aviso", shortLabel: "Aviso", icon: Megaphone, group: "principal", badge: false },
+  { id: "feature-controls", label: "Controle de Funções", shortLabel: "Funções", icon: ToggleLeft, group: "principal", badge: false },
 
   { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
   { id: "client-base", label: "Base de Contatos", shortLabel: "Contatos", icon: Users, group: "disparo", badge: false },
@@ -509,6 +511,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
         case "msg-generator": return <MessageGeneratorPreview />;
         case "announcements": return <AdminAnnouncements />;
+        case "feature-controls": return <AdminFeatureControls />;
         default: return null;
       }
     })();

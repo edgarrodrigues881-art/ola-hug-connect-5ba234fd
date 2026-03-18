@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, Info, CheckCircle2, AlertTriangle, XCircle, CheckCheck, Trash2, Sun, Moon } from "lucide-react";
@@ -13,12 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo-new.png";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { AnnouncementManager } from "@/components/AnnouncementManager";
 import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useFeatureControls } from "@/hooks/useFeatureControls";
+import { MaintenanceModal } from "@/components/MaintenanceModal";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -40,11 +43,18 @@ const typeColors = {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
+  const { isFeatureBlocked } = useFeatureControls();
+  const [maintenanceModal, setMaintenanceModal] = useState<{ name: string; message: string | null } | null>(null);
 
   // Global auto-sync of device statuses every 5s across all dashboard pages
   useAutoSyncDevices(15_000);
+
+  // Check if current route is blocked
+  const blockedFeature = isFeatureBlocked(location.pathname);
+  const showMaintenance = !!blockedFeature;
 
   return (
     <SidebarProvider>
@@ -156,9 +166,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </DropdownMenu>
           </header>
           <main className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto p-2.5 sm:p-5 md:p-8 has-[.flow-builder-fullscreen]:!p-0 has-[.flow-builder-fullscreen]:!overflow-hidden">
-            {children}
+            {showMaintenance ? (
+              <div className="flex items-center justify-center min-h-[60vh]">
+                <MaintenanceModal
+                  open={true}
+                  onClose={() => navigate("/dashboard")}
+                  featureName={blockedFeature!.feature_name}
+                  message={blockedFeature!.maintenance_message}
+                />
+              </div>
+            ) : children}
           </main>
           <AnnouncementManager />
+          {maintenanceModal && (
+            <MaintenanceModal
+              open={true}
+              onClose={() => setMaintenanceModal(null)}
+              featureName={maintenanceModal.name}
+              message={maintenanceModal.message}
+            />
+          )}
         </div>
       </div>
     </SidebarProvider>

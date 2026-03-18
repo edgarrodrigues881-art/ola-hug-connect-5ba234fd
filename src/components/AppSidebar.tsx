@@ -23,6 +23,7 @@ import {
   FolderOpen,
   Pencil,
   Trash2,
+  Lock,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -31,6 +32,8 @@ import { useAuth } from "@/lib/auth";
 import { NavLink } from "@/components/NavLink";
 import { useSidebarStats } from "@/hooks/useSidebarStats";
 import { useWarmupFolders } from "@/hooks/useWarmupFolders";
+import { useFeatureControls } from "@/hooks/useFeatureControls";
+import { MaintenanceModal } from "@/components/MaintenanceModal";
 import logo from "@/assets/logo-new.png";
 
 import {
@@ -106,6 +109,8 @@ export function AppSidebar() {
   const { user } = useAuth();
   const { data: stats } = useSidebarStats();
   const { folders, createFolder, updateFolder, deleteFolder, addDevices, removeDevice } = useWarmupFolders();
+  const { isFeatureBlocked } = useFeatureControls();
+  const [maintenanceModal, setMaintenanceModal] = useState<{ name: string; message: string | null } | null>(null);
 
   const [profileData, setProfileData] = useState<{ company: string | null; avatar_url: string | null; full_name: string | null } | null>(null);
   const [warmupExpanded, setWarmupExpanded] = useState(false);
@@ -201,31 +206,52 @@ export function AppSidebar() {
   const renderNavItem = (item: { title: string; url: string; icon: any; exact?: boolean; badgeKey?: BadgeKey }, indent = false) => {
     const active = isActive(item.url, item.exact);
     const badgeVal = getBadgeValue(item.badgeKey);
+    const blocked = isFeatureBlocked(item.url);
+    
+    const handleClick = (e: React.MouseEvent) => {
+      if (blocked) {
+        e.preventDefault();
+        e.stopPropagation();
+        setMaintenanceModal({ name: blocked.feature_name, message: blocked.maintenance_message });
+      }
+    };
+
     return (
       <SidebarMenuItem key={item.title}>
-        <SidebarMenuButton asChild tooltip={item.title}>
+        <SidebarMenuButton asChild tooltip={blocked ? `${item.title} (Em manutenção)` : item.title}>
           <NavLink
-            to={item.url}
+            to={blocked ? "#" : item.url}
+            onClick={handleClick}
             className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
               transition-[background-color,color,opacity] duration-[120ms] ease-out
               ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : `gap-[11px] ${indent ? 'pl-8' : 'px-3.5'} pr-3.5 py-[10px]`}
-              ${active
-                ? 'bg-primary/10 text-foreground font-semibold'
-                : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
+              ${blocked
+                ? 'text-muted-foreground/40 font-medium cursor-not-allowed'
+                : active
+                  ? 'bg-primary/10 text-foreground font-semibold'
+                  : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
               }`}
             activeClassName=""
           >
-            {active && !collapsed && (
+            {active && !blocked && !collapsed && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
             )}
-            <item.icon
-              className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${active ? 'text-primary' : ''}`}
-              strokeWidth={active ? 2.2 : 1.5}
-            />
+            <div className="relative shrink-0">
+              <item.icon
+                className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${blocked ? 'text-muted-foreground/30' : active ? 'text-primary' : ''}`}
+                strokeWidth={active ? 2.2 : 1.5}
+              />
+              {blocked && (
+                <Lock className="absolute -bottom-1 -right-1 w-[10px] h-[10px] text-amber-500/70" strokeWidth={2.5} />
+              )}
+            </div>
             {!collapsed && (
-              <span className="truncate flex-1">{item.title}</span>
+              <span className={`truncate flex-1 ${blocked ? 'opacity-50' : ''}`}>{item.title}</span>
             )}
-            {!collapsed && badgeVal > 0 && (
+            {!collapsed && blocked && (
+              <Lock className="ml-auto w-3.5 h-3.5 text-amber-500/60 shrink-0" />
+            )}
+            {!collapsed && !blocked && badgeVal > 0 && (
               <span className="ml-auto text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                 {badgeVal}
               </span>
@@ -473,6 +499,14 @@ export function AppSidebar() {
         onDelete={handleDeleteFolder}
         currentDeviceIds={editingFolder ? (folders.find(f => f.id === editingFolder.id)?.device_ids || []) : []}
       />
+      {maintenanceModal && (
+        <MaintenanceModal
+          open={true}
+          onClose={() => setMaintenanceModal(null)}
+          featureName={maintenanceModal.name}
+          message={maintenanceModal.message}
+        />
+      )}
     </Sidebar>
   );
 }
