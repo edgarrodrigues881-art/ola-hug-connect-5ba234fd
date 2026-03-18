@@ -419,15 +419,11 @@ export default function AdminDispatchTemplates() {
       ) : (
         <div className="space-y-2.5">
           {paginated.map((t, idx) => {
-            const cat = catConfig(t.category);
             return (
               <div key={t.id} className="group flex items-center gap-4 px-4 py-3.5 rounded-xl border border-border/40 bg-card hover:border-primary/20 hover:shadow-[0_2px_12px_-4px_hsl(var(--primary)/0.08)] transition-all duration-200">
                 <span className="text-xs font-mono text-muted-foreground/40 w-6 text-right tabular-nums shrink-0">
                   {(currentPage - 1) * perPage + idx + 1}
                 </span>
-                <Badge variant="outline" className={`text-[10px] font-medium shrink-0 rounded-lg px-2 py-0.5 border-border/60 bg-muted/40 hidden sm:flex`}>
-                  {cat.label}
-                </Badge>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-foreground truncate">{t.name}</p>
