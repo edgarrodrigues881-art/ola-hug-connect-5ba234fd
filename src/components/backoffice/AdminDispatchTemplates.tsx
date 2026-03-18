@@ -320,7 +320,17 @@ export default function AdminDispatchTemplates() {
     const combinedContent = allMessages.length > 1
       ? (rotationMode === "random" ? allMessages.join("|||") : allMessages.join("|&&|"))
       : allMessages[0] || "";
-    saveMutation.mutate({ name: formName, category: formCategory, content: combinedContent, id: editingId || undefined });
+    const mediaValue = formMediaFiles.length > 0
+      ? JSON.stringify(formMediaFiles.map(f => ({ url: f.url, type: f.type, name: f.name, sendMode: f.sendMode })))
+      : undefined;
+    saveMutation.mutate({
+      name: formName,
+      category: formCategory,
+      content: combinedContent,
+      media_url: mediaValue,
+      buttons: formButtons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      id: editingId || undefined,
+    });
   };
 
   const addButton = (type: "reply" | "url" | "phone") => {
