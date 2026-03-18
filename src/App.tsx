@@ -140,6 +140,9 @@ const App = () => (
               />
               <Route path="/welcome" element={<ProtectedRoute><WelcomeSplash /></ProtectedRoute>} />
               <Route path="/backoffice" element={<BackOffice />} />
+              <Route path="/backoffice/campaigns" element={<BackOffice initialTab="bo-campaigns" />} />
+              <Route path="/backoffice/campaign-list" element={<BackOffice initialTab="bo-campaign-list" />} />
+              <Route path="/backoffice/campaign/:id" element={<BackOffice initialTab="bo-campaign-detail" />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
