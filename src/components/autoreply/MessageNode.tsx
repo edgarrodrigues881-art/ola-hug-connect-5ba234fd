@@ -53,7 +53,7 @@ className="!w-3 !h-3 !bg-primary !border-[2.5px] !border-card !rounded-full !sha
           </div>
         )}
         {d.text && (
-          <p className="text-[11px] text-foreground/60 line-clamp-2 whitespace-pre-line leading-relaxed">
+          <p className={`text-[11px] text-foreground/60 whitespace-pre-line leading-relaxed ${isUsingModel ? '' : 'line-clamp-2'}`}>
             {d.text.replace(/\{(\w+)\}/g, (_, v) => `«${v}»`)}
           </p>
         )}
