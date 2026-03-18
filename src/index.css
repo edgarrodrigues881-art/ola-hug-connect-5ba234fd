@@ -229,6 +229,20 @@
     font-weight: 500;
   }
 
+  /* Announcement popup — always uses dashboard dark green theme */
+  .announcement-theme {
+    --primary: 142 72% 36%;
+    --primary-foreground: 0 0% 100%;
+    --card: 220 26% 11%;
+    --card-foreground: 210 20% 98%;
+    --border: 215 20% 16%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 218 11% 65%;
+    --foreground: 210 20% 98%;
+    --ring: 142 72% 36%;
+    --announcement-gold: 43 96% 56%;
+  }
+
   /* BackOffice golden floating particles */
   @keyframes bo-particle-float {
     0%, 100% { transform: translateY(0) scale(0.6); opacity: 0.1; }
