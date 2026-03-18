@@ -491,8 +491,8 @@ export default function AdminAnnouncements() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview Modal */}
-      {previewOpen && previewData && (
+      {/* Preview Modal — rendered via portal to escape Dialog focus trap */}
+      {previewOpen && previewData && createPortal(
         <AnnouncementPopup
           announcement={{
             id: "preview",
@@ -509,7 +509,8 @@ export default function AdminAnnouncements() {
           onClose={() => setPreviewOpen(false)}
           onDismiss={() => setPreviewOpen(false)}
           isPreview
-        />
+        />,
+        document.body
       )}
     </div>
   );
