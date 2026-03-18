@@ -84,7 +84,7 @@ export function useUpdateTemplate() {
                     imageUrl: data.media_url || "",
                     label: node.type === "startNode" ? data.name : node.data.label,
                     templateName: data.name,
-                    buttons: (data.buttons || []).map((btn: any, i: number) => ({
+                    buttons: (Array.isArray(data.buttons) ? data.buttons : []).map((btn: any, i: number) => ({
                       id: node.data.buttons?.[i]?.id || `btn-sync-${Date.now()}-${i}`,
                       label: typeof btn === "string" ? btn : btn.label || btn.text || btn.title || `Botão ${i + 1}`,
                       targetNodeId: node.data.buttons?.[i]?.targetNodeId || "",
