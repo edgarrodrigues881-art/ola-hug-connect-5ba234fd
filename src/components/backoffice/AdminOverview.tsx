@@ -178,7 +178,7 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
       )}
 
       {/* ═══ FINANCEIRO SECTION ═══ */}
-      <section className="space-y-4">
+      <section className="bg-card rounded-xl border border-border p-4 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Wallet size={16} className="text-primary" />
