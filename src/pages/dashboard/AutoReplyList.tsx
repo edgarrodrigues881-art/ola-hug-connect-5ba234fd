@@ -63,9 +63,10 @@ export default function AutoReplyList() {
       return data;
     },
     enabled: !!user,
+    refetchInterval: 15_000,
   });
 
-  const onlineStatuses = new Set(["connected", "Connected", "Ready", "authenticated"]);
+  const onlineStatuses = new Set(["connected", "Connected", "Ready", "ready", "authenticated"]);
 
   const deviceMap = useMemo(() => {
     const map = new Map<string, { name: string; number: string | null; status: string }>();
