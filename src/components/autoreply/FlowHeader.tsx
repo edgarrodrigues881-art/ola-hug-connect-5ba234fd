@@ -1,7 +1,8 @@
-import { Save, Play, Power, BotMessageSquare } from "lucide-react";
+import { Save, Play, BotMessageSquare, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   name: string;
@@ -11,8 +12,17 @@ interface Props {
 }
 
 export function FlowHeader({ name, onNameChange, isActive, onToggleActive }: Props) {
+  const navigate = useNavigate();
   return (
     <div className="flex items-center gap-4 px-5 py-3 border-b border-border/40 bg-card/50 backdrop-blur-sm shrink-0">
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 text-muted-foreground/50 hover:text-foreground shrink-0"
+        onClick={() => navigate("/dashboard/auto-reply")}
+      >
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
           <BotMessageSquare className="w-4 h-4 text-primary" />
