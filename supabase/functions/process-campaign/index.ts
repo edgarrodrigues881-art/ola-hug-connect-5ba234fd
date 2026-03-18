@@ -575,10 +575,12 @@ Deno.serve(async (req) => {
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "processing");
       const cancelStats = await syncCampaignCounters(serviceClient, campaignId);
-      await serviceClient.from("campaigns").update({
+      const cancelFilter = serviceClient.from("campaigns").update({
         status: "canceled",
         completed_at: new Date().toISOString(),
-      }).eq("id", campaignId).eq("user_id", userId);
+      }).eq("id", campaignId);
+      if (!isAdmin) cancelFilter.eq("user_id", userId);
+      await cancelFilter;
       if (campDataC) {
         const ids = getCampaignDeviceIds(campDataC);
         await releaseDeviceLocks(serviceClient, ids, campaignId);
