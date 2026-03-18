@@ -355,6 +355,30 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
                             </span>
                           );
                         })()}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors ml-1" title="Apagar pendência">
+                              <Trash2 size={12} />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-card border-border">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Apagar pendência?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                A mensagem de <strong>{item.client_name}</strong> ({MESSAGE_TYPE_CONFIG[item.message_type]?.label || item.message_type}) será removida da fila e não será enviada.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(item.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Apagar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}
