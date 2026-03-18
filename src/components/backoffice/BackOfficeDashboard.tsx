@@ -60,7 +60,7 @@ const NAV_ITEMS = [
   { id: "conexao", label: "Conexão Admin", shortLabel: "Conexão", icon: Plug, group: "principal", badge: false },
 
   { id: "dispatch-templates", label: "Modelos", shortLabel: "Modelos", icon: FileText, group: "disparo", badge: false },
-  { id: "dispatch", label: "Disparar (Admin)", shortLabel: "Disparar", icon: Send, group: "disparo", badge: false },
+  { id: "client-base", label: "Base de Contatos", shortLabel: "Contatos", icon: Users, group: "disparo", badge: false },
   { id: "dispatch-connections", label: "Conexões Envio", shortLabel: "Conexões", icon: Cable, group: "disparo", badge: false },
   { id: "bo-campaigns", label: "Nova Campanha", shortLabel: "Campanha", icon: Megaphone, group: "campanhas", badge: false },
   { id: "bo-campaign-list", label: "Campanhas", shortLabel: "Lista", icon: List, group: "campanhas", badge: false },
