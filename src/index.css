@@ -1,13 +1,33 @@
 /* scroll-behavior: smooth removed — causes jank on some devices */
 
-@property --border-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+@keyframes gold-border-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@keyframes gold-border-spin {
-  to { --border-angle: 360deg; }
+/* Meu Plano animated golden border */
+.plan-gold-border {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.plan-gold-border::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg, #fbbf24, #f59e0b, transparent 30%, transparent 70%, #fbbf24, #f59e0b);
+  animation: gold-border-spin 3s linear infinite;
+}
+
+.plan-gold-border::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 9px;
+  background: hsl(var(--sidebar-background, var(--background)));
 }
 
 #lovable-badge {
