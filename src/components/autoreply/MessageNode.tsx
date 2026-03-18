@@ -71,7 +71,7 @@ export function MessageNode({ data, selected }: NodeProps) {
                 type="source"
                 position={Position.Right}
                 id={`btn-${btn.id}`}
-                className="!w-2.5 !h-2.5 !bg-primary !border-2 !border-card !rounded-full !right-[-5px] !shadow-[0_0_4px_hsl(var(--primary)/0.25)]"
+                className="!w-5 !h-5 !bg-primary !border-[3px] !border-card !rounded-full !-right-2.5 !shadow-[0_0_8px_hsl(var(--primary)/0.35)]"
               />
             </div>
           ))}
