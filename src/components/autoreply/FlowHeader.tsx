@@ -17,7 +17,7 @@ interface Props {
   name: string;
   onNameChange: (n: string) => void;
   isActive: boolean;
-  onToggleActive: () => void;
+  onToggleActive: (checked: boolean) => void;
   onSave: () => void;
   saving?: boolean;
   deviceId: string | null;
@@ -164,7 +164,7 @@ export function FlowHeader({ name, onNameChange, isActive, onToggleActive, onSav
 
       <div className="flex items-center gap-2 mr-2">
         <Switch checked={isActive} onCheckedChange={onToggleActive} className="scale-[0.85]" />
-        <span className={`text-xs font-medium ${isActive ? "text-emerald-500" : "text-muted-foreground/50"}`}>
+        <span className={`text-xs font-medium ${isActive ? "text-primary" : "text-muted-foreground/50"}`}>
           {isActive ? "Ativo" : "Inativo"}
         </span>
       </div>
