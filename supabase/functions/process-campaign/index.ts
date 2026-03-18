@@ -514,6 +514,7 @@ Deno.serve(async (req) => {
   const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
   let userId: string;
+  let isAdmin = false;
 
   const body = await req.json();
   const { action, campaignId, deviceId } = body;
@@ -524,16 +525,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Campaign not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     userId = camp.user_id;
+    isAdmin = true; // service role calls are from admin/cron
   } else {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     userId = user.id;
+    // Check if caller is admin
+    const { data: roleData } = await serviceClient.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    isAdmin = !!roleData;
   }
 
-  // ─── PLAN CHECK HELPER ───
+  // ─── PLAN CHECK HELPER (skipped for admins) ───
   async function checkActivePlan(uid: string): Promise<string | null> {
+    if (isAdmin) return null; // Admin bypasses plan checks
     const { data: sub } = await serviceClient
       .from("subscriptions")
       .select("expires_at")
@@ -552,7 +558,9 @@ Deno.serve(async (req) => {
     if (action === "pause") {
       const { data: campData } = await serviceClient.from("campaigns").select("name, device_id, device_ids").eq("id", campaignId).single();
       const pauseStats = await syncCampaignCounters(serviceClient, campaignId);
-      await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
+      const pauseFilter = serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId);
+      if (!isAdmin) pauseFilter.eq("user_id", userId);
+      await pauseFilter;
       if (campData) {
         const ids = getCampaignDeviceIds(campData);
         await releaseDeviceLocks(serviceClient, ids, campaignId);
@@ -567,10 +575,12 @@ Deno.serve(async (req) => {
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "pending");
       await serviceClient.from("campaign_contacts").update({ status: "failed", error_message: "Campanha cancelada" }).eq("campaign_id", campaignId).eq("status", "processing");
       const cancelStats = await syncCampaignCounters(serviceClient, campaignId);
-      await serviceClient.from("campaigns").update({
+      const cancelFilter = serviceClient.from("campaigns").update({
         status: "canceled",
         completed_at: new Date().toISOString(),
-      }).eq("id", campaignId).eq("user_id", userId);
+      }).eq("id", campaignId);
+      if (!isAdmin) cancelFilter.eq("user_id", userId);
+      await cancelFilter;
       if (campDataC) {
         const ids = getCampaignDeviceIds(campDataC);
         await releaseDeviceLocks(serviceClient, ids, campaignId);
@@ -600,7 +610,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      await serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId).eq("user_id", userId);
+      const resumeFilter = serviceClient.from("campaigns").update({ status: "running" }).eq("id", campaignId);
+      if (!isAdmin) resumeFilter.eq("user_id", userId);
+      await resumeFilter;
       selfContinue(supabaseUrl, serviceRoleKey, campaignId, deviceId, { batchSent: 0, currentDeviceIndex: 0, instanceMsgCount: 0, msgsSincePause: 0 });
       return new Response(JSON.stringify({ success: true, status: "running" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
