@@ -1,10 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
-import { Pencil, Check, X, TrendingUp, TrendingDown, DollarSign, CreditCard, Tag, AlertTriangle, BarChart3 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Pencil, Check, X, TrendingUp, TrendingDown, DollarSign, CreditCard, Tag, AlertTriangle, BarChart3, Wallet, Receipt } from "lucide-react";
 import RevenueChart from "./RevenueChart";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import type { AdminDashboard } from "@/hooks/useAdmin";
-import { PeriodFilter, usePeriodFilter, type PeriodRange } from "./PeriodFilter";
+import { PeriodFilter, usePeriodFilter } from "./PeriodFilter";
 
 const DEFAULT_MAX = 500;
 const STORAGE_KEY_MAX = "dg-server-max-instances";
@@ -24,6 +22,33 @@ function getDaysLeft(expiresAt: string | null): number | null {
 function fmt(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
+
+interface KpiCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  subtitle: string;
+  accent?: "emerald" | "red" | "amber" | "default";
+  highlight?: boolean;
+}
+
+const KpiCard = ({ icon, label, value, subtitle, accent = "default", highlight }: KpiCardProps) => {
+  const borderColor = highlight
+    ? accent === "emerald" ? "border-emerald-500/30" : accent === "red" ? "border-destructive/30" : "border-primary/30"
+    : "border-border";
+  const valueColor = accent === "emerald" ? "text-emerald-400" : accent === "red" ? "text-destructive" : accent === "amber" ? "text-primary" : "text-foreground";
+
+  return (
+    <div className={`bg-card rounded-xl border ${borderColor} p-4 flex flex-col gap-2`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.12em]">{label}</p>
+      </div>
+      <p className={`text-2xl font-extrabold tracking-tight ${valueColor}`}>{value}</p>
+      <p className="text-[10px] text-muted-foreground/50">{subtitle}</p>
+    </div>
+  );
+};
 
 const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const { stats, users = [], cycles = [], payments = [], costs = [] } = data ?? { stats: { total_users: 0, total_devices: 0, active_devices: 0, total_campaigns: 0, total_contacts: 0, total_subscriptions: 0 }, users: [], cycles: [], payments: [], costs: [] };
@@ -127,108 +152,91 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
   const activePlans = users.filter(u => u.plan_expires_at && new Date(u.plan_expires_at) > now && u.plan_price > 0).length;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6">
       {/* ═══ ALERTS ═══ */}
       {(expiringSoon.length > 0 || expired.length > 0 || serverOccupancy >= 80) && (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           {expired.length > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
-              <AlertTriangle size={14} />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-semibold">
+              <AlertTriangle size={13} />
               {expired.length} vencido{expired.length > 1 ? "s" : ""} · {fmt(revenueExpired)}
             </div>
           )}
           {expiringSoon.length > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-semibold">
-              <AlertTriangle size={14} />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold">
+              <AlertTriangle size={13} />
               {expiringSoon.length} vencendo · {fmt(revenueAtRisk)}
             </div>
           )}
           {serverOccupancy >= 80 && (
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold">
-              <BarChart3 size={14} />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold">
+              <BarChart3 size={13} />
               Servidor {serverOccupancy}%
             </div>
           )}
         </div>
       )}
 
-      {/* ═══ PERIOD FILTER ═══ */}
-      <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
+      {/* ═══ FINANCEIRO SECTION ═══ */}
+      <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <DollarSign size={15} className="text-muted-foreground/70" />
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Financeiro</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <Wallet size={16} className="text-primary" />
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-[0.12em]">Financeiro</h3>
           </div>
           <div className="hidden sm:block h-4 w-px bg-border" />
           <PeriodFilter {...periodFilter} />
         </div>
-      </div>
 
-      {/* ═══ KPIs ═══ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* Receita Líquida */}
-        <div className={`bg-card rounded-xl border p-4 sm:p-5 ${isPositive ? "border-emerald-500/30" : "border-destructive/30"}`}>
-          <div className="flex items-center gap-2 mb-3">
-            {isPositive ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-destructive" />}
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Receita Líquida</p>
-          </div>
-          <p className={`text-xl sm:text-2xl font-bold ${isPositive ? "text-emerald-400" : "text-destructive"}`}>{fmt(netRevenue)}</p>
-          <p className="text-[11px] text-muted-foreground/60 mt-1">
-            {!hasMovements ? "Sem movimentos" : isPositive ? "▲ Positivo" : "▼ Negativo"}
-          </p>
+        {/* KPI Grid — 2x2 on mobile, 5 cols on desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <KpiCard
+            icon={isPositive ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-destructive" />}
+            label="Receita Líquida"
+            value={fmt(netRevenue)}
+            subtitle={!hasMovements ? "Sem movimentos" : isPositive ? "▲ Positivo" : "▼ Negativo"}
+            accent={isPositive ? "emerald" : "red"}
+            highlight
+          />
+          <KpiCard
+            icon={<CreditCard size={14} className="text-emerald-400" />}
+            label="Recebida"
+            value={fmt(revenueReceived)}
+            subtitle={`${paymentsCount} pgto${paymentsCount !== 1 ? "s" : ""}`}
+          />
+          <KpiCard
+            icon={<DollarSign size={14} className="text-primary" />}
+            label="Contratada"
+            value={fmt(revenueBrute)}
+            subtitle={`${activePlans} planos`}
+            accent="amber"
+          />
+          <KpiCard
+            icon={<Tag size={14} className="text-primary" />}
+            label="Descontos"
+            value={fmt(discounts)}
+            subtitle="Concedidos"
+          />
+          <KpiCard
+            icon={<Receipt size={14} className="text-destructive" />}
+            label="Taxas & Custos"
+            value={fmt(totalCosts)}
+            subtitle={`Op ${fmt(periodCosts)} · Tx ${fmt(paymentFees)}`}
+            accent="red"
+          />
         </div>
+      </section>
 
-        {/* Recebida */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <CreditCard size={14} className="text-emerald-400" />
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Recebida</p>
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(revenueReceived)}</p>
-          <p className="text-[11px] text-muted-foreground/60 mt-1">{paymentsCount} pgto{paymentsCount !== 1 ? "s" : ""}</p>
-        </div>
-
-        {/* Contratada */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={14} className="text-teal-400" />
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Contratada</p>
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(revenueBrute)}</p>
-          <p className="text-[11px] text-muted-foreground/60 mt-1">{activePlans} planos</p>
-        </div>
-
-        {/* Descontos */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Tag size={14} className="text-amber-400" />
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Descontos</p>
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(discounts)}</p>
-          <p className="text-[11px] text-muted-foreground/60 mt-1">Concedidos</p>
-        </div>
-
-        {/* Taxas & Custos */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingDown size={14} className="text-destructive" />
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Taxas & Custos</p>
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{fmt(totalCosts)}</p>
-          <p className="text-[11px] text-muted-foreground/60 mt-1">Op {fmt(periodCosts)} · Tx {fmt(paymentFees)}</p>
-        </div>
-      </div>
-
-      {/* ═══ OPERAÇÃO ═══ */}
-      <div className="bg-card rounded-xl border border-border p-3 sm:p-5">
-        <div className="flex items-center justify-between mb-5">
+      {/* ═══ OPERAÇÃO SECTION ═══ */}
+      <section className="bg-card rounded-xl border border-border p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BarChart3 size={16} className="text-muted-foreground" />
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em]">Operação</p>
+            <BarChart3 size={16} className="text-primary" />
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-[0.12em]">Operação</h3>
           </div>
           {editingMax ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Capacidade:</span>
+              <span className="text-[11px] text-muted-foreground">Capacidade:</span>
               <input
                 type="number"
                 value={editMaxValue}
@@ -241,45 +249,48 @@ const AdminOverview = ({ data }: { data: AdminDashboard }) => {
               <button onClick={() => setEditingMax(false)} className="text-muted-foreground/50 hover:text-muted-foreground"><X size={14} /></button>
             </div>
           ) : (
-            <button onClick={startEditMax} className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors group">
+            <button onClick={startEditMax} className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors group">
               <span>Capacidade: {maxInstances}</span>
-              <Pencil size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Pencil size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-          <div className="bg-muted rounded-lg px-4 py-3">
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Liberadas</p>
-            <p className="text-lg font-bold text-foreground mt-1">{totalAllocated} <span className="text-xs font-medium text-muted-foreground/60">/ {maxInstances}</span></p>
-          </div>
-          <div className="bg-muted rounded-lg px-4 py-3">
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Em Uso</p>
-            <p className="text-lg font-bold text-foreground mt-1">{totalInUse} <span className="text-xs font-medium text-muted-foreground/60">{stats.active_devices} on</span></p>
-          </div>
-          <div className="bg-muted rounded-lg px-4 py-3">
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Ocupação</p>
-            <p className={`text-lg font-bold mt-1 ${serverOccupancy >= 80 ? "text-destructive" : "text-foreground"}`}>{serverOccupancy}%</p>
-          </div>
-          <div className="bg-muted rounded-lg px-4 py-3">
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Bloqueados</p>
-            <p className="text-lg font-bold text-foreground mt-1">{blocked.length}</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Liberadas", value: totalAllocated, suffix: `/ ${maxInstances}` },
+            { label: "Em Uso", value: totalInUse, suffix: `${stats.active_devices} on` },
+            { label: "Ocupação", value: `${serverOccupancy}%`, isWarning: serverOccupancy >= 80 },
+            { label: "Bloqueados", value: blocked.length },
+          ].map((item, i) => (
+            <div key={i} className="bg-muted/50 rounded-lg px-4 py-3 border border-border/50">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{item.label}</p>
+              <div className="flex items-baseline gap-1.5 mt-1.5">
+                <p className={`text-xl font-extrabold ${(item as any).isWarning ? "text-destructive" : "text-foreground"}`}>
+                  {item.value}
+                </p>
+                {item.suffix && (
+                  <span className="text-[11px] font-medium text-muted-foreground/50">{item.suffix}</span>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Progress bar */}
-        <div>
+        <div className="space-y-1.5">
           <div className="relative h-2 bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ${
-                serverOccupancy >= 90 ? "bg-destructive" : serverOccupancy >= 70 ? "bg-amber-500" : "bg-primary"
+                serverOccupancy >= 90 ? "bg-destructive" : serverOccupancy >= 70 ? "bg-primary/80" : "bg-primary"
               }`}
               style={{ width: `${Math.max(Math.min(serverOccupancy, 100), 2)}%` }}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5">{totalInUse} / {maxInstances} instâncias</p>
+          <p className="text-[10px] text-muted-foreground/50">{totalInUse} / {maxInstances} instâncias</p>
         </div>
-      </div>
+      </section>
+
       {/* ═══ GRÁFICO DE RECEITA ═══ */}
       <RevenueChart payments={payments} costs={costs} />
     </div>
