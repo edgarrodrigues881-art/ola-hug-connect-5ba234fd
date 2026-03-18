@@ -399,25 +399,11 @@ export default function AdminDispatchTemplates() {
         </Button>
       </div>
 
-      {/* Search + Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Search */}
+      <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
           <Input placeholder="Buscar modelo..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 bg-card/50 border-border/60 text-sm" />
-        </div>
-        <div className="flex gap-1.5 overflow-x-auto">
-          <button onClick={() => setFilterCat("all")} className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${filterCat === "all" ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground hover:border-border"}`}>
-            Todos ({templates.length})
-          </button>
-          {CATEGORIES.map(cat => {
-            const count = templates.filter(t => t.category === cat.value).length;
-            return (
-              <button key={cat.value} onClick={() => setFilterCat(f => f === cat.value ? "all" : cat.value)}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${filterCat === cat.value ? "bg-primary/15 text-primary border-primary/40" : "bg-card border-border/60 text-muted-foreground hover:border-border"}`}>
-                {cat.label} {count > 0 && <span className="text-[9px] ml-1 opacity-60">({count})</span>}
-              </button>
-            );
-          })}
         </div>
       </div>
 
