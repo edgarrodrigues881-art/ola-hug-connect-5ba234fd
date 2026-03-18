@@ -558,7 +558,9 @@ Deno.serve(async (req) => {
     if (action === "pause") {
       const { data: campData } = await serviceClient.from("campaigns").select("name, device_id, device_ids").eq("id", campaignId).single();
       const pauseStats = await syncCampaignCounters(serviceClient, campaignId);
-      await serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId).eq("user_id", userId);
+      const pauseFilter = serviceClient.from("campaigns").update({ status: "paused" }).eq("id", campaignId);
+      if (!isAdmin) pauseFilter.eq("user_id", userId);
+      await pauseFilter;
       if (campData) {
         const ids = getCampaignDeviceIds(campData);
         await releaseDeviceLocks(serviceClient, ids, campaignId);
