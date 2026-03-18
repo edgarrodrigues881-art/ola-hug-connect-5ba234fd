@@ -5,26 +5,46 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Meu Plano - solid gold border with animated shine */
-.plan-gold-btn {
-  position: relative;
-  border: 1.5px solid #fbbf24;
-  border-radius: 10px;
+@keyframes gold-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
+/* Meu Plano - animated golden border with light trail */
+.plan-gold-btn {
+  position: relative;
+  border: none;
+  border-radius: 10px;
+  z-index: 0;
+}
+
+/* Rotating conic gradient — the "snake" light */
 .plan-gold-btn::before {
   content: '';
   position: absolute;
-  inset: -1.5px;
-  border-radius: 11px;
-  padding: 1.5px;
-  background: conic-gradient(from 0deg, #fbbf24, #f59e0b, #fbbf2480, #f59e0b, #fbbf24);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  animation: gold-border-spin 3s linear infinite;
-  pointer-events: none;
+  z-index: -2;
+  inset: -2px;
+  border-radius: 12px;
+  background: conic-gradient(
+    from 0deg,
+    #fbbf24,
+    #f59e0b,
+    transparent 20%,
+    transparent 80%,
+    #f59e0b,
+    #fbbf24
+  );
+  animation: gold-border-spin 2.5s linear infinite;
+}
+
+/* Inner fill to "cut out" the border */
+.plan-gold-btn::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 1.5px;
+  border-radius: 9px;
+  background: hsl(var(--sidebar-background, 222 47% 11%));
 }
 
 /* Override SidebarMenuButton hover/active for Meu Plano */
