@@ -319,17 +319,26 @@ async function scheduleDayJobs(
     await db.from("warmup_jobs").insert(jobs.slice(i, i + 100));
   }
 
-  // Update budget
+  // Update budget without resetting what has already been consumed today
   const interactionCount = jobs.filter(j =>
     ["group_interaction", "autosave_interaction", "community_interaction"].includes(j.job_type)
   ).length;
 
+  const { data: existingCycle } = await db.from("warmup_cycles")
+    .select("daily_interaction_budget_used, daily_unique_recipients_used")
+    .eq("id", cycleId)
+    .maybeSingle();
+
+  const existingBudgetUsed = existingCycle?.daily_interaction_budget_used || 0;
+  const existingRecipientsUsed = existingCycle?.daily_unique_recipients_used || 0;
+  const totalBudgetTarget = existingBudgetUsed + interactionCount;
+
   await db.from("warmup_cycles").update({
-    daily_interaction_budget_target: interactionCount,
-    daily_interaction_budget_min: Math.floor(interactionCount * 0.8),
-    daily_interaction_budget_max: Math.ceil(interactionCount * 1.2),
-    daily_interaction_budget_used: 0,
-    daily_unique_recipients_used: 0,
+    daily_interaction_budget_target: totalBudgetTarget,
+    daily_interaction_budget_min: Math.floor(totalBudgetTarget * 0.8),
+    daily_interaction_budget_max: Math.ceil(totalBudgetTarget * 1.2),
+    daily_interaction_budget_used: existingBudgetUsed,
+    daily_unique_recipients_used: existingRecipientsUsed,
     updated_at: new Date().toISOString(),
   }).eq("id", cycleId);
 
