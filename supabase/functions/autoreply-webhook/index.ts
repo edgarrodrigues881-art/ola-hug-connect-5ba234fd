@@ -619,21 +619,21 @@ Deno.serve(async (req) => {
     }
 
     // ── No active session — check if message matches any flow trigger ──
-    // Guard: if there's already a recent session (active, completed, or paused) for this contact
-    // in the last 2 hours, do NOT re-trigger the flow (prevents template re-sends)
+    // Guard: only block re-trigger if there's an ACTIVE session (not completed/paused)
+    // Completed/paused sessions should allow re-triggering the flow
     const { data: recentExistingSession } = await supabase
       .from("autoreply_sessions")
       .select("id, status, last_message_at")
       .eq("device_id", deviceId)
       .eq("contact_phone", fromPhone)
-      .in("status", ["active", "completed", "paused"])
-      .gte("last_message_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+      .eq("status", "active")
+      .gte("last_message_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (recentExistingSession) {
-      console.log(`[autoreply] Skipping re-trigger: recent session ${recentExistingSession.id} status=${recentExistingSession.status} for ${fromPhone}`);
+      console.log(`[autoreply] SKIP re-trigger: active session ${recentExistingSession.id} for ${fromPhone} (last msg ${recentExistingSession.last_message_at})`);
       return json({ ok: true, skipped: true, reason: "recent_session_exists" });
     }
 
