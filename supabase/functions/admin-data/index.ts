@@ -490,6 +490,75 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── UPDATE CONNECTION PURPOSE ───
+    if (action === "update-connection-purpose" && req.method === "POST") {
+      const { id, device_id } = await req.json();
+
+      const { data: existing, error: existingError } = await adminClient
+        .from("admin_connection_purposes")
+        .select("id, purpose, label")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+      if (!existing) {
+        return new Response(JSON.stringify({ error: "Finalidade não encontrada" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (device_id) {
+        const { data: device, error: deviceError } = await adminClient
+          .from("devices")
+          .select("id, user_id, name")
+          .eq("id", device_id)
+          .maybeSingle();
+
+        if (deviceError) throw deviceError;
+        if (!device) {
+          return new Response(JSON.stringify({ error: "Dispositivo não encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (device.user_id !== user.id) {
+          return new Response(JSON.stringify({ error: "Você só pode usar seus próprios dispositivos" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const payload = {
+        device_id: device_id || null,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: updated, error: updateError } = await adminClient
+        .from("admin_connection_purposes")
+        .update(payload)
+        .eq("id", id)
+        .select("id, purpose, label, device_id, updated_by, updated_at")
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+
+      await logAction(
+        adminClient,
+        user.id,
+        user.id,
+        "update-connection-purpose",
+        `${existing.purpose}: ${device_id || "sem dispositivo"}`
+      );
+
+      return new Response(JSON.stringify({ success: true, purpose: updated }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── GET ADMIN LOGS ───
     if (action === "admin-logs") {
       const { data: logs } = await adminClient

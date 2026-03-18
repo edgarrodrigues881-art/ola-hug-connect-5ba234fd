@@ -61,21 +61,18 @@ export default function AdminConnectionPurposes() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, device_id }: { id: string; device_id: string | null }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("admin_connection_purposes" as any)
-        .update({
-          device_id: device_id || null,
-          updated_by: user?.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
+      const { data, error } = await supabase.functions.invoke("admin-data?action=update-connection-purpose", {
+        body: { id, device_id },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: () => {
       toast.success("Conexão atualizada");
       setSaving(null);
       queryClient.invalidateQueries({ queryKey: ["admin-connection-purposes"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-connection-purposes", "dispatch-view"] });
     },
     onError: (e: any) => { toast.error(e.message); setSaving(null); },
   });
