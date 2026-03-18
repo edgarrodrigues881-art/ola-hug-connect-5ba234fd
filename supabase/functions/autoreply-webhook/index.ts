@@ -230,14 +230,29 @@ Deno.serve(async (req) => {
 
     // ── UaZapi NATIVE format (EventType + chat object) ──
     if (body.EventType === "messages" && body.chat) {
+      // Skip messages sent by API (bot's own messages) - prevents loops
+      if (body.wasSentByApi === true || body.wa_sentByApi === true || body.sentByApi === true) {
+        console.log("[autoreply] Skipping wasSentByApi message (anti-loop)");
+        return json({ ok: true, skipped: true, reason: "sent_by_api" });
+      }
+
       // Extract phone from chat object
       const chatPhone = body.chat.phoneNumber || body.chat.phone || "";
       const chatName = body.chat.lead_name || body.chat.name || body.chat.pushName || "";
+      const ownerPhone = (body.chat.owner || "").replace(/\D/g, "");
+      
       if (chatPhone) {
         fromPhone = String(chatPhone).replace(/\D/g, "");
       }
       
-      isFromMe = body.isFromMe === true || body.fromMe === true;
+      // If extracted phone matches the instance owner, it's a self-message
+      if (ownerPhone && fromPhone && ownerPhone === fromPhone) {
+        console.log(`[autoreply] Skipping: phone matches owner ${ownerPhone} (self-message)`);
+        return json({ ok: true, skipped: true, reason: "owner_self_message" });
+      }
+
+      // Detect fromMe from various UaZapi fields
+      isFromMe = body.isFromMe === true || body.fromMe === true || body.wa_fromMe === true;
 
       // Extract message text - UaZapi native format
       messageText = body.text || body.messageBody || body.body || body.caption || "";
@@ -276,7 +291,7 @@ Deno.serve(async (req) => {
         hasButtonResponse = true;
       }
       
-      console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} chatName="${chatName}"`);
+      console.log(`[autoreply] UaZapi native parse: phone="${fromPhone}" text="${messageText}" btnId="${buttonResponseId}" fromMe=${isFromMe} owner="${ownerPhone}" chatName="${chatName}"`);
     }
     // ── Baileys / Evolution API format (key.remoteJid) ──
     else if (msgData.key) {
