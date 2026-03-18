@@ -323,6 +323,19 @@ export default function AdminDispatch() {
   // === Shared logic ===
   const selectedTemplate = templates.find((t: any) => t.id === templateId);
   const messageContent = templateId === "custom" ? customMessage : selectedTemplate?.content || "";
+  const selectedTemplateButtons = Array.isArray((selectedTemplate as any)?.buttons)
+    ? (selectedTemplate as any).buttons.filter((btn: any) => btn?.text)
+    : [];
+  const selectedTemplateMedia = (() => {
+    const raw = (selectedTemplate as any)?.media_url;
+    if (!raw) return [] as any[];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [{ url: raw }];
+    }
+  })();
 
   const handleDispatch = useCallback(async () => {
     if (!messageContent.trim()) { toast.error("Selecione ou escreva uma mensagem"); return; }

@@ -28,6 +28,8 @@ interface DispatchTemplate {
   category: string;
   content: string;
   variables: string[];
+  media_url?: string | null;
+  buttons?: Array<{ type?: "reply" | "url" | "phone"; text?: string; value?: string }>;
   is_active: boolean;
   created_at: string;
   updated_at: string;
