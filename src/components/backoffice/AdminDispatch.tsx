@@ -795,7 +795,7 @@ export default function AdminDispatch() {
                 </ScrollArea>
               )}
             </div>
-          }
+          )}
 
           <div className="flex justify-end">
             <Button
