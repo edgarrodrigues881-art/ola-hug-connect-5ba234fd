@@ -32,6 +32,7 @@ import { toast } from "sonner";
 const nodeTypes = {
   startNode: StartNode,
   messageNode: MessageNode,
+  delayNode: DelayNode,
   endNode: EndNode,
 };
 
