@@ -114,12 +114,14 @@ const AdminAutoTemplates = () => {
 
   const handleDialogSave = async () => {
     if (!editingTemplate) return;
-    if (dialogContent === editingTemplate.content) {
+    const contentChanged = dialogContent !== editingTemplate.content;
+    const buttonsChanged = JSON.stringify(dialogButtons) !== JSON.stringify(editingTemplate.buttons || []);
+    if (!contentChanged && !buttonsChanged) {
       toast.info("Nenhuma alteração detectada");
       return;
     }
     try {
-      await updateMutation.mutateAsync({ id: editingTemplate.id, content: dialogContent });
+      await updateMutation.mutateAsync({ id: editingTemplate.id, content: dialogContent, buttons: dialogButtons });
       toast.success(`Modelo "${editingTemplate.label}" salvo com sucesso`);
       setEditingTemplate(null);
     } catch {
