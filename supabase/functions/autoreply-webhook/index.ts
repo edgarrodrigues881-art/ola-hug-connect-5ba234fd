@@ -831,7 +831,10 @@ async function doRegisterWebhook(device: any) {
       headers,
       body: JSON.stringify({
         url: webhookUrl,
+        enabled: true,
         events: ["messages"],
+        excludeMessages: ["wasSentByApi"],
+        addUrlEvents: true,
         headers: webhookHeaders,
       }),
     });
