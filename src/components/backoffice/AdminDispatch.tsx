@@ -199,9 +199,12 @@ export default function AdminDispatch() {
       if (importSelectAll) return new Set(filteredImported.map(c => c.id));
       return importSelectedIds;
     }
+    if (audienceSource === "manual") {
+      return new Set(manualContacts.map(c => c.id));
+    }
     if (selectAll) return new Set(audienceUsers.map(u => u.id));
     return selectedIds;
-  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds, filteredImported]);
+  }, [audienceSource, selectAll, selectedIds, audienceUsers, importSelectAll, importSelectedIds, filteredImported, manualContacts]);
 
   const toggleUser = (id: string) => {
     setSelectAll(false);
