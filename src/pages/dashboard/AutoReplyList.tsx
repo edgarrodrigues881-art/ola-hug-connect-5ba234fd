@@ -65,6 +65,8 @@ export default function AutoReplyList() {
     enabled: !!user,
   });
 
+  const onlineStatuses = new Set(["connected", "Connected", "Ready", "authenticated"]);
+
   const deviceMap = useMemo(() => {
     const map = new Map<string, { name: string; number: string | null; status: string }>();
     devices?.forEach((d) => map.set(d.id, { name: d.name, number: d.number, status: d.status }));
