@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio, Calendar, DollarSign, Layers, Trash2 } from "lucide-react";
+import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio, Calendar, DollarSign, Layers, Trash2, BotMessageSquare } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const NOTIFICATION_PRICE = 18.90;
+const AUTOREPLY_PRICES = { none: 0, basic: 29.90, pro: 49.90 };
+type AutoreplyTier = keyof typeof AUTOREPLY_PRICES;
 
 const PLANS: Record<string, { price: number; max_instances: number; defaultDays?: number; reports_whatsapp_enabled?: boolean }> = {
   "Sem plano": { price: 0, max_instances: 0 },
@@ -52,12 +54,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [trialDays, setTrialDays] = useState<number>(3);
   const [manualExpires, setManualExpires] = useState<string>("");
   const [includeNotification, setIncludeNotification] = useState<boolean>(detail?.profile?.notificacao_liberada ?? false);
+  const [autoreplyTier, setAutoreplyTier] = useState<AutoreplyTier>("none");
 
   const planConfig = PLANS[planName] || PLANS.Start;
   const isTrial = planName === "Trial";
   const isNoPlan = planName === "Sem plano";
   const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
-  const autoTotal = planConfig.price + (includeNotification ? notificationPrice : 0);
+  const autoreplyPrice = isTrial ? 0 : AUTOREPLY_PRICES[autoreplyTier];
+  const autoTotal = planConfig.price + (includeNotification ? notificationPrice : 0) + autoreplyPrice;
   // Initialize manualPrice from saved subscription if it differs from auto-calculated value
   const [manualPrice, setManualPrice] = useState<string>(() => {
     if (sub?.plan_price != null) {
@@ -411,6 +415,47 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                 </span>
                 <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
               </div>
+            </div>
+          </div>
+
+          {/* Resposta Automática Inteligente */}
+          <div className="md:col-span-2">
+            <div className={`p-3 rounded-lg border transition-all ${
+              autoreplyTier !== "none"
+                ? "border-violet-500/40 bg-violet-500/5"
+                : "border-border bg-muted/20"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${autoreplyTier !== "none" ? "bg-violet-500/15" : "bg-muted/50"}`}>
+                    <BotMessageSquare size={15} className={autoreplyTier !== "none" ? "text-violet-500" : "text-muted-foreground"} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Resposta Automática Inteligente</p>
+                    <p className="text-[10px] text-muted-foreground">Fluxos de resposta automática por WhatsApp</p>
+                  </div>
+                </div>
+                <Select value={autoreplyTier} onValueChange={(v) => setAutoreplyTier(v as AutoreplyTier)}>
+                  <SelectTrigger className="w-[160px] h-8 rounded-lg border-border bg-muted/30 text-foreground text-[11px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Desativado</SelectItem>
+                    <SelectItem value="basic">Básico — R$ 29,90/mês</SelectItem>
+                    <SelectItem value="pro">Pro — R$ 49,90/mês</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {autoreplyTier !== "none" && (
+                <div className="mt-2 ml-11 flex gap-2">
+                  <span className="text-[9px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded-full">
+                    {autoreplyTier === "basic" ? "Até 3 fluxos" : "Fluxos ilimitados + automação"}
+                  </span>
+                  <span className="text-[9px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded-full">
+                    {isTrial ? "Grátis" : `+ R$ ${AUTOREPLY_PRICES[autoreplyTier].toFixed(2)}/mês`}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
