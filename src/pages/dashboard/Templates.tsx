@@ -902,7 +902,11 @@ const Templates = () => {
                         )}
                         <div className="px-3 py-2">
                           <p className="text-[13px] whitespace-pre-wrap leading-[1.4]" style={{ color: "#e9edef" }}>
-                            {previewTemplate.content}
+                            {(() => {
+                              const raw = previewTemplate.content || "";
+                              const parts = raw.includes("|||") ? raw.split("|||") : raw.includes("|&&|") ? raw.split("|&&|") : [raw];
+                              return parts[0];
+                            })()}
                           </p>
                           <div className="flex justify-end mt-1 gap-1 items-center">
                             <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{time}</span>

@@ -1352,7 +1352,7 @@ const Campaigns = () => {
                         setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
                       } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
                     }
-                  } else { setMessage(""); setMediaUrl(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                  } else { setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotationMode("random"); setMediaUrl(""); setMediaFileName(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
                 }}>
                   <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/20 border-border/30 hover:border-primary/40 transition-colors">
                     <SelectValue placeholder="Campanha Padrão" />
