@@ -5,7 +5,12 @@ interface Props {
 }
 
 export function MessagePreview({ data }: Props) {
-  const text = (data.text || "").replace(
+  const escaped = (data.text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  const text = escaped.replace(
     /\{(\w+)\}/g,
     (_, v) => `<span class="font-medium text-primary/80">«${v}»</span>`
   );
