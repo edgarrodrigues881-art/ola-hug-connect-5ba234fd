@@ -129,9 +129,9 @@ export function AppSidebar() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Auto-expand if on warmup route
+  // Auto-expand folders only on warmup instance routes (not autosave/groups)
   useEffect(() => {
-    if (location.pathname.startsWith("/dashboard/warmup") || location.pathname.startsWith("/dashboard/autosave") || location.pathname.startsWith("/dashboard/groups")) {
+    if (location.pathname.startsWith("/dashboard/warmup")) {
       setWarmupExpanded(true);
     }
   }, [location.pathname]);
