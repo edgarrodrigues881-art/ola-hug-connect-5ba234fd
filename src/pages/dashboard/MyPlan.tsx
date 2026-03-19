@@ -319,7 +319,7 @@ const MyPlan = () => {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Até 3 fluxos</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Respostas simples</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Respostas automáticas simples</p>
                     </div>
                     <a
                       href={buildAutoReplyAddonUrl("Básico", "29,90")}
