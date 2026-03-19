@@ -158,8 +158,10 @@ export function AppSidebar() {
 
   const warmupItems = [
     { title: "Aquecimento", url: "/dashboard/warmup-v2", icon: Flame },
-    { title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll },
+    { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+    { title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll },
+    { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText },
   ];
 
   const handleSaveFolder = useCallback(async (data: { name: string; color: string; tags?: any[]; deviceIds: string[] }) => {
