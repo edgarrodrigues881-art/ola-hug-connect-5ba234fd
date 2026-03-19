@@ -76,18 +76,18 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Conservador — 1 par para unstable, 2 para new/recovered
-  if (chipState === "unstable") return 1;
-  return Math.min(2, daysSinceCommunity + 1);
+  // Mais pares para conversas mais naturais — unstable=2, outros até 5
+  if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
+  return Math.min(5, daysSinceCommunity + 2);
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // 2-4 bursts por par por dia para garantir que conversas progridam
-  if (chipState === "unstable") return 2;
-  return Math.min(4, daysSinceCommunity + 2);
+  // 4-8 bursts por par por dia — conversas mais longas e naturais
+  if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
+  return Math.min(8, daysSinceCommunity + 3);
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
