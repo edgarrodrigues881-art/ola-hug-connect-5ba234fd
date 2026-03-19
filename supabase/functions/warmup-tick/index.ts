@@ -1667,16 +1667,18 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         console.log(`[warmup-tick] AUTO-RESUME: cycle ${cycle.id} → ${safePhase} (day ${cycle.day_index})`);
       }
     }
-  }
+  } // end isPrimaryShard auto-resume
 
-  // Fetch pending jobs
+  // Fetch pending jobs — increased limit for 10k+ scale
+  // Each shard claims its own batch using FOR UPDATE SKIP LOCKED semantics (via order + limit)
+  const jobLimit = shardTotal > 1 ? 1000 : 2000;
   const { data: pendingJobs, error: fetchErr } = await db.from("warmup_jobs")
     .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
     .eq("status", "pending").lte("run_at", now)
-    .order("run_at", { ascending: true }).limit(800);
+    .order("run_at", { ascending: true }).limit(jobLimit);
 
   if (fetchErr) throw fetchErr;
-  if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0 });
+  if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0, shard: shardIndex });
 
   // Limit: only 1 autosave/community interaction per device per tick to preserve natural pacing
   const autosaveSeenDevices = new Set<string>();
