@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
       const welcomeRes = await fetch(waLifecycleUrl, {
         method: "POST",
         headers: { 
-          "Authorization": `Bearer ${serviceKey}`,
+          "x-internal-secret": Deno.env.get("INTERNAL_TICK_SECRET") || "",
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ user_id: user.id }),

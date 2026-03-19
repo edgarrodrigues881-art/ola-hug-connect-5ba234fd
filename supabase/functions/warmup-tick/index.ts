@@ -1138,9 +1138,8 @@ Deno.serve(async (req) => {
 
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
-  const authHeader = req.headers.get("authorization") || "";
 
-  if (!(expectedSecret && secret === expectedSecret) && !authHeader.startsWith("Bearer ")) {
+  if (!expectedSecret || secret !== expectedSecret) {
     return json({ error: "Unauthorized" }, 401);
   }
 
