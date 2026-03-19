@@ -169,8 +169,13 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, conversation_id } = body;
 
-    // For tick action, use internal auth
+    // For tick action, validate internal secret
     if (action === "tick") {
+      const secret = req.headers.get("x-internal-secret");
+      const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
+      if (!expectedSecret || secret !== expectedSecret) {
+        return json({ error: "Unauthorized" }, 401);
+      }
       return await handleTick(admin, conversation_id);
     }
 
