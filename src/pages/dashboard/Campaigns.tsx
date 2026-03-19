@@ -582,6 +582,33 @@ const Campaigns = () => {
     });
   };
 
+  const handleSaveAsTemplate = () => {
+    if (!saveTemplateName.trim()) {
+      toast({ title: "Nome obrigatório", description: "Informe um nome para o template.", variant: "destructive" });
+      return;
+    }
+    if (!combinedMessage.trim() && !mediaUrl) {
+      toast({ title: "Template vazio", description: "Escreva uma mensagem ou adicione mídia.", variant: "destructive" });
+      return;
+    }
+    createTemplate.mutate({
+      name: saveTemplateName.trim(),
+      content: combinedMessage,
+      type: computedMessageType,
+      media_url: mediaUrl || undefined,
+      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+    }, {
+      onSuccess: () => {
+        toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" foi salvo e está disponível em Templates.` });
+        setSaveTemplateOpen(false);
+        setSaveTemplateName("");
+      },
+      onError: (err: any) => {
+        toast({ title: "Erro ao salvar template", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
   const triggerButtonFlash = () => {
     setButtonAddedFlash(true);
     setTimeout(() => setButtonAddedFlash(false), 600);
