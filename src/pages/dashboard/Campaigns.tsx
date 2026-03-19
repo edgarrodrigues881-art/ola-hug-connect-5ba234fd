@@ -1058,7 +1058,7 @@ const Campaigns = () => {
                   </div>
                 </div>
               ) : (
-                <img src={mediaUrl} alt="media" className="w-full max-h-52 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img src={mediaUrl} alt="media" className="w-full max-h-48 object-cover rounded-t-[12px]" style={{ maxWidth: '100%', aspectRatio: 'auto' }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ))}
               {/* Text */}
               <div className="px-[14px] py-[10px]">
