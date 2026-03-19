@@ -143,7 +143,11 @@ const AutoSave = () => {
     });
   }, [contacts, search, tagFilter, statusFilter]);
 
+  const activeFiltered = useMemo(() => filtered.filter(c => c.is_active), [filtered]);
+  const inactiveFiltered = useMemo(() => filtered.filter(c => !c.is_active), [filtered]);
   const activeCount = contacts.filter(c => c.is_active).length;
+  const inactiveCount = contacts.filter(c => !c.is_active).length;
+  const [showInactive, setShowInactive] = useState(false);
 
   const handleEditContact = useCallback((c: WarmupAutosaveContact) => {
     setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || "");
