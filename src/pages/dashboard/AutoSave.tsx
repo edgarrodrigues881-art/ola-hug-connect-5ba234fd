@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import {
   useAutosaveContacts, type WarmupAutosaveContact,
 } from "@/hooks/useWarmupV2";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAutosaveMutations } from "@/hooks/useAutosaveMutations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,7 +143,11 @@ const AutoSave = () => {
     });
   }, [contacts, search, tagFilter, statusFilter]);
 
+  const activeFiltered = useMemo(() => filtered.filter(c => c.is_active), [filtered]);
+  const inactiveFiltered = useMemo(() => filtered.filter(c => !c.is_active), [filtered]);
   const activeCount = contacts.filter(c => c.is_active).length;
+  const inactiveCount = contacts.filter(c => !c.is_active).length;
+  const [showInactive, setShowInactive] = useState(false);
 
   const handleEditContact = useCallback((c: WarmupAutosaveContact) => {
     setEditContact(c); setEditName(c.contact_name); setEditTags(c.tags || "");
@@ -198,12 +203,19 @@ const AutoSave = () => {
     deleteContact.mutate(id, { onSuccess: () => toast({ title: "Contato excluído" }) });
   };
 
-  const rowProps = useMemo(() => ({
-    filtered,
+  const activeRowProps = useMemo(() => ({
+    filtered: activeFiltered,
     onEdit: handleEditContact,
     onToggle: handleToggleActive,
     onDelete: handleDelete,
-  }), [filtered, handleEditContact]);
+  }), [activeFiltered, handleEditContact]);
+
+  const inactiveRowProps = useMemo(() => ({
+    filtered: inactiveFiltered,
+    onEdit: handleEditContact,
+    onToggle: handleToggleActive,
+    onDelete: handleDelete,
+  }), [inactiveFiltered, handleEditContact]);
 
   const handleDeleteAll = async () => {
     if (!contacts.length || !user) return;
@@ -483,27 +495,82 @@ const AutoSave = () => {
           </div>
         </div>
       ) : (
-        <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
-            <h3 className="text-sm font-bold text-foreground">{filtered.length} contato{filtered.length !== 1 ? "s" : ""}</h3>
-          </div>
-          <div
-            className="p-2"
-            style={{
-              contain: "layout style",
-              height: Math.min(filtered.length * 68, 520),
-            }}
-          >
-            <VirtualList
-              rowCount={filtered.length}
-              rowHeight={68}
-              overscanCount={10}
-              style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
-              rowProps={rowProps}
-              rowComponent={AutoSaveRowInner}
-            />
-          </div>
+        <div className="space-y-4">
+          {/* Active contacts */}
+          {activeFiltered.length > 0 && (
+            <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/10">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  {activeFiltered.length} contato{activeFiltered.length !== 1 ? "s" : ""} ativo{activeFiltered.length !== 1 ? "s" : ""}
+                </h3>
+              </div>
+              <div
+                className="p-2"
+                style={{
+                  contain: "layout style",
+                  height: Math.min(activeFiltered.length * 68, 520),
+                }}
+              >
+                <VirtualList
+                  rowCount={activeFiltered.length}
+                  rowHeight={68}
+                  overscanCount={10}
+                  style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
+                  rowProps={activeRowProps}
+                  rowComponent={AutoSaveRowInner}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Inactive contacts - collapsible */}
+          {inactiveFiltered.length > 0 && (
+            <Collapsible open={showInactive} onOpenChange={setShowInactive}>
+              <div className="relative rounded-2xl border border-border/20 bg-card/60 backdrop-blur-xl overflow-hidden">
+                <CollapsibleTrigger className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/10 transition-colors cursor-pointer">
+                  <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                    {inactiveFiltered.length} contato{inactiveFiltered.length !== 1 ? "s" : ""} inválido{inactiveFiltered.length !== 1 ? "s" : ""}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground/40 font-medium">Números sem WhatsApp</span>
+                    <svg className={cn("w-4 h-4 text-muted-foreground/40 transition-transform duration-200", showInactive && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t border-border/10">
+                    <div
+                      className="p-2"
+                      style={{
+                        contain: "layout style",
+                        height: Math.min(inactiveFiltered.length * 68, 340),
+                      }}
+                    >
+                      <VirtualList
+                        rowCount={inactiveFiltered.length}
+                        rowHeight={68}
+                        overscanCount={10}
+                        style={{ height: "100%", width: "100%", overscrollBehavior: "contain", willChange: "scroll-position" }}
+                        rowProps={inactiveRowProps}
+                        rowComponent={AutoSaveRowInner}
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          )}
+
+          {activeFiltered.length === 0 && inactiveFiltered.length === 0 && (
+            <div className="relative rounded-2xl border border-border/20 bg-card/80 backdrop-blur-xl overflow-hidden">
+              <div className="py-16 text-center">
+                <Users className="w-10 h-10 text-muted-foreground/15 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground/50 font-medium">Nenhum contato encontrado</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
