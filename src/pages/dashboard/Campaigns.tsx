@@ -238,6 +238,8 @@ const Campaigns = () => {
   } | null>(null);
   const CONTACTS_PER_PAGE = 50;
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
