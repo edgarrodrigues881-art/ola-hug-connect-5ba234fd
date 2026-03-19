@@ -1534,7 +1534,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
       .select("id, user_id, device_id, day_index, days_total, chip_state, phase, daily_interaction_budget_target, daily_interaction_budget_used")
       .eq("is_running", true)
       .not("phase", "in", '("completed","paused","error","pre_24h")')
-      .limit(100);
+      .limit(500);
 
     if (runningCycles?.length) {
       // Get all cycle IDs that have at least one pending job
