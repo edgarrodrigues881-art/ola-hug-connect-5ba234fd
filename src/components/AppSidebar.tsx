@@ -84,6 +84,7 @@ const menuGroups = [
     items: [
       { title: "Template", url: "/dashboard/templates", icon: FileText },
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
+      { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft },
       { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare },
     ],
   },
