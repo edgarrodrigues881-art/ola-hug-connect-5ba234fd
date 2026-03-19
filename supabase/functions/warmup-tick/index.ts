@@ -1492,11 +1492,13 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
     }
   }
 
-  // Recover stale "running" jobs (>5min)
-  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  await db.from("warmup_jobs")
-    .update({ status: "pending", last_error: "Recuperado de estado running travado" })
-    .eq("status", "running").lt("updated_at", staleThreshold);
+  // Recover stale "running" jobs (>5min) — only primary shard
+  if (isPrimaryShard) {
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    await db.from("warmup_jobs")
+      .update({ status: "pending", last_error: "Recuperado de estado running travado" })
+      .eq("status", "running").lt("updated_at", staleThreshold);
+  }
 
   // Reconcile join_group jobs already joined
   {
