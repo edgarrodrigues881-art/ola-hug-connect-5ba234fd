@@ -1500,11 +1500,11 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
       .eq("status", "running").lt("updated_at", staleThreshold);
   }
 
-  // Reconcile join_group jobs already joined
-  {
+  // Reconcile join_group jobs already joined — only primary shard
+  if (isPrimaryShard) {
     const { data: staleJoins } = await db.from("warmup_jobs")
       .select("id, device_id, payload")
-      .eq("job_type", "join_group").eq("status", "pending").limit(500);
+      .eq("job_type", "join_group").eq("status", "pending").limit(1000);
 
     if (staleJoins?.length > 0) {
       const deviceIds = [...new Set(staleJoins.map((j: any) => j.device_id))];
