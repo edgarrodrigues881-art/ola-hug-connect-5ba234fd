@@ -1526,10 +1526,10 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         }
       }
     }
-  }
+  } // end isPrimaryShard reconcile
 
   // ── ORPHANED CYCLE RECOVERY: Running cycles with 0 pending jobs during operating hours ──
-  if (withinWindow) {
+  if (withinWindow && isPrimaryShard) {
     const { data: runningCycles } = await db.from("warmup_cycles")
       .select("id, user_id, device_id, day_index, days_total, chip_state, phase, daily_interaction_budget_target, daily_interaction_budget_used")
       .eq("is_running", true)
