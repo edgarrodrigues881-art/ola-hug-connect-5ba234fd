@@ -59,6 +59,7 @@ const AutoSave = lazyRetry(() => import("./pages/dashboard/AutoSave"));
 const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
 const Community = lazyRetry(() => import("./pages/dashboard/Community"));
 const AutoReplyComingSoon = lazyRetry(() => import("./pages/dashboard/AutoReplyComingSoon"));
+const ChipConversation = lazyRetry(() => import("./pages/dashboard/ChipConversation"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
