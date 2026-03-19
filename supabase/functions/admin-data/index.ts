@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
 
       const users = authUsers?.users?.map((u: any) => {
         const profile = profiles?.find((p: any) => p.id === u.id);
+        const adminData = adminProfileData?.find((a: any) => a.id === u.id);
         const userRoles = roles?.filter((r: any) => r.user_id === u.id).map((r: any) => r.role) || [];
         const userDevices = devices?.filter((d: any) => d.user_id === u.id) || [];
         const userCampaigns = campaigns?.filter((c: any) => c.user_id === u.id) || [];
@@ -134,8 +135,8 @@ Deno.serve(async (req) => {
           document: profile?.document || null,
           avatar_url: profile?.avatar_url || null,
           status: profile?.status || "active",
-          risk_flag: profile?.risk_flag || false,
-          admin_notes: profile?.admin_notes || null,
+          risk_flag: adminData?.risk_flag || false,
+          admin_notes: adminData?.admin_notes || null,
           roles: userRoles,
           devices_count: userDevices.length,
           devices_connected: userDevices.filter((d: any) => d.status === "Connected").length,
