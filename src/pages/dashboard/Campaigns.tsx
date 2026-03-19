@@ -1328,8 +1328,26 @@ const Campaigns = () => {
                   if (val !== "nova") {
                     const tmpl = savedTemplates.find(t => t.id === val);
                     if (tmpl) {
-                      setMessage(tmpl.content);
-                      if (tmpl.media_url) setMediaUrl(tmpl.media_url); else setMediaUrl("");
+                      // Parse message variants into tabs
+                      const contentParts = tmpl.content.includes("|||") ? tmpl.content.split("|||") : tmpl.content.includes("|&&|") ? tmpl.content.split("|&&|") : [tmpl.content];
+                      const msgs = ["", "", "", "", ""];
+                      contentParts.forEach((p: string, i: number) => { if (i < 5) msgs[i] = p; });
+                      setMessages(msgs);
+                      setActiveMessageTab(0);
+                      if (tmpl.content.includes("|&&|")) setRotationMode("all");
+                      else if (tmpl.content.includes("|||")) setRotationMode("random");
+                      // Parse media_url — templates save as JSON array, extract first URL
+                      if (tmpl.media_url) {
+                        let extractedUrl = tmpl.media_url;
+                        try {
+                          const parsed = JSON.parse(tmpl.media_url);
+                          if (Array.isArray(parsed) && parsed.length > 0) {
+                            extractedUrl = parsed[0].url || tmpl.media_url;
+                            setMediaFileName(parsed[0].name || "Mídia");
+                          }
+                        } catch { /* plain URL, use as-is */ }
+                        setMediaUrl(extractedUrl);
+                      } else { setMediaUrl(""); }
                       if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
                         setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
                       } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
