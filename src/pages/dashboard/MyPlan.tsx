@@ -400,7 +400,7 @@ const MyPlan = () => {
                           val ? (
                             <Check className="w-4 h-4 mx-auto text-emerald-500/60" strokeWidth={2.5} />
                           ) : (
-                            <X className="w-4 h-4 mx-auto text-red-400/40" strokeWidth={2} />
+                            <span className="text-xs text-white/20">—</span>
                           )
                         ) : (
                           <span className={`text-xs font-bold ${plans[vi].popular ? "text-amber-400" : "text-white/70"}`}>
