@@ -242,12 +242,15 @@ async function scheduleDayJobs(
     ? Math.max(existingBudgetTarget - existingBudgetUsed, 0)
     : null;
 
-  // Keep group jobs as priority workload. Community/autosave should fit inside the leftover budget,
-  // not starve group warmup after a few community turns have already consumed the daily counter.
-  const reservedGroupBudget = Math.min(volumes.groupMsgs, remainingBudget ?? volumes.groupMsgs);
+  // Reserve budget for autosave (15 msgs = 5 contacts × 3 msgs) before groups take the rest.
+  // This prevents group volume from starving autosave entirely.
+  const autosaveNeeded = volumes.autosaveContacts * volumes.autosaveRounds; // typically 15
+  const reservedAutosaveBudget = Math.min(autosaveNeeded, remainingBudget ?? autosaveNeeded);
+  const budgetAfterAutosave = remainingBudget === null ? null : Math.max((remainingBudget ?? 0) - reservedAutosaveBudget, 0);
+  const reservedGroupBudget = Math.min(volumes.groupMsgs, budgetAfterAutosave ?? volumes.groupMsgs);
   const nonGroupBudget = remainingBudget === null
     ? null
-    : Math.max(remainingBudget - reservedGroupBudget, 0);
+    : Math.max((remainingBudget ?? 0) - reservedGroupBudget, reservedAutosaveBudget);
 
   // Cancel existing pending SCHEDULED interaction jobs before creating new ones (prevent duplicates)
   // IMPORTANT: Do NOT cancel community_interaction reply/reburst jobs (they have pair_id or source in payload)
@@ -362,11 +365,13 @@ async function scheduleDayJobs(
   let jobsToInsert = jobs;
   if (remainingBudget !== null) {
     const groupJobs = jobs.filter((job) => job.job_type === "group_interaction").slice(0, reservedGroupBudget);
-    const otherJobs = jobs
-      .filter((job) => job.job_type !== "group_interaction")
-      .slice(0, nonGroupBudget ?? jobs.length);
+    // Prioritize autosave over community when budget is limited
+    const autosaveJobs = jobs.filter((job) => job.job_type === "autosave_interaction").slice(0, reservedAutosaveBudget);
+    const communityJobs = jobs.filter((job) => job.job_type === "community_interaction");
+    const communityBudget = Math.max((nonGroupBudget ?? communityJobs.length) - autosaveJobs.length, 0);
+    const trimmedCommunity = communityJobs.slice(0, communityBudget);
 
-    jobsToInsert = [...groupJobs, ...otherJobs]
+    jobsToInsert = [...groupJobs, ...autosaveJobs, ...trimmedCommunity]
       .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
 
     if (jobsToInsert.length < jobs.length) {
@@ -2436,7 +2441,17 @@ async function handleTick(db: any) {
           rotatedPool.push(autosavePool[idx]);
         }
 
-        let selectedIndex = ((rIdx % rotatedPool.length) + rotatedPool.length) % rotatedPool.length;
+        // FIX: Use absolute index — never wrap around. If index is out of bounds, skip the job.
+        // Modular wrapping caused the SAME contact to receive 3-6 msgs while others got 0.
+        if (rIdx >= rotatedPool.length) {
+          bufferAudit({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "autosave_skip_no_contact",
+            message: `Auto Save: recipient_index=${rIdx} excede pool (${rotatedPool.length} contatos) — pulando`,
+          });
+          break;
+        }
+        const selectedIndex = rIdx;
         const target = rotatedPool[selectedIndex];
 
         // ── VALIDATION STEP (msg_index=0 only): Pre-validate before sending anything ──
