@@ -671,6 +671,8 @@ Deno.serve(async (req) => {
       proxiesUpdated,
       circuitOpen,
       total404,
+      shard: shardIndex,
+      shards: shardTotal,
     });
   } catch (error: unknown) {
     console.error("Sync error:", error);
