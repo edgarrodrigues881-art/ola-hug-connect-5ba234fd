@@ -896,7 +896,7 @@ const Templates = () => {
                       <div className="rounded-xl overflow-hidden shadow-md" style={{ background: bubbleBg }}>
                         {withFile && (
                           <>
-                            {withFile.type === "image" && <img src={withFile.url} alt={withFile.name} className="w-full max-h-48 object-cover" />}
+                            {withFile.type === "image" && <img src={withFile.url} alt={withFile.name} className="w-full max-h-44 object-cover" style={{ aspectRatio: 'auto' }} />}
                             {withFile.type === "video" && <video src={withFile.url} controls className="w-full max-h-48" />}
                           </>
                         )}
