@@ -25,7 +25,7 @@ import {
   ArrowRight, Lock, Timer, TrendingUp, ArrowUp, ArrowDown, Pencil, Search, Save
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
-import { useTemplates } from "@/hooks/useTemplates";
+import { useTemplates, useCreateTemplate } from "@/hooks/useTemplates";
 import { useContacts } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
