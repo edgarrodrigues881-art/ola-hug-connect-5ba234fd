@@ -60,6 +60,7 @@ const WelcomeSplash = lazyRetry(() => import("./pages/WelcomeSplash"));
 const Community = lazyRetry(() => import("./pages/dashboard/Community"));
 const AutoReplyComingSoon = lazyRetry(() => import("./pages/dashboard/AutoReplyComingSoon"));
 const ChipConversation = lazyRetry(() => import("./pages/dashboard/ChipConversationComingSoon"));
+const GroupInteraction = lazyRetry(() => import("./pages/dashboard/GroupInteraction"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
@@ -137,6 +138,7 @@ const App = () => (
                           <Route path="auto-reply" element={<AutoReplyComingSoon />} />
                           <Route path="auto-reply/:id" element={<AutoReplyComingSoon />} />
                           <Route path="chip-conversation" element={<ChipConversation />} />
+                          <Route path="group-interaction" element={<GroupInteraction />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
