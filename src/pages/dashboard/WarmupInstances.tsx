@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
+import VirtualizedDeviceGrid from "@/components/warmup/VirtualizedDeviceGrid";
 import dgLogoNew from "@/assets/dg-logo-new.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -685,13 +686,24 @@ const WarmupInstances = () => {
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("devices")
-        .select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at, updated_at")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data || []).sort((a, b) => {
+      // Paginated fetch to support 10k+ devices
+      let all: any[] = [];
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("devices")
+          .select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at, updated_at")
+          .eq("user_id", user!.id)
+          .order("created_at", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data?.length) break;
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all.sort((a, b) => {
         const onlineStatuses = ["Connected", "Ready", "authenticated"];
         const aOnline = onlineStatuses.includes(a.status) ? 0 : 1;
         const bOnline = onlineStatuses.includes(b.status) ? 0 : 1;
@@ -1016,31 +1028,27 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(deviceId);
   }, []);
 
-  const renderedCards = useMemo(
-    () =>
-      displayed.map((device) => (
-        <DeviceCard
-          key={device.id}
-          device={device}
-          cycle={cycleByDeviceId.get(device.id)}
-          onPause={handlePause}
-          onResume={handleResume}
-          onCancel={onCancelClick}
-          onConnect={openConnect}
-          onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
-          formatPhone={formatPhone}
-          deviceTags={activeFolder?.device_tags?.get(device.id)}
-          availableTags={activeFolder?.tags}
-          onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
-          onRemoveFromFolder={activeFolder ? (deviceId) => {
-            removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
-              toast({ title: "Instância removida da pasta" });
-            });
-          } : undefined}
-        />
-      )),
-    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder]
-  );
+  const renderDeviceCard = useCallback((device: any) => (
+    <DeviceCard
+      key={device.id}
+      device={device}
+      cycle={cycleByDeviceId.get(device.id)}
+      onPause={handlePause}
+      onResume={handleResume}
+      onCancel={onCancelClick}
+      onConnect={openConnect}
+      onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
+      formatPhone={formatPhone}
+      deviceTags={activeFolder?.device_tags?.get(device.id)}
+      availableTags={activeFolder?.tags}
+      onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
+      onRemoveFromFolder={activeFolder ? (deviceId) => {
+        removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
+          toast({ title: "Instância removida da pasta" });
+        });
+      } : undefined}
+    />
+  ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder, activeFolderId]);
 
   return (
     <div className="space-y-5">
@@ -1622,9 +1630,10 @@ const WarmupInstances = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-          {renderedCards}
-        </div>
+        <VirtualizedDeviceGrid
+          items={displayed}
+          renderItem={renderDeviceCard}
+        />
       )}
 
       {/* Cancel confirmation dialog */}
