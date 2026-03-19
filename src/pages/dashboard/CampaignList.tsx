@@ -92,6 +92,27 @@ const CampaignList = () => {
     }
   };
 
+  const handleSaveAsTemplate = () => {
+    if (!saveTemplateName.trim() || !savingCampaign) return;
+    createTemplate.mutate({
+      name: saveTemplateName.trim(),
+      content: savingCampaign.message_content || "",
+      type: savingCampaign.message_type || "texto",
+      media_url: savingCampaign.media_url || undefined,
+      buttons: Array.isArray(savingCampaign.buttons) ? savingCampaign.buttons : [],
+    }, {
+      onSuccess: () => {
+        toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" salvo em Templates.` });
+        setSaveTemplateOpen(false);
+        setSaveTemplateName("");
+        setSavingCampaign(null);
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
+  };
+
+  const canSaveAsTemplate = (status: string) => !["running", "processing", "queued"].includes(status);
+
   const getProgress = (c: any) => {
     const total = c.total_contacts || 0;
     if (total === 0) return 0;
