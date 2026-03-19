@@ -1112,7 +1112,7 @@ async function reconcileCommunityPairs(
   let validPairs = existingPairs;
   let closedCount = 0;
 
-  const peerIds = existingPairs.map((pair: any) => getCommunityPeerDeviceId(pair, params.deviceId));
+  const peerIds = [...new Set(existingPairs.map((pair: any) => getCommunityPeerDeviceId(pair, params.deviceId)))];
   if (peerIds.length > 0) {
     const [peerDevicesRes, peerMembershipRes, peerCyclesRes] = await Promise.all([
       db.from("devices")
@@ -1154,6 +1154,44 @@ async function reconcileCommunityPairs(
     }
   }
 
+  if (validPairs.length > 1) {
+    const pairByPeer = new Map<string, any>();
+    const duplicateIds: string[] = [];
+
+    for (const pair of validPairs) {
+      const peerId = getCommunityPeerDeviceId(pair, params.deviceId);
+      const currentMeta = normalizeCommunityPairMeta(pair);
+      const currentLastTouch = Math.max(
+        currentMeta.last_turn_at ? new Date(currentMeta.last_turn_at).getTime() : 0,
+        currentMeta.last_completed_at ? new Date(currentMeta.last_completed_at).getTime() : 0,
+      );
+
+      if (!pairByPeer.has(peerId)) {
+        pairByPeer.set(peerId, pair);
+        continue;
+      }
+
+      const keptPair = pairByPeer.get(peerId);
+      const keptMeta = normalizeCommunityPairMeta(keptPair);
+      const keptLastTouch = Math.max(
+        keptMeta.last_turn_at ? new Date(keptMeta.last_turn_at).getTime() : 0,
+        keptMeta.last_completed_at ? new Date(keptMeta.last_completed_at).getTime() : 0,
+      );
+
+      if (currentLastTouch > keptLastTouch) {
+        duplicateIds.push(keptPair.id);
+        pairByPeer.set(peerId, pair);
+      } else {
+        duplicateIds.push(pair.id);
+      }
+    }
+
+    if (duplicateIds.length > 0) {
+      closedCount += await closeCommunityPairs(db, duplicateIds);
+      validPairs = Array.from(pairByPeer.values());
+    }
+  }
+
   if (validPairs.length > targetPeers) {
     const shuffledValid = [...validPairs].sort(() => Math.random() - 0.5);
     const keptPairs = shuffledValid.slice(0, targetPeers);
@@ -1178,8 +1216,11 @@ async function reconcileCommunityPairs(
       .neq("device_id", params.deviceId)
       .limit(200);
 
-    const candidateIds = [...new Set((eligible || []).map((row: any) => row.device_id))]
-      .filter((deviceId: string) => !usedDevices.has(deviceId));
+    const candidateIds = [...new Set(
+      (eligible || [])
+        .map((row: any) => String(row.device_id || ""))
+        .filter((deviceId: string) => deviceId.length > 0),
+    )].filter((deviceId) => !usedDevices.has(deviceId));
 
     if (candidateIds.length > 0) {
       const [candidateDevicesRes, candidateCyclesRes] = await Promise.all([
@@ -3001,107 +3042,28 @@ async function handleTick(db: any) {
           meta: { day: newDay, phase: newPhase, old_phase: oldPhase },
         });
 
-        // Rotate community pairs on daily reset if in community phase
-        // IMPORTANT: Only manage pairs where this device is instance_id_a (the "owner")
-        // This prevents race conditions where both sides close each other's pairs
+        // Rotate community pairs on daily reset
         if (newPhase === "community_enabled") {
-          const targetPeers = getCommunityPeers(newDay, chipState);
+          const pairStats = await reconcileCommunityPairs(db, {
+            deviceId: job.device_id,
+            userId: job.user_id,
+            cycleId: cycle.id,
+            dayIndex: newDay,
+            chipState,
+          });
 
-          // Only get pairs where this device is instance_id_a (owner manages lifecycle)
-          const { data: ownedPairs } = await db.from("community_pairs")
-            .select("id, instance_id_a, instance_id_b")
-            .eq("instance_id_a", job.device_id).eq("status", "active");
-          const existingPairs = ownedPairs || [];
-
-          // Keep ~40% of old pairs (familiar contacts), close rest
-          const keepCount = Math.min(
-            Math.floor(targetPeers * 0.4),
-            existingPairs?.length || 0
-          );
-          const keptDevices = new Set<string>();
-          const keptUsers = new Set<string>();
-
-          if (existingPairs?.length) {
-            const shuffledExisting = existingPairs.sort(() => Math.random() - 0.5);
-            const toKeep = shuffledExisting.slice(0, keepCount);
-            const toClose = shuffledExisting.slice(keepCount);
-
-            if (toClose.length > 0) {
-              await db.from("community_pairs")
-                .update({ status: "closed", closed_at: new Date().toISOString() })
-                .in("id", toClose.map((p: any) => p.id));
-            }
-
-            for (const p of toKeep) {
-              const peerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
-              keptDevices.add(peerId);
-              // Populate keptUsers for cross-account dedup when creating new pairs
-              const keptElig = eligible?.find((e: any) => e.device_id === peerId);
-              if (keptElig) keptUsers.add(keptElig.user_id);
-            }
-          }
-
-          // Create new pairs to fill target
-          const newNeeded = targetPeers - keepCount;
-          if (newNeeded > 0) {
-            const { data: eligible } = await db.from("warmup_community_membership")
-              .select("device_id, user_id")
-              .eq("is_enabled", true).eq("is_eligible", true)
-              .neq("device_id", job.device_id)
-              .limit(100);
-
-            if (eligible?.length) {
-              const shuffled = eligible.sort(() => Math.random() - 0.5);
-              const usedDevices = new Set<string>(keptDevices);
-              const usedUsers = new Set<string>(keptUsers);
-
-              // Prefer non-new chips
-              const eligDevIds = shuffled.map((e: any) => e.device_id).slice(0, 50);
-              const { data: peerCycles } = await db.from("warmup_cycles")
-                .select("device_id, chip_state, day_index")
-                .in("device_id", eligDevIds).eq("is_running", true);
-              const pcMap: Record<string, any> = {};
-              peerCycles?.forEach((c: any) => { pcMap[c.device_id] = c; });
-
-              const sorted = shuffled.sort((a: any, b: any) => {
-                const ca = pcMap[a.device_id]; const cb = pcMap[b.device_id];
-                const aNew = ca?.chip_state === "new" && (ca?.day_index || 0) < 10 ? 1 : 0;
-                const bNew = cb?.chip_state === "new" && (cb?.day_index || 0) < 10 ? 1 : 0;
-                return aNew - bNew;
-              });
-
-              let created = 0;
-              for (const e of sorted) {
-                if (created >= newNeeded) break;
-                if (usedDevices.has(e.device_id)) continue;
-                // Prefer cross-account: skip same-user if alternatives exist
-                // Allow same-user pairing — no cross-account restriction
-
-                const { data: pd } = await db.from("devices")
-                  .select("status, number").eq("id", e.device_id).single();
-                if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
-
-                // Check if partner already has too many active pairs
-                const peerPairCount = await getActivePairCount(db, e.device_id);
-                const peerChipState = await getDeviceChipState(db, e.device_id);
-                if (peerPairCount >= getMaxPairsForChip(peerChipState)) continue;
-
-                await db.from("community_pairs").insert({
-                  cycle_id: cycle.id, instance_id_a: job.device_id, instance_id_b: e.device_id,
-                  status: "active", meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
-                });
-                usedDevices.add(e.device_id); usedUsers.add(e.user_id);
-                created++;
-              }
-
-              bufferAudit({
-                user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-                level: "info", event_type: "community_pairs_rotated",
-                message: `Pares rotacionados: ${keepCount} mantidos + ${created} novos = ${keepCount + created}/${targetPeers}`,
-                meta: { kept: keepCount, new: created, target: targetPeers, day: newDay },
-              });
-            }
-          }
+          bufferAudit({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "community_pairs_rotated",
+            message: `Pares rotacionados/reconciliados: ${pairStats.keptCount} mantidos, ${pairStats.createdCount} novos, ${pairStats.closedCount} fechados = ${pairStats.pairs.length}/${pairStats.targetPeers}`,
+            meta: {
+              kept: pairStats.keptCount,
+              new: pairStats.createdCount,
+              closed: pairStats.closedCount,
+              target: pairStats.targetPeers,
+              day: newDay,
+            },
+          });
         }
 
         // [BUG B FIX] Reschedule pending join_group jobs for groups still not joined
@@ -3220,70 +3182,31 @@ async function handleDailyReset(db: any) {
       }
     }
 
-    // [BUG A FIX] Rotate community pairs on daily reset (mirrors job-based daily_reset)
+    // [BUG A FIX] Rotate/reconcile community pairs on daily reset (mirrors job-based daily_reset)
     if (newPhase === "community_enabled") {
-      const targetPeers = getCommunityPeers(newDay, chipState);
+      const pairStats = await reconcileCommunityPairs(db, {
+        deviceId: cycle.device_id,
+        userId: cycle.user_id,
+        cycleId: cycle.id,
+        dayIndex: newDay,
+        chipState,
+      });
 
-      // Only manage pairs where this device is instance_id_a (owner manages lifecycle)
-      const { data: ownedPairs } = await db.from("community_pairs")
-        .select("id, instance_id_a, instance_id_b")
-        .eq("instance_id_a", cycle.device_id).eq("status", "active");
-      const existingPairs = ownedPairs || [];
-
-      const keepCount = Math.min(Math.floor(targetPeers * 0.4), existingPairs?.length || 0);
-      const keptDevices = new Set<string>();
-
-      if (existingPairs?.length) {
-        const shuffledExisting = existingPairs.sort(() => Math.random() - 0.5);
-        const toKeep = shuffledExisting.slice(0, keepCount);
-        const toClose = shuffledExisting.slice(keepCount);
-
-        if (toClose.length > 0) {
-          await db.from("community_pairs")
-            .update({ status: "closed", closed_at: resetAt })
-            .in("id", toClose.map((p: any) => p.id));
-        }
-
-        for (const p of toKeep) {
-          const peerId = p.instance_id_a === cycle.device_id ? p.instance_id_b : p.instance_id_a;
-          keptDevices.add(peerId);
-        }
-      }
-
-      const newNeeded = targetPeers - keepCount;
-      if (newNeeded > 0) {
-        const { data: eligible } = await db.from("warmup_community_membership")
-          .select("device_id, user_id")
-          .eq("is_enabled", true).eq("is_eligible", true)
-          .neq("device_id", cycle.device_id).limit(100);
-
-        if (eligible?.length) {
-          const shuffled = eligible.sort(() => Math.random() - 0.5);
-          const usedDevices = new Set<string>(keptDevices);
-          let created = 0;
-
-          for (const e of shuffled) {
-            if (created >= newNeeded) break;
-            if (usedDevices.has(e.device_id)) continue;
-
-            const { data: pd } = await db.from("devices")
-              .select("status, number").eq("id", e.device_id).single();
-            if (!pd?.number || !CONNECTED_STATUSES.includes(pd.status)) continue;
-
-            // Check if partner already has too many active pairs
-            const inlinePairCount = await getActivePairCount(db, e.device_id);
-            const inlineChipState = await getDeviceChipState(db, e.device_id);
-            if (inlinePairCount >= getMaxPairsForChip(inlineChipState)) continue;
-
-            await db.from("community_pairs").insert({
-              cycle_id: cycle.id, instance_id_a: cycle.device_id, instance_id_b: e.device_id,
-              status: "active", meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
-            });
-            usedDevices.add(e.device_id);
-            created++;
-          }
-        }
-      }
+      await db.from("warmup_audit_logs").insert({
+        user_id: cycle.user_id,
+        device_id: cycle.device_id,
+        cycle_id: cycle.id,
+        level: "info",
+        event_type: "community_pairs_rotated",
+        message: `Pares rotacionados/reconciliados: ${pairStats.keptCount} mantidos, ${pairStats.createdCount} novos, ${pairStats.closedCount} fechados = ${pairStats.pairs.length}/${pairStats.targetPeers}`,
+        meta: {
+          kept: pairStats.keptCount,
+          new: pairStats.createdCount,
+          closed: pairStats.closedCount,
+          target: pairStats.targetPeers,
+          day: newDay,
+        },
+      });
     }
 
     // [BUG B FIX] Reschedule failed join_group jobs instead of just cancelling them
