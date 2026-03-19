@@ -111,7 +111,7 @@ const CampaignList = () => {
     });
   };
 
-  const canSaveAsTemplate = (status: string) => !["running", "processing", "queued"].includes(status);
+  const canSaveAsTemplate = (status: string) => ["paused", "completed"].includes(status);
 
   const getProgress = (c: any) => {
     const total = c.total_contacts || 0;

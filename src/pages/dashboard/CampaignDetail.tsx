@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,13 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Pause, Play, XCircle, CheckCircle2, Clock, AlertTriangle,
-  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown, Download, ShieldAlert,
+  Search, Timer, Hash, Zap, RefreshCw, RotateCcw, Send, Ban, ChevronDown, Download, ShieldAlert, Save, Loader2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateTemplate } from "@/hooks/useTemplates";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -91,6 +93,9 @@ const CampaignDetail = () => {
   const [exportSent, setExportSent] = useState(true);
   const [exportFailed, setExportFailed] = useState(true);
   const [exportPending, setExportPending] = useState(true);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const createTemplate = useCreateTemplate();
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
@@ -463,6 +468,11 @@ const CampaignDetail = () => {
                 <Download className="w-3.5 h-3.5" /> Exportar
               </Button>
             )}
+            {(isPaused || campaign?.status === "completed") && campaign?.message_content && (
+              <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setSaveTemplateName(campaign.name || ""); setSaveTemplateOpen(true); }}>
+                <Save className="w-3.5 h-3.5" /> Salvar Template
+              </Button>
+            )}
           </div>
         </div>
 
@@ -815,6 +825,63 @@ const CampaignDetail = () => {
             <Button size="sm" onClick={handleExportConfirm} disabled={!exportSent && !exportFailed && !exportPending} className="gap-1.5 text-xs">
               <Download className="w-3.5 h-3.5" />
               Exportar ({(exportSent ? stats.sent : 0) + (exportFailed ? stats.failed : 0) + (exportPending ? stats.pending : 0)})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Template Dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Salvar como Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Nome do template</Label>
+              <Input
+                value={saveTemplateName}
+                onChange={(e) => setSaveTemplateName(e.target.value)}
+                placeholder="Ex: Promoção Black Friday"
+                className="h-9"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && saveTemplateName.trim() && campaign) {
+                    createTemplate.mutate({
+                      name: saveTemplateName.trim(),
+                      content: campaign.message_content || "",
+                      type: campaign.message_type || "texto",
+                      media_url: campaign.media_url || undefined,
+                      buttons: Array.isArray(campaign.buttons) ? campaign.buttons as any[] : [],
+                    }, {
+                      onSuccess: () => { toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" salvo em Templates.` }); setSaveTemplateOpen(false); setSaveTemplateName(""); },
+                      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+                    });
+                  }
+                }}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              O template ficará disponível em <strong>Templates</strong> para uso em futuras campanhas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSaveTemplateOpen(false)}>Cancelar</Button>
+            <Button size="sm" disabled={createTemplate.isPending || !saveTemplateName.trim()} className="gap-1.5" onClick={() => {
+              if (!campaign) return;
+              createTemplate.mutate({
+                name: saveTemplateName.trim(),
+                content: campaign.message_content || "",
+                type: campaign.message_type || "texto",
+                media_url: campaign.media_url || undefined,
+                buttons: Array.isArray(campaign.buttons) ? campaign.buttons as any[] : [],
+              }, {
+                onSuccess: () => { toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" salvo em Templates.` }); setSaveTemplateOpen(false); setSaveTemplateName(""); },
+                onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+              });
+            }}>
+              {createTemplate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
