@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
     const results: SyncResult[] = [];
 
     // ── Phase 1: Fetch ALL statuses + profile data (no DB writes yet) ──
-    await runPool(syncable, 40, async (device) => {
+    await runPool(syncable, 60, async (device) => {
       if (Date.now() > deadline) { results.push({ device, httpStatus: null }); return; }
       const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
       const headers = { token: device.uazapi_token, Accept: "application/json" };
