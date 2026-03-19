@@ -414,8 +414,48 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                   {isTrial ? "Grátis" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}/mês`}
                 </span>
                 <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
+          </div>
+
+          {/* Resposta Automática Inteligente */}
+          <div className="md:col-span-2">
+            <div className={`p-3 rounded-lg border transition-all ${
+              autoreplyTier !== "none"
+                ? "border-violet-500/40 bg-violet-500/5"
+                : "border-border bg-muted/20"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${autoreplyTier !== "none" ? "bg-violet-500/15" : "bg-muted/50"}`}>
+                    <BotMessageSquare size={15} className={autoreplyTier !== "none" ? "text-violet-500" : "text-muted-foreground"} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Resposta Automática Inteligente</p>
+                    <p className="text-[10px] text-muted-foreground">Fluxos de resposta automática por WhatsApp</p>
+                  </div>
+                </div>
+                <Select value={autoreplyTier} onValueChange={(v) => setAutoreplyTier(v as AutoreplyTier)}>
+                  <SelectTrigger className="w-[160px] h-8 rounded-lg border-border bg-muted/30 text-foreground text-[11px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Desativado</SelectItem>
+                    <SelectItem value="basic">Básico — R$ 29,90/mês</SelectItem>
+                    <SelectItem value="pro">Pro — R$ 49,90/mês</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              {autoreplyTier !== "none" && (
+                <div className="mt-2 ml-11 flex gap-2">
+                  <span className="text-[9px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded-full">
+                    {autoreplyTier === "basic" ? "Até 3 fluxos" : "Fluxos ilimitados + automação"}
+                  </span>
+                  <span className="text-[9px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded-full">
+                    {isTrial ? "Grátis" : `+ R$ ${AUTOREPLY_PRICES[autoreplyTier].toFixed(2)}/mês`}
+                  </span>
+                </div>
+              )}
             </div>
+          </div>
           </div>
         </div>
       </div>
