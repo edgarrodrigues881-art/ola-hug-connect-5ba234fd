@@ -515,6 +515,11 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
+              <Settings className="w-4 h-4" strokeWidth={1.5} />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4" strokeWidth={1.5} />
               Sair
