@@ -54,12 +54,14 @@ const ClientPlanTab = ({ client, detail }: Props) => {
   const [trialDays, setTrialDays] = useState<number>(3);
   const [manualExpires, setManualExpires] = useState<string>("");
   const [includeNotification, setIncludeNotification] = useState<boolean>(detail?.profile?.notificacao_liberada ?? false);
+  const [autoreplyTier, setAutoreplyTier] = useState<AutoreplyTier>("none");
 
   const planConfig = PLANS[planName] || PLANS.Start;
   const isTrial = planName === "Trial";
   const isNoPlan = planName === "Sem plano";
   const notificationPrice = isTrial ? 0 : NOTIFICATION_PRICE;
-  const autoTotal = planConfig.price + (includeNotification ? notificationPrice : 0);
+  const autoreplyPrice = isTrial ? 0 : AUTOREPLY_PRICES[autoreplyTier];
+  const autoTotal = planConfig.price + (includeNotification ? notificationPrice : 0) + autoreplyPrice;
   // Initialize manualPrice from saved subscription if it differs from auto-calculated value
   const [manualPrice, setManualPrice] = useState<string>(() => {
     if (sub?.plan_price != null) {
