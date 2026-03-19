@@ -254,7 +254,7 @@ const MyPlan = () => {
                     href={isCustom ? buildCustomWhatsappUrl() : buildWhatsappUrl(plan as any)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`mt-auto w-full h-11 xl:h-10 2xl:h-11 rounded-lg font-semibold text-sm xl:text-xs 2xl:text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:brightness-110 ${
+                    className={`mt-auto w-full h-11 xl:h-10 2xl:h-11 rounded-lg font-semibold text-[13px] xl:text-[11px] 2xl:text-[13px] whitespace-nowrap flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.98] hover:brightness-110 ${
                       plan.popular
                         ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
                         : plan.highlight
