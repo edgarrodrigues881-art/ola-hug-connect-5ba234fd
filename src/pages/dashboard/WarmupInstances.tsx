@@ -259,7 +259,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
-        <div className="flex flex-col items-end gap-1 shrink min-w-0 max-w-[55%]">
+        <div className="flex flex-col items-end gap-1 shrink min-w-0 max-w-[60%]">
           {cycle && warmupProgress !== null && (
             <div className="relative flex items-center gap-1 rounded-lg px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden">
               <div
@@ -273,7 +273,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
                 {warmupProgress}%
               </span>
               <span className={cn(
-                "relative z-10 text-[6px] sm:text-[7px] font-extrabold uppercase tracking-wider px-1 py-[1px] rounded shrink-0 truncate max-w-[50px] sm:max-w-[60px]",
+                "relative z-10 text-[7px] font-extrabold uppercase tracking-wider px-1.5 py-[2px] rounded shrink min-w-0 truncate",
                 cycle.phase === "pre_24h" && "bg-sky-500/20 text-sky-300",
                 cycle.phase === "groups_only" && "bg-emerald-500/20 text-emerald-300",
                 cycle.phase === "autosave_enabled" && "bg-violet-500/20 text-violet-300",
@@ -306,7 +306,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
               );
             })()}
             {deviceTags && deviceTags.length > 0 && deviceTags.map((tag) => (
-              <span key={tag.label} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[7px] sm:text-[8px] font-semibold text-white leading-tight truncate max-w-[70px] sm:max-w-none" style={{ backgroundColor: tag.color }}>
+              <span key={tag.label} className="inline-flex items-center px-1.5 py-[3px] rounded-full text-[7px] font-bold text-white leading-none" style={{ backgroundColor: tag.color }}>
                 {tag.label}
               </span>
             ))}
