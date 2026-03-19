@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef, useEffect, useState } from "react";
-import { FixedSizeList as List } from "react-window";
+import { List } from "react-window";
 
 interface VirtualizedDeviceGridProps {
   items: any[];
