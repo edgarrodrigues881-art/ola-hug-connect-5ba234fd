@@ -1081,6 +1081,152 @@ export type Database = {
         }
         Relationships: []
       }
+      community_warmup_configs: {
+        Row: {
+          active_days: Json
+          created_at: string
+          daily_limit: number
+          device_id: string
+          end_hour: string
+          id: string
+          intensity: string
+          interactions_today: number
+          is_active: boolean
+          last_daily_reset_at: string | null
+          last_interaction_at: string | null
+          max_delay_seconds: number
+          min_delay_seconds: number
+          pause_after_messages_max: number
+          pause_after_messages_min: number
+          pause_duration_max: number
+          pause_duration_min: number
+          start_hour: string
+          status: string
+          status_message: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_days?: Json
+          created_at?: string
+          daily_limit?: number
+          device_id: string
+          end_hour?: string
+          id?: string
+          intensity?: string
+          interactions_today?: number
+          is_active?: boolean
+          last_daily_reset_at?: string | null
+          last_interaction_at?: string | null
+          max_delay_seconds?: number
+          min_delay_seconds?: number
+          pause_after_messages_max?: number
+          pause_after_messages_min?: number
+          pause_duration_max?: number
+          pause_duration_min?: number
+          start_hour?: string
+          status?: string
+          status_message?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_days?: Json
+          created_at?: string
+          daily_limit?: number
+          device_id?: string
+          end_hour?: string
+          id?: string
+          intensity?: string
+          interactions_today?: number
+          is_active?: boolean
+          last_daily_reset_at?: string | null
+          last_interaction_at?: string | null
+          max_delay_seconds?: number
+          min_delay_seconds?: number
+          pause_after_messages_max?: number
+          pause_after_messages_min?: number
+          pause_duration_max?: number
+          pause_duration_min?: number
+          start_hour?: string
+          status?: string
+          status_message?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_warmup_configs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_warmup_logs: {
+        Row: {
+          config_id: string
+          created_at: string
+          delay_applied_seconds: number | null
+          device_id: string
+          error_message: string | null
+          event_type: string
+          id: string
+          intensity: string | null
+          interaction_type: string | null
+          message_preview: string | null
+          partner_device_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          delay_applied_seconds?: number | null
+          device_id: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          intensity?: string | null
+          interaction_type?: string | null
+          message_preview?: string | null
+          partner_device_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          delay_applied_seconds?: number | null
+          device_id?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          intensity?: string | null
+          interaction_type?: string | null
+          message_preview?: string | null
+          partner_device_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_warmup_logs_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "community_warmup_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_warmup_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           created_at: string

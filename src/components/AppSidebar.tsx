@@ -11,6 +11,7 @@ import {
   UsersRound,
   BotMessageSquare,
   ArrowRightLeft,
+  Heart,
   LogOut,
   Settings,
   ChevronUp,
@@ -421,6 +422,7 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
+              {renderNavItem({ title: "Aquecimento Comunitário", url: "/dashboard/community-warmup", icon: Heart })}
               {renderNavItem({ title: "Proxy", url: "/dashboard/proxy", icon: Shield })}
               {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound })}
               {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
