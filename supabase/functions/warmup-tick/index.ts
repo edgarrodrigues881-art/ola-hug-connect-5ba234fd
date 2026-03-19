@@ -697,19 +697,29 @@ function buildMsg(ctx: MsgCtx): string {
 // ══════════════════════════════════════════════════════════
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
-  // For group JIDs (@g.us), prioritize endpoints that accept group format
+  const safeText = String(text || "").trim();
+  if (!safeText) throw new Error("Texto vazio para envio");
+
+  // For group JIDs (@g.us), try every payload shape commonly accepted by UaZapi.
+  // Some instances reject /chat/send-text with 405 while still accepting /send/text or /message/sendText.
   const isGroup = number.includes("@g.us");
-  
+
   const attempts: Array<{ path: string; body: Record<string, unknown> }> = isGroup
     ? [
-        { path: "/send/text", body: { chatId: number, number, text } },
-        { path: "/send/text", body: { number, text } },
-        { path: "/chat/send-text", body: { chatId: number, to: number, body: text, text } },
+        { path: "/send/text", body: { chatId: number, text: safeText } },
+        { path: "/send/text", body: { chatId: number, number, text: safeText } },
+        { path: "/send/text", body: { number, text: safeText } },
+        { path: "/chat/send-text", body: { chatId: number, body: safeText } },
+        { path: "/chat/send-text", body: { chatId: number, text: safeText } },
+        { path: "/chat/send-text", body: { chatId: number, to: number, body: safeText, text: safeText } },
+        { path: "/message/sendText", body: { chatId: number, text: safeText } },
+        { path: "/message/sendText", body: { number, text: safeText } },
       ]
     : [
-        { path: "/send/text", body: { number, text } },
-        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
-        { path: "/message/sendText", body: { chatId: number, text } },
+        { path: "/send/text", body: { number, text: safeText } },
+        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: safeText, text: safeText } },
+        { path: "/message/sendText", body: { chatId: number, text: safeText } },
+        { path: "/message/sendText", body: { number, text: safeText } },
       ];
 
   let lastErr = "";
@@ -739,8 +749,7 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
           return { ok: true, raw };
         }
       }
-      // Skip 405 for groups — try next endpoint instead of failing
-      if (res.status === 405) { lastErr = `405 @ ${at.path}`; continue; }
+      if (res.status === 405 || res.status === 404) { lastErr = `${res.status} @ ${at.path}`; continue; }
       lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
     } catch (e) {
       lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
