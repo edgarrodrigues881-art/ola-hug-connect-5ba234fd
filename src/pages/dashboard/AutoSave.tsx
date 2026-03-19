@@ -398,7 +398,7 @@ const AutoSave = () => {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -410,16 +410,16 @@ const AutoSave = () => {
             Gerencie os contatos da camada Auto Save
           </p>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl border-border/15" onClick={() => setImportOpen(true)}>
+        <div className="flex flex-col md:flex-col lg:flex-row items-stretch lg:items-center gap-1.5 w-full lg:w-auto">
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl border-border/15 w-full lg:w-auto" onClick={() => setImportOpen(true)}>
             <Upload className="w-3.5 h-3.5" /> Importar
           </Button>
           {contacts.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl text-destructive border-destructive/20 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
-              <Trash2 className="w-3.5 h-3.5" /> Apagar todos
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-9 rounded-xl text-destructive border-destructive/20 hover:bg-destructive/10 w-full lg:w-auto" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 className="w-3.5 h-3.5" /> Limpar
             </Button>
           )}
-          <Button size="sm" className="gap-1.5 text-xs h-9 rounded-xl shadow-md" onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="gap-1.5 text-xs h-9 rounded-xl shadow-md w-full lg:w-auto" onClick={() => setAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" /> Adicionar
           </Button>
         </div>
@@ -799,7 +799,7 @@ const AutoSave = () => {
                 <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
                   <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
                 </div>
-                Apagar todos os contatos?
+                Limpar todos os contatos?
               </DialogTitle>
             </DialogHeader>
           </div>
@@ -810,7 +810,7 @@ const AutoSave = () => {
           </div>
           <div className="flex gap-2 px-6 py-4 border-t border-border/10 bg-muted/5">
             <Button variant="outline" size="sm" onClick={() => setDeleteAllOpen(false)} className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/15">Cancelar</Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteAll} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">Apagar todos</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll} className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-md">Limpar todos</Button>
           </div>
         </DialogContent>
       </Dialog>
