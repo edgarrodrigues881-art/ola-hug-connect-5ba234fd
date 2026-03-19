@@ -148,10 +148,10 @@ const comparisonRows = [
 const MyPlan = () => {
   return (
     <div className="min-h-screen pb-24 -m-2.5 sm:-m-5 md:-m-8" style={{ background: '#080b0e' }}>
-      <div className="max-w-[1400px] mx-auto px-5 sm:px-8 space-y-20">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-20">
 
         {/* Hero */}
-        <div className="text-center max-w-2xl mx-auto pt-14 sm:pt-16">
+        <div className="text-center max-w-2xl mx-auto pt-12 sm:pt-16">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 border border-amber-500/20 bg-amber-500/5 text-amber-400">
             <Sparkles className="w-3.5 h-3.5" />
             Planos flexíveis para qualquer escala
@@ -164,86 +164,95 @@ const MyPlan = () => {
           </p>
         </div>
 
-        {/* Plans Grid - 6 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-stretch">
+        {/* Plans Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 xl:gap-3">
           {plans.map((plan) => {
             const isCustom = "isCustom" in plan && plan.isCustom;
             return (
               <div
                 key={plan.name}
-                className={`group relative flex flex-col rounded-2xl transition-all duration-200 ${
+                className={`group relative flex flex-col rounded-2xl transition-all duration-200 hover:scale-[1.02] ${
                   plan.popular
-                    ? "border border-amber-500/30 hover:border-amber-500/50 hover:shadow-[0_0_30px_-8px_rgba(245,158,11,0.25)]"
+                    ? "border-2 border-amber-500/40 shadow-[0_0_30px_-8px_rgba(245,158,11,0.2)] hover:border-amber-500/60 hover:shadow-[0_0_40px_-8px_rgba(245,158,11,0.35)]"
                     : plan.highlight
-                    ? "border border-white/[0.10] hover:border-white/[0.18] hover:shadow-[0_0_20px_-8px_rgba(255,255,255,0.08)]"
-                    : "border border-white/[0.06] hover:border-white/[0.12]"
+                    ? "border border-white/[0.12] hover:border-white/[0.20] hover:shadow-[0_0_20px_-8px_rgba(255,255,255,0.08)]"
+                    : "border border-white/[0.06] hover:border-white/[0.14]"
                 }`}
               >
                 <div
-                  className={`relative flex flex-col rounded-2xl p-5 sm:p-6 h-full ${
+                  className={`relative flex flex-col h-full rounded-2xl p-5 xl:p-4 2xl:p-5 ${
                     plan.popular ? "bg-[#0d1318]" : plan.highlight ? "bg-[#101820]" : "bg-[#0f1419]"
                   }`}
                 >
                   {plan.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-[10px] font-bold uppercase tracking-widest px-4 py-1 rounded-full whitespace-nowrap shadow-[0_0_20px_-4px_rgba(245,158,11,0.5)]">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-[9px] xl:text-[8px] 2xl:text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full whitespace-nowrap shadow-[0_0_20px_-4px_rgba(245,158,11,0.5)]">
                       ⭐ Mais Escolhido
                     </span>
                   )}
 
-                  {/* Header block — fixed height so all cards align */}
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold mt-1 text-white/90">{plan.name}</h3>
-                    <p className="text-xs text-white/30 mb-1">
+                  {/* ── HEADER: name + instances ── */}
+                  <div className="min-h-[40px]">
+                    <h3 className="text-base xl:text-sm 2xl:text-base font-semibold text-white/90 mt-1">{plan.name}</h3>
+                    <p className="text-[11px] xl:text-[10px] 2xl:text-[11px] text-white/30">
                       {typeof plan.instances === "number" ? `${plan.instances} instâncias` : `${plan.instances} instâncias`}
                     </p>
-                    <p className="text-[11px] text-white/20 leading-relaxed min-h-[48px]">{plan.subtitle}</p>
-                    {plan.extraCopy ? (
-                      <p className={`text-[11px] leading-relaxed mt-1 min-h-[16px] ${plan.popular ? "text-amber-400/60" : plan.highlight ? "text-teal-400/50" : "text-emerald-400/50"}`}>
+                  </div>
+
+                  {/* ── DESCRIPTION: fixed height ── */}
+                  <p className="text-[11px] xl:text-[10px] 2xl:text-[11px] text-white/20 leading-relaxed mt-2 min-h-[44px] xl:min-h-[52px]">
+                    {plan.subtitle}
+                  </p>
+
+                  {/* ── EXTRA COPY ── */}
+                  <div className="min-h-[18px] mt-1">
+                    {plan.extraCopy && (
+                      <p className={`text-[10px] xl:text-[9px] 2xl:text-[10px] font-medium leading-relaxed ${
+                        plan.popular ? "text-amber-400/70" : plan.highlight ? "text-teal-400/60" : "text-emerald-400/50"
+                      }`}>
                         {plan.extraCopy}
                       </p>
-                    ) : (
-                      <div className="min-h-[16px] mt-1" />
                     )}
                   </div>
 
-                  {/* Price block */}
-                  <div className="mb-4">
+                  {/* ── PRICE ── */}
+                  <div className="mt-3 mb-3 min-h-[40px] flex items-end">
                     {isCustom ? (
-                      <span className="text-2xl font-bold text-white/90">Sob consulta</span>
+                      <span className="text-xl xl:text-lg 2xl:text-xl font-bold text-white/90">Sob consulta</span>
                     ) : (
-                      <>
-                        <span className="text-3xl font-bold text-white/90">R$ {plan.price}</span>
-                        <span className="text-white/20 text-sm"> / mês</span>
-                      </>
+                      <div className="flex items-baseline">
+                        <span className="text-2xl xl:text-xl 2xl:text-2xl font-bold text-white/90">R$ {plan.price}</span>
+                        <span className="text-white/20 text-xs ml-1"> / mês</span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="h-px bg-white/[0.05] mb-5" />
+                  <div className="h-px bg-white/[0.05] mb-4" />
 
-                  {/* Features — grows to fill remaining space */}
-                  <div className="space-y-2.5 flex-1">
+                  {/* ── FEATURES: flex-1 to push button down ── */}
+                  <div className="flex-1 space-y-2 xl:space-y-1.5 2xl:space-y-2 mb-5">
                     {plan.features.map((f, fi) => (
-                      <div key={fi} className="flex items-start gap-2.5 text-xs text-white/40">
-                        <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-white/20 shrink-0 mt-0.5" />
-                        {f}
+                      <div key={fi} className="flex items-start gap-2 text-[11px] xl:text-[10px] 2xl:text-[11px] text-white/40">
+                        <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] shrink-0 mt-px text-white/20" />
+                        <span className="leading-snug">{f}</span>
                       </div>
                     ))}
                   </div>
 
+                  {/* ── CTA BUTTON: always at bottom ── */}
                   <a
                     href={isCustom ? buildCustomWhatsappUrl() : buildWhatsappUrl(plan as any)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`w-full py-3 mt-auto pt-6 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] ${
+                    className={`mt-auto w-full h-11 xl:h-10 2xl:h-11 rounded-lg font-semibold text-sm xl:text-xs 2xl:text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:brightness-110 ${
                       plan.popular
-                        ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold hover:from-amber-400 hover:to-yellow-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
+                        ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
                         : plan.highlight
-                        ? "bg-white/[0.08] text-white/70 hover:bg-white/[0.12] border border-white/[0.10]"
-                        : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
+                        ? "bg-white/[0.08] text-white/70 border border-white/[0.10] hover:bg-white/[0.12]"
+                        : "bg-white/[0.05] text-white/60 border border-white/[0.06] hover:bg-white/[0.08]"
                     }`}
                   >
                     {plan.cta}
-                    <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </a>
                 </div>
               </div>
@@ -251,9 +260,9 @@ const MyPlan = () => {
           })}
         </div>
 
-        {/* Addons Section */}
+        {/* ════════════ ADD-ONS ════════════ */}
         <div className="space-y-6">
-          <div className="text-center mb-2">
+          <div className="text-center">
             <h2 className="text-lg font-bold text-white/90 flex items-center justify-center gap-2">
               <Zap className="w-4.5 h-4.5 text-amber-400" />
               Add-ons
@@ -263,13 +272,13 @@ const MyPlan = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
             {/* Addon 1: Relatórios via WhatsApp */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0f1419] hover:border-white/[0.12] transition-all duration-200">
-              <div className="p-6 flex flex-col gap-4">
-                <div className="flex items-start gap-3">
+            <div className="relative flex flex-col rounded-2xl border border-white/[0.06] bg-[#0f1419] hover:border-white/[0.12] transition-all duration-200 hover:scale-[1.01]">
+              <div className="p-5 sm:p-6 flex flex-col h-full">
+                <div className="flex items-start gap-3 mb-4">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/15">
-                    <Bell className="w-4.5 h-4.5 text-amber-400" />
+                    <Bell className="w-4 h-4 text-amber-400" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-sm font-bold text-white/90 mb-0.5">Relatórios via WhatsApp</h3>
                     <p className="text-[11px] text-white/30 leading-relaxed">
                       Receba relatórios automáticos e alertas diretamente no WhatsApp.
@@ -277,7 +286,8 @@ const MyPlan = () => {
                     <p className="text-[10px] text-white/20 mt-1">Já incluso nos planos Scale e Elite.</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
+
+                <div className="mt-auto flex items-center justify-between pt-3 border-t border-white/[0.04]">
                   <div className="flex items-baseline gap-0.5">
                     <span className="text-xs font-medium text-white/30">R$</span>
                     <span className="text-xl font-extrabold tracking-tighter leading-none text-white/90">18</span>
@@ -288,7 +298,7 @@ const MyPlan = () => {
                     href={buildAddonWhatsappUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 font-semibold text-xs flex items-center gap-1.5 transition-all duration-200 rounded-lg bg-white/[0.05] text-white/60 border border-white/[0.06] hover:bg-white/[0.08] hover:scale-[1.02] active:scale-[0.98]"
+                    className="px-4 h-9 font-semibold text-xs flex items-center gap-1.5 transition-all duration-200 rounded-lg bg-white/[0.05] text-white/60 border border-white/[0.06] hover:bg-white/[0.08] hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Ativar
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -298,13 +308,13 @@ const MyPlan = () => {
             </div>
 
             {/* Addon 2: Resposta Automática Inteligente */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0f1419] hover:border-white/[0.12] transition-all duration-200">
-              <div className="p-6 flex flex-col gap-4">
-                <div className="flex items-start gap-3">
+            <div className="relative flex flex-col rounded-2xl border border-white/[0.06] bg-[#0f1419] hover:border-white/[0.12] transition-all duration-200 hover:scale-[1.01]">
+              <div className="p-5 sm:p-6 flex flex-col h-full">
+                <div className="flex items-start gap-3 mb-4">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/10 border border-teal-500/15">
-                    <Bot className="w-4.5 h-4.5 text-teal-400" />
+                    <Bot className="w-4 h-4 text-teal-400" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-sm font-bold text-white/90 mb-0.5">Resposta Automática Inteligente</h3>
                     <p className="text-[11px] text-white/30 leading-relaxed">
                       Automatize conversas, respostas e fluxos sem intervenção manual.
@@ -312,53 +322,53 @@ const MyPlan = () => {
                   </div>
                 </div>
 
-                {/* Two tiers */}
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/[0.04]">
+                {/* Two tiers — equal height columns */}
+                <div className="mt-auto grid grid-cols-2 gap-3 pt-3 border-t border-white/[0.04]">
                   {/* Básico */}
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Básico</p>
-                    <div className="flex items-baseline gap-0.5">
+                  <div className="flex flex-col">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-2">Básico</p>
+                    <div className="flex items-baseline gap-0.5 mb-2">
                       <span className="text-xs text-white/30">R$</span>
                       <span className="text-lg font-extrabold tracking-tighter leading-none text-white/90">29</span>
                       <span className="text-xs font-bold text-white/30">,90</span>
                       <span className="text-[9px] text-white/20 ml-0.5">/mês</span>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Até 3 fluxos</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Respostas automáticas simples</p>
+                    <div className="space-y-1 mb-3 flex-1">
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 shrink-0 text-white/20" />Até 3 fluxos</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 shrink-0 text-white/20" />Respostas automáticas simples</p>
                     </div>
                     <a
                       href={buildAutoReplyAddonUrl("Básico", "29,90")}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full py-1.5 font-semibold text-[10px] flex items-center justify-center gap-1 transition-all duration-200 rounded-md bg-white/[0.05] text-white/50 border border-white/[0.06] hover:bg-white/[0.08] hover:scale-[1.02] active:scale-[0.98]"
+                      className="mt-auto w-full h-8 font-semibold text-[10px] flex items-center justify-center gap-1 transition-all duration-200 rounded-md bg-white/[0.05] text-white/50 border border-white/[0.06] hover:bg-white/[0.08] hover:scale-[1.02] active:scale-[0.98]"
                     >
                       Ativar
                     </a>
                   </div>
 
                   {/* Pro */}
-                  <div className="space-y-2 relative">
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 mb-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-400/70">Pro</p>
                       <span className="text-[8px] bg-teal-500/15 text-teal-400/70 px-1.5 py-0.5 rounded-full font-semibold">Recomendado</span>
                     </div>
-                    <div className="flex items-baseline gap-0.5">
+                    <div className="flex items-baseline gap-0.5 mb-2">
                       <span className="text-xs text-white/30">R$</span>
                       <span className="text-lg font-extrabold tracking-tighter leading-none text-white/90">49</span>
                       <span className="text-xs font-bold text-white/30">,90</span>
                       <span className="text-[9px] text-white/20 ml-0.5">/mês</span>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Fluxos ilimitados</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Automação completa e ilimitada</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Ideal para escalar atendimento</p>
+                    <div className="space-y-1 mb-3 flex-1">
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 shrink-0 text-teal-500/50" />Fluxos ilimitados</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 shrink-0 text-teal-500/50" />Automação completa e ilimitada</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 shrink-0 text-teal-500/50" />Ideal para escalar atendimento</p>
                     </div>
                     <a
                       href={buildAutoReplyAddonUrl("Pro", "49,90")}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full py-1.5 font-semibold text-[10px] flex items-center justify-center gap-1 transition-all duration-200 rounded-md bg-teal-500/10 text-teal-400/80 border border-teal-500/20 hover:bg-teal-500/15 hover:scale-[1.02] active:scale-[0.98]"
+                      className="mt-auto w-full h-8 font-semibold text-[10px] flex items-center justify-center gap-1 transition-all duration-200 rounded-md bg-teal-500/10 text-teal-400/80 border border-teal-500/20 hover:bg-teal-500/15 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       Ativar
                     </a>
@@ -369,7 +379,7 @@ const MyPlan = () => {
           </div>
         </div>
 
-        {/* Comparison Table */}
+        {/* ════════════ COMPARISON TABLE ════════════ */}
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-xl font-bold flex items-center justify-center gap-2.5 text-white/90">
@@ -381,12 +391,17 @@ const MyPlan = () => {
             </p>
           </div>
           <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#0f1419] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="bg-white/[0.02]">
-                  <th className="text-left px-3 sm:px-5 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider w-[140px] sm:w-[180px] text-white/30">Recurso</th>
+                  <th className="text-left px-4 py-3.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider w-[160px] text-white/30">Recurso</th>
                   {plans.map(p => (
-                    <th key={p.name} className={`text-center px-2 sm:px-3 py-3.5 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${p.popular ? "text-amber-400" : "text-white/40"}`}>
+                    <th
+                      key={p.name}
+                      className={`text-center px-2 py-3.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${
+                        p.popular ? "text-amber-400 bg-amber-500/[0.04]" : "text-white/40"
+                      }`}
+                    >
                       {p.name}
                     </th>
                   ))}
@@ -394,27 +409,36 @@ const MyPlan = () => {
               </thead>
               <tbody>
                 {comparisonRows.map((row, ri) => (
-                  <tr key={ri}
-                    className={`transition-colors duration-100 border-t border-white/[0.04] hover:bg-white/[0.02] ${ri % 2 === 1 ? "bg-white/[0.01]" : ""}`}
+                  <tr
+                    key={ri}
+                    className={`border-t border-white/[0.04] transition-colors duration-100 hover:bg-white/[0.02] ${
+                      ri % 2 === 1 ? "bg-white/[0.015]" : ""
+                    }`}
                   >
-                    <td className="px-3 sm:px-5 py-3 sm:py-3.5 text-[12px] sm:text-[13px] font-medium text-white/40">
+                    <td className="px-4 py-3 text-[12px] font-medium text-white/40">
                       {row.label}
                     </td>
-                    {row.values.map((val, vi) => (
-                      <td key={vi} className="text-center px-2 sm:px-3 py-3 sm:py-3.5">
-                        {typeof val === "boolean" ? (
-                          val ? (
-                            <Check className="w-4 h-4 mx-auto text-emerald-500/60" strokeWidth={2.5} />
+                    {row.values.map((val, vi) => {
+                      const isPro = plans[vi].popular;
+                      return (
+                        <td
+                          key={vi}
+                          className={`text-center px-2 py-3 align-middle ${isPro ? "bg-amber-500/[0.04]" : ""}`}
+                        >
+                          {typeof val === "boolean" ? (
+                            val ? (
+                              <Check className={`w-4 h-4 mx-auto ${isPro ? "text-amber-400/70" : "text-emerald-500/60"}`} strokeWidth={2.5} />
+                            ) : (
+                              <span className="text-xs text-white/20">—</span>
+                            )
                           ) : (
-                            <span className="text-xs text-white/20">—</span>
-                          )
-                        ) : (
-                          <span className={`text-xs font-bold ${plans[vi].popular ? "text-amber-400" : "text-white/70"}`}>
-                            {val}
-                          </span>
-                        )}
-                      </td>
-                    ))}
+                            <span className={`text-[11px] font-semibold ${isPro ? "text-amber-400/90" : "text-white/60"}`}>
+                              {val}
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -426,30 +450,30 @@ const MyPlan = () => {
         <div className="space-y-6 pb-8">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-white/30">
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
+              <Check className="w-4 h-4 shrink-0 text-emerald-500/50" />
               Sem fidelidade
             </div>
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
+              <Check className="w-4 h-4 shrink-0 text-emerald-500/50" />
               Upgrade imediato
             </div>
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 flex-shrink-0 text-emerald-500/50" />
+              <Check className="w-4 h-4 shrink-0 text-emerald-500/50" />
               Garantia de 7 dias
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-10 text-sm text-white/20">
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 flex-shrink-0" />
+              <Lock className="w-4 h-4 shrink-0" />
               Infraestrutura segura
             </div>
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 flex-shrink-0" />
+              <Activity className="w-4 h-4 shrink-0" />
               Operação estável
             </div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 flex-shrink-0" />
+              <TrendingUp className="w-4 h-4 shrink-0" />
               Monitoramento contínuo
             </div>
           </div>
