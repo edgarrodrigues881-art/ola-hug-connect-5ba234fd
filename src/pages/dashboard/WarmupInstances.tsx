@@ -286,7 +286,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
               </span>
             </div>
           )}
-          {!connected && countdown && (() => {
+          {!connected && countdown && device.number && (() => {
             const [hh, mm] = countdown.split(":");
             return (
               <div className="flex items-center gap-0.5 rounded-full bg-destructive/8 border border-destructive/15 px-2 py-0.5">
