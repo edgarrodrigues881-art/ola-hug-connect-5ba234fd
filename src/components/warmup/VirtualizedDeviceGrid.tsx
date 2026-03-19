@@ -116,7 +116,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
           overscanCount={3}
           style={{ overflowX: "hidden", height: gridHeight }}
           cellComponent={CellRenderer}
-          cellProps={cellProps}
+          cellProps={cellProps as any}
         />
       )}
     </div>
