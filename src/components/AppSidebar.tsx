@@ -421,14 +421,32 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
+              {renderNavItem({ title: "Proxy", url: "/dashboard/proxy", icon: Shield })}
               {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound })}
+              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
               {renderNavItem({ title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ── Suporte section (bottom) ── */}
+        {/* ── Desenvolvimento section ── */}
+        <SidebarGroup className="py-0 mt-1">
+          {!collapsed && (
+            <SidebarGroupLabel className="px-4 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-0.5">
+              Desenvolvimento
+            </SidebarGroupLabel>
+          )}
+          {collapsed && (
+            <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
+              {developmentItems.map((item) => renderNavItem(item as any))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* ── Suporte section ── */}
         <SidebarGroup className="py-0 mt-1">
           {!collapsed && (
             <SidebarGroupLabel className="px-4 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-0.5">
@@ -440,8 +458,6 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
-              {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
-              {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
               {/* Meu Plano - Premium animated button */}
               <SidebarMenuItem className="plan-gold-wrap">
                 <SidebarMenuButton asChild tooltip="Meu Plano">
@@ -468,7 +484,7 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              
+              {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
           </SidebarGroupContent>
