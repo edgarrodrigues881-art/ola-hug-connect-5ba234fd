@@ -795,7 +795,20 @@ Deno.serve(async (req) => {
             ? messageContent.split("|||").filter((m: string) => m.trim())
             : [messageContent];
       console.log(`Message mode: ${sendAllMode ? 'ALL (|&&|)' : sequentialMode ? 'SEQUENTIAL (|>>|)' : messageContent.includes('|||') ? 'RANDOM (|||)' : 'SINGLE'}, variants: ${messageVariants.length}`);
-      const mediaUrl = campaign.media_url || null;
+      // Parse media_url — may be a JSON array from templates or a plain URL
+      let mediaUrl: string | null = null;
+      if (campaign.media_url) {
+        try {
+          const parsed = JSON.parse(campaign.media_url);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            mediaUrl = parsed[0].url || null;
+          } else {
+            mediaUrl = campaign.media_url;
+          }
+        } catch {
+          mediaUrl = campaign.media_url;
+        }
+      }
       const campaignButtons: CampaignButton[] = Array.isArray(campaign.buttons) ? campaign.buttons : [];
       const msgType = campaign.message_type || "texto";
       const pauseOnDisconnect = campaign.pause_on_disconnect !== false;
