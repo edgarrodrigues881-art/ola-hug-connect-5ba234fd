@@ -1850,6 +1850,20 @@ async function handleTick(db: any) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
         return false;
       }
+
+      const desiredGroupMsgs = getVolumes(chipState, cycle.day_index || 1, cycle.phase || "groups_only").groupMsgs;
+      let groupMsgsSentToday = 0;
+
+      if (job.job_type === "group_interaction" && desiredGroupMsgs > 0) {
+        const resetFloor = cycle.last_daily_reset_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await db.from("warmup_audit_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("cycle_id", cycle.id)
+          .eq("event_type", "group_msg_sent")
+          .gte("created_at", resetFloor);
+        groupMsgsSentToday = count || 0;
+      }
+
       // Always read fresh budget from DB to prevent concurrent tick race conditions
       const { data: freshBudget } = await db.from("warmup_cycles")
         .select("daily_interaction_budget_used, daily_interaction_budget_target")
@@ -1860,7 +1874,11 @@ async function handleTick(db: any) {
       }
       const used = cycle.daily_interaction_budget_used || 0;
       const limit = cycle.daily_interaction_budget_target || 500;
-      if (used >= limit) {
+      const preserveGroupQuota = job.job_type === "group_interaction"
+        && desiredGroupMsgs > 0
+        && groupMsgsSentToday < desiredGroupMsgs;
+
+      if (used >= limit && !preserveGroupQuota) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget atingido: ${used}/${limit}` }).eq("id", job.id);
         return false;
       }
