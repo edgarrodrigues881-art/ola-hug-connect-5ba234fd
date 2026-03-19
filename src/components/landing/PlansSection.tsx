@@ -5,7 +5,13 @@ import AnimateOnView from "@/components/AnimateOnView";
 
 const plans = [
   {
-    name: "Start", instances: 10, price: "149,90", perInstance: "14,99",
+    name: "Essencial", instances: 5, price: "89,90", perInstance: "17,98",
+    subtitle: "Ideal para quem está iniciando com estrutura profissional.",
+    extraCopy: null, cta: "Contratar Plano", popular: false,
+    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Monitoramento em tempo real limitado", "Suporte padrão"],
+  },
+  {
+    name: "Start", instances: 10, price: "159,90", perInstance: "15,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null, cta: "Contratar Plano", popular: false,
     features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Painel centralizado", "Monitoramento em tempo real", "Suporte padrão"],
@@ -23,7 +29,7 @@ const plans = [
     features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada", "Monitoramento em tempo real", "Suporte prioritário"],
   },
   {
-    name: "Elite", instances: 100, price: "899,90", perInstance: "8,99",
+    name: "Elite", instances: 100, price: "999,90", perInstance: "9,99",
     subtitle: "Máxima capacidade operacional.",
     extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.", cta: "Contratar Plano", popular: false,
     features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão completa de instâncias", "Monitoramento avançado", "Atendimento prioritário dedicado"],
@@ -34,12 +40,10 @@ const PlansSection = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  const handleContratarPlano = () => {
-    if (session) {
-      navigate("/dashboard/my-plan");
-    } else {
-      navigate("/auth?redirect=/dashboard/my-plan");
-    }
+  const handleContratarPlano = (plan: typeof plans[0]) => {
+    const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência – ${plan.name} (${plan.instances} Instâncias) no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
+    const url = `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -55,7 +59,7 @@ const PlansSection = () => {
           </p>
         </AnimateOnView>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {plans.map((plan, i) => (
             <AnimateOnView key={plan.name} animation="slide-up" delay={Math.min(i + 1, 4)}>
               <div
@@ -101,7 +105,7 @@ const PlansSection = () => {
                 </div>
 
                 <button
-                  onClick={handleContratarPlano}
+                  onClick={() => handleContratarPlano(plan)}
                   className={`w-full py-3.5 rounded-lg font-medium text-base flex items-center justify-center gap-2 btn-press ${
                     plan.popular
                       ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold hover:from-amber-400 hover:to-yellow-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
