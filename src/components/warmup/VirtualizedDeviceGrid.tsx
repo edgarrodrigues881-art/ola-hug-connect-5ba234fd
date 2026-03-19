@@ -28,14 +28,8 @@ const GAP = 16;
 const MOBILE_BREAKPOINT = 768;
 
 // Mobile row: renders a single item
-function MobileRow({ index, style, items, renderItem, cardHeight, gap }: {
-  index: number;
-  style: CSSProperties;
-  items: any[];
-  renderItem: (item: any, index: number) => React.ReactNode;
-  cardHeight: number;
-  gap: number;
-}): ReactElement | null {
+function MobileRow(props: any): ReactElement | null {
+  const { index, style, items, renderItem, cardHeight, gap } = props;
   if (index >= items.length) return null;
   return (
     <div style={{ ...style, height: cardHeight, paddingBottom: gap }}>
@@ -45,21 +39,13 @@ function MobileRow({ index, style, items, renderItem, cardHeight, gap }: {
 }
 
 // Desktop row: renders a full row of columns
-function DesktopRow({ index, style, items, renderItem, columnCount, columnWidth, cardHeight, gap }: {
-  index: number;
-  style: CSSProperties;
-  items: any[];
-  renderItem: (item: any, index: number) => React.ReactNode;
-  columnCount: number;
-  columnWidth: number;
-  cardHeight: number;
-  gap: number;
-}): ReactElement | null {
+function DesktopRow(props: any): ReactElement | null {
+  const { index, style, items, renderItem, columnCount, columnWidth, cardHeight, gap } = props;
   const startIdx = index * columnCount;
   const rowItems = items.slice(startIdx, startIdx + columnCount);
   return (
     <div style={{ ...style, display: "flex", gap }}>
-      {rowItems.map((item, colIdx) => (
+      {rowItems.map((item: any, colIdx: number) => (
         <div key={item.id || startIdx + colIdx} style={{ width: columnWidth, height: cardHeight, flexShrink: 0 }}>
           {renderItem(item, startIdx + colIdx)}
         </div>
@@ -117,7 +103,6 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
   if (isMobile) {
     const totalHeight = items.length * (cardHeight + gap);
     const listHeight = Math.min(dimensions.height, totalHeight);
-    const mobileRowProps = { items, renderItem, cardHeight, gap };
 
     return (
       <div ref={containerRef} style={{ width: "100%", WebkitOverflowScrolling: "touch" }}>
@@ -129,7 +114,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
           overscanCount={5}
           style={{ overflowX: "hidden" }}
           rowComponent={MobileRow}
-          rowProps={mobileRowProps}
+          rowProps={{ items, renderItem, cardHeight, gap }}
         />
       </div>
     );
@@ -138,7 +123,6 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
   // Desktop: multi-column rows
   const totalHeight = rowCount * (cardHeight + gap);
   const gridHeight = Math.min(dimensions.height, totalHeight);
-  const desktopRowProps = { items, renderItem, columnCount, columnWidth, cardHeight, gap };
 
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
@@ -149,7 +133,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
         width={dimensions.width}
         overscanCount={3}
         rowComponent={DesktopRow}
-        rowProps={desktopRowProps}
+        rowProps={{ items, renderItem, columnCount, columnWidth, cardHeight, gap }}
       />
     </div>
   );
