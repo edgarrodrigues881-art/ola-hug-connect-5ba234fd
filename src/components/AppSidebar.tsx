@@ -84,9 +84,9 @@ const menuGroups = [
     items: [
       { title: "Template", url: "/dashboard/templates", icon: FileText },
       { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
-      { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft },
-      { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound },
-      { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare },
+      { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft, locked: true },
+      { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound, locked: true },
+      { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare, locked: true },
     ],
   },
 ];
