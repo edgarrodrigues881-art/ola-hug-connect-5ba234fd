@@ -60,35 +60,22 @@ import { cn } from "@/lib/utils";
 
 const menuGroups = [
   {
-    label: "",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
-    ],
-  },
-  {
     label: "Conexões",
     items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
       { title: "Instâncias", url: "/dashboard/devices", icon: Smartphone },
-    ],
-  },
-  {
-    label: "Campanhas",
-    items: [
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+      { title: "Template", url: "/dashboard/templates", icon: FileText },
       { title: "Meus Contatos", url: "/dashboard/contacts", icon: BookUser },
     ],
   },
-  {
-    label: "Ferramentas",
-    items: [
-      { title: "Template", url: "/dashboard/templates", icon: FileText },
-      { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
-      { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft, locked: true },
-      { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound, locked: true },
-      { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare, locked: true },
-    ],
-  },
+];
+
+const developmentItems = [
+  { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft, locked: true },
+  { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound, locked: true },
+  { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare, locked: true },
 ];
 
 type BadgeKey = "activeCampaigns" | "unreadNotifications";
