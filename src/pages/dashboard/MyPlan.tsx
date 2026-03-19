@@ -190,19 +190,24 @@ const MyPlan = () => {
                     </span>
                   )}
 
-                  <h3 className="text-lg font-semibold mt-1 text-white/90">{plan.name}</h3>
-                  <p className="text-xs text-white/30 mb-1">
-                    {typeof plan.instances === "number" ? `${plan.instances} instâncias` : `${plan.instances} instâncias`}
-                  </p>
-                  <p className="text-[11px] text-white/20 mb-1 leading-relaxed min-h-[36px]">{plan.subtitle}</p>
-                  {plan.extraCopy && (
-                    <p className={`text-[11px] mb-3 leading-relaxed ${plan.popular ? "text-amber-400/60" : plan.highlight ? "text-teal-400/50" : "text-emerald-400/50"}`}>
-                      {plan.extraCopy}
+                  {/* Header block — fixed height so all cards align */}
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mt-1 text-white/90">{plan.name}</h3>
+                    <p className="text-xs text-white/30 mb-1">
+                      {typeof plan.instances === "number" ? `${plan.instances} instâncias` : `${plan.instances} instâncias`}
                     </p>
-                  )}
-                  {!plan.extraCopy && <div className="mb-2" />}
+                    <p className="text-[11px] text-white/20 leading-relaxed min-h-[48px]">{plan.subtitle}</p>
+                    {plan.extraCopy ? (
+                      <p className={`text-[11px] leading-relaxed mt-1 min-h-[16px] ${plan.popular ? "text-amber-400/60" : plan.highlight ? "text-teal-400/50" : "text-emerald-400/50"}`}>
+                        {plan.extraCopy}
+                      </p>
+                    ) : (
+                      <div className="min-h-[16px] mt-1" />
+                    )}
+                  </div>
 
-                  <div className="mb-2">
+                  {/* Price block */}
+                  <div className="mb-4">
                     {isCustom ? (
                       <span className="text-2xl font-bold text-white/90">Sob consulta</span>
                     ) : (
@@ -215,7 +220,8 @@ const MyPlan = () => {
 
                   <div className="h-px bg-white/[0.05] mb-5" />
 
-                  <div className="space-y-2.5 mb-6 flex-1">
+                  {/* Features — grows to fill remaining space */}
+                  <div className="space-y-2.5 flex-1">
                     {plan.features.map((f, fi) => (
                       <div key={fi} className="flex items-start gap-2.5 text-xs text-white/40">
                         <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-white/20 shrink-0 mt-0.5" />
@@ -228,7 +234,7 @@ const MyPlan = () => {
                     href={isCustom ? buildCustomWhatsappUrl() : buildWhatsappUrl(plan as any)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] ${
+                    className={`w-full py-3 mt-auto pt-6 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] ${
                       plan.popular
                         ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold hover:from-amber-400 hover:to-yellow-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
                         : plan.highlight
