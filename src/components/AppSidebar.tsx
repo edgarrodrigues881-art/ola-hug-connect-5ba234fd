@@ -10,6 +10,7 @@ import {
   Shield,
   UsersRound,
   BotMessageSquare,
+  ArrowRightLeft,
   LogOut,
   Settings,
   ChevronUp,
