@@ -468,6 +468,11 @@ const CampaignDetail = () => {
                 <Download className="w-3.5 h-3.5" /> Exportar
               </Button>
             )}
+            {(isPaused || campaign?.status === "completed") && campaign?.message_content && (
+              <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs rounded-lg" onClick={() => { setSaveTemplateName(campaign.name || ""); setSaveTemplateOpen(true); }}>
+                <Save className="w-3.5 h-3.5" /> Salvar Template
+              </Button>
+            )}
           </div>
         </div>
 
