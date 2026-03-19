@@ -12,6 +12,7 @@ const BREAKPOINTS = [
   { min: 1536, cols: 5 },
   { min: 1280, cols: 4 },
   { min: 1024, cols: 3 },
+  { min: 768, cols: 2 },
   { min: 640, cols: 2 },
   { min: 0, cols: 1 },
 ];
