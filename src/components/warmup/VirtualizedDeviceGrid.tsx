@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { FixedSizeGrid as Grid } from "react-window";
+// @ts-ignore - react-window types may not export FixedSizeGrid directly
 
 interface VirtualizedDeviceGridProps {
   items: any[];
