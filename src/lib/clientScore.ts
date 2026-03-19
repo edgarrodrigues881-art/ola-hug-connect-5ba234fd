@@ -20,10 +20,11 @@ export interface ScoreInput {
 }
 
 const PLAN_PRICES: Record<string, number> = {
-  Start: 149.9,
+  Essencial: 89.9,
+  Start: 159.9,
   Pro: 349.9,
   Scale: 549.9,
-  Elite: 899.9,
+  Elite: 999.9,
 };
 
 export type ScoreLevel = "green" | "yellow" | "red";
