@@ -11,6 +11,7 @@ import {
   UsersRound,
   BotMessageSquare,
   ArrowRightLeft,
+  Heart,
   LogOut,
   Settings,
   ChevronUp,
