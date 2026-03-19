@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useEffect, useState } from "react";
+import { memo, useMemo, useRef, useEffect, useState, type CSSProperties, type ReactElement } from "react";
 import { List } from "react-window";
 
 interface VirtualizedDeviceGridProps {
@@ -26,6 +26,47 @@ function getColumns(width: number) {
 const CARD_HEIGHT = 210;
 const GAP = 16;
 const MOBILE_BREAKPOINT = 768;
+
+// Mobile row: renders a single item
+function MobileRow({ index, style, items, renderItem, cardHeight, gap }: {
+  index: number;
+  style: CSSProperties;
+  items: any[];
+  renderItem: (item: any, index: number) => React.ReactNode;
+  cardHeight: number;
+  gap: number;
+}): ReactElement | null {
+  if (index >= items.length) return null;
+  return (
+    <div style={{ ...style, height: cardHeight, paddingBottom: gap }}>
+      {renderItem(items[index], index)}
+    </div>
+  );
+}
+
+// Desktop row: renders a full row of columns
+function DesktopRow({ index, style, items, renderItem, columnCount, columnWidth, cardHeight, gap }: {
+  index: number;
+  style: CSSProperties;
+  items: any[];
+  renderItem: (item: any, index: number) => React.ReactNode;
+  columnCount: number;
+  columnWidth: number;
+  cardHeight: number;
+  gap: number;
+}): ReactElement | null {
+  const startIdx = index * columnCount;
+  const rowItems = items.slice(startIdx, startIdx + columnCount);
+  return (
+    <div style={{ ...style, display: "flex", gap }}>
+      {rowItems.map((item, colIdx) => (
+        <div key={item.id || startIdx + colIdx} style={{ width: columnWidth, height: cardHeight, flexShrink: 0 }}>
+          {renderItem(item, startIdx + colIdx)}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGHT, gap = GAP }: VirtualizedDeviceGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +96,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     return (dimensions.width - gap * (columnCount - 1)) / columnCount;
   }, [dimensions.width, columnCount, gap]);
 
-  // Small lists: no virtualization needed
+  // Small lists: no virtualization
   if (items.length < 50) {
     return (
       <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
@@ -68,62 +109,48 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     );
   }
 
-  // Mobile: single-column list with native touch scrolling
+  if (dimensions.width <= 0) {
+    return <div ref={containerRef} style={{ width: "100%", minHeight: 400 }} />;
+  }
+
+  // Mobile: single-column list with better touch scroll
   if (isMobile) {
     const totalHeight = items.length * (cardHeight + gap);
     const listHeight = Math.min(dimensions.height, totalHeight);
+    const mobileRowProps = { items, renderItem, cardHeight, gap };
 
     return (
       <div ref={containerRef} style={{ width: "100%", WebkitOverflowScrolling: "touch" }}>
-        {dimensions.width > 0 && (
-          <List
-            height={listHeight}
-            itemCount={items.length}
-            itemSize={cardHeight + gap}
-            width={dimensions.width}
-            overscanCount={5}
-            style={{ overflowX: "hidden" }}
-          >
-            {({ index, style }) => (
-              <div style={{ ...style, height: cardHeight, paddingBottom: gap }}>
-                {renderItem(items[index], index)}
-              </div>
-            )}
-          </List>
-        )}
+        <List
+          height={listHeight}
+          itemCount={items.length}
+          itemSize={cardHeight + gap}
+          width={dimensions.width}
+          overscanCount={5}
+          style={{ overflowX: "hidden" }}
+          rowComponent={MobileRow}
+          rowProps={mobileRowProps}
+        />
       </div>
     );
   }
 
-  // Desktop: multi-column rows via FixedSizeList
+  // Desktop: multi-column rows
   const totalHeight = rowCount * (cardHeight + gap);
   const gridHeight = Math.min(dimensions.height, totalHeight);
+  const desktopRowProps = { items, renderItem, columnCount, columnWidth, cardHeight, gap };
 
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
-      {dimensions.width > 0 && (
-        <List
-          height={gridHeight}
-          itemCount={rowCount}
-          itemSize={cardHeight + gap}
-          width={dimensions.width}
-          overscanCount={3}
-        >
-          {({ index: rowIndex, style }) => {
-            const startIdx = rowIndex * columnCount;
-            const rowItems = items.slice(startIdx, startIdx + columnCount);
-            return (
-              <div style={{ ...style, display: "flex", gap }} key={rowIndex}>
-                {rowItems.map((item, colIdx) => (
-                  <div key={item.id || startIdx + colIdx} style={{ width: columnWidth, height: cardHeight, flexShrink: 0 }}>
-                    {renderItem(item, startIdx + colIdx)}
-                  </div>
-                ))}
-              </div>
-            );
-          }}
-        </List>
-      )}
+      <List
+        height={gridHeight}
+        itemCount={rowCount}
+        itemSize={cardHeight + gap}
+        width={dimensions.width}
+        overscanCount={3}
+        rowComponent={DesktopRow}
+        rowProps={desktopRowProps}
+      />
     </div>
   );
 });
