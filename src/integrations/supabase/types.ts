@@ -270,6 +270,30 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_profile_data: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          risk_flag: boolean
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id: string
+          risk_flag?: boolean
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          risk_flag?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           campaign_id: string | null
