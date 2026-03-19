@@ -5,7 +5,13 @@ import AnimateOnView from "@/components/AnimateOnView";
 
 const plans = [
   {
-    name: "Start", instances: 10, price: "149,90", perInstance: "14,99",
+    name: "Essencial", instances: 5, price: "89,90", perInstance: "17,98",
+    subtitle: "Ideal para quem está iniciando com estrutura profissional.",
+    extraCopy: null, cta: "Contratar Plano", popular: false,
+    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Monitoramento em tempo real limitado", "Suporte padrão"],
+  },
+  {
+    name: "Start", instances: 10, price: "159,90", perInstance: "15,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
     extraCopy: null, cta: "Contratar Plano", popular: false,
     features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Painel centralizado", "Monitoramento em tempo real", "Suporte padrão"],
@@ -23,7 +29,7 @@ const plans = [
     features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada", "Monitoramento em tempo real", "Suporte prioritário"],
   },
   {
-    name: "Elite", instances: 100, price: "899,90", perInstance: "8,99",
+    name: "Elite", instances: 100, price: "999,90", perInstance: "9,99",
     subtitle: "Máxima capacidade operacional.",
     extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.", cta: "Contratar Plano", popular: false,
     features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão completa de instâncias", "Monitoramento avançado", "Atendimento prioritário dedicado"],
