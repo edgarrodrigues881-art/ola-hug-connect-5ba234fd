@@ -360,9 +360,20 @@ async function scheduleDayJobs(
   }
 
   let jobsToInsert = jobs;
-  if (remainingBudget !== null && jobs.length > remainingBudget) {
-    jobsToInsert = jobs.slice(0, remainingBudget);
-    console.log(`[scheduleDayJobs] Trimming jobs to remaining budget: ${jobs.length} → ${jobsToInsert.length}`);
+  if (remainingBudget !== null) {
+    const groupJobs = jobs.filter((job) => job.job_type === "group_interaction").slice(0, reservedGroupBudget);
+    const otherJobs = jobs
+      .filter((job) => job.job_type !== "group_interaction")
+      .slice(0, nonGroupBudget ?? jobs.length);
+
+    jobsToInsert = [...groupJobs, ...otherJobs]
+      .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
+
+    if (jobsToInsert.length < jobs.length) {
+      console.log(
+        `[scheduleDayJobs] Prioritizing group jobs within remaining budget: ${jobs.length} → ${jobsToInsert.length} (groups reserved=${reservedGroupBudget}, non-group=${nonGroupBudget})`
+      );
+    }
   }
 
   // [BUG 1+2 FIX] Phase transitions are now handled ENTIRELY by daily_reset.
