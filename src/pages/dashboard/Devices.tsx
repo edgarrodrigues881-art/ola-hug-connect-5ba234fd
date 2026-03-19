@@ -1110,7 +1110,7 @@ const Devices = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
       const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `profile-pictures/${user.id}/bulk-${Date.now()}.${ext}`;
+      const filePath = `${user.id}/profile-pictures/bulk-${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("media").upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
