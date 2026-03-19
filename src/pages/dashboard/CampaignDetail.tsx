@@ -93,6 +93,9 @@ const CampaignDetail = () => {
   const [exportSent, setExportSent] = useState(true);
   const [exportFailed, setExportFailed] = useState(true);
   const [exportPending, setExportPending] = useState(true);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const createTemplate = useCreateTemplate();
 
   const { data: campaign, isLoading: campLoading } = useQuery({
     queryKey: ["campaign", id],
