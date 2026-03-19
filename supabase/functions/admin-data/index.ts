@@ -238,10 +238,18 @@ Deno.serve(async (req) => {
       const newOverride = instance_override ?? 0;
 
       await adminClient.from("profiles").update({
-        full_name, phone, document, company, status, risk_flag, admin_notes,
+        full_name, phone, document, company, status,
         instance_override: newOverride,
         updated_at: new Date().toISOString(),
       }).eq("id", target_user_id);
+
+      // Update admin-only fields in separate table
+      await adminClient.from("admin_profile_data").upsert({
+        id: target_user_id,
+        risk_flag: risk_flag ?? false,
+        admin_notes: admin_notes ?? null,
+        updated_at: new Date().toISOString(),
+      });
 
       await logAction(adminClient, user.id, target_user_id, "update-client", `Dados atualizados`);
 
