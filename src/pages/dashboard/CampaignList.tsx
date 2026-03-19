@@ -39,11 +39,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 const CampaignList = () => {
   const { data: campaigns = [], isLoading } = useCampaigns();
   const deleteCampaign = useDeleteCampaign();
+  const createTemplate = useCreateTemplate();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const [savingCampaign, setSavingCampaign] = useState<any>(null);
 
   const filtered = useMemo(() => {
     return campaigns.filter((c) => {
