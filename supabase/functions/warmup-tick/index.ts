@@ -2272,7 +2272,10 @@ async function handleTick(db: any) {
             if (pairMeta.conversation_id !== job.payload.conversation_id) return "skip";
             if (pairMeta.expected_sender_device_id !== job.device_id || pairMeta.turns_completed !== currentTurnIndex) return "skip";
           } else {
-            if (!iAmInitiator) return "skip";
+            // Allow either side to initiate when there's NO active conversation
+            // The initiator check only matters during active conversations to prevent race conditions
+            const hasActiveConversation = Boolean(rawPairMeta.conversation_id && rawPairMeta.expected_sender_device_id);
+            if (hasActiveConversation && !iAmInitiator) return "skip";
 
             const pairBusy = Boolean(pairMeta.conversation_id && pairMeta.expected_sender_device_id);
             if (pairBusy) {
