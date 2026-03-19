@@ -1,5 +1,14 @@
-import { memo, useCallback, useMemo, useRef, useEffect, useState } from "react";
+import { memo, useMemo, useRef, useEffect, useState } from "react";
 import { Grid } from "react-window";
+
+interface CellData {
+  items: any[];
+  columnCount: number;
+  renderItem: (item: any, index: number) => React.ReactNode;
+  gap: number;
+  cardHeight: number;
+  columnWidth: number;
+}
 
 interface VirtualizedDeviceGridProps {
   items: any[];
@@ -26,8 +35,11 @@ function getColumns(width: number) {
 const CARD_HEIGHT = 210;
 const GAP = 16;
 
-const CellWrapper = memo(({ columnIndex, rowIndex, style, data }: any) => {
-  const { items, columnCount, renderItem, gap, cardHeight, columnWidth } = data;
+function CellRenderer({ columnIndex, rowIndex, style, items, columnCount, renderItem, gap, cardHeight, columnWidth }: {
+  columnIndex: number;
+  rowIndex: number;
+  style: React.CSSProperties;
+} & CellData) {
   const index = rowIndex * columnCount + columnIndex;
   if (index >= items.length) return null;
 
@@ -44,8 +56,7 @@ const CellWrapper = memo(({ columnIndex, rowIndex, style, data }: any) => {
       {renderItem(items[index], index)}
     </div>
   );
-});
-CellWrapper.displayName = "CellWrapper";
+}
 
 const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGHT, gap = GAP }: VirtualizedDeviceGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,7 +85,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     return (dimensions.width - gap * (columnCount - 1)) / columnCount;
   }, [dimensions.width, columnCount, gap]);
 
-  const itemData = useMemo(() => ({
+  const cellProps = useMemo(() => ({
     items, columnCount, renderItem, gap, cardHeight, columnWidth,
   }), [items, columnCount, renderItem, gap, cardHeight, columnWidth]);
 
@@ -104,10 +115,9 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
           rowHeight={cardHeight + gap}
           overscanCount={3}
           style={{ overflowX: "hidden", height: gridHeight }}
-          cellProps={itemData}
-        >
-          {CellWrapper}
-        </Grid>
+          cellComponent={CellRenderer}
+          cellProps={cellProps}
+        />
       )}
     </div>
   );
