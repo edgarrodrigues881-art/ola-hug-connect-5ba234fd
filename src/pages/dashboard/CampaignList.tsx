@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -11,9 +12,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban, Save, Loader2,
 } from "lucide-react";
 import { useCampaigns, useDeleteCampaign } from "@/hooks/useCampaigns";
+import { useCreateTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
