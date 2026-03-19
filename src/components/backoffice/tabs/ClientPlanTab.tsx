@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAdminAction, type AdminUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio, Calendar, DollarSign, Layers, Trash2 } from "lucide-react";
+import { Loader2, Save, CreditCard, RefreshCw, AlertTriangle, PauseCircle, Undo2, CheckCircle2, Clock, MinusCircle, Zap, Radio, Calendar, DollarSign, Layers, Trash2, BotMessageSquare } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const NOTIFICATION_PRICE = 18.90;
+const AUTOREPLY_PRICES = { none: 0, basic: 29.90, pro: 49.90 };
+type AutoreplyTier = keyof typeof AUTOREPLY_PRICES;
 
 const PLANS: Record<string, { price: number; max_instances: number; defaultDays?: number; reports_whatsapp_enabled?: boolean }> = {
   "Sem plano": { price: 0, max_instances: 0 },
