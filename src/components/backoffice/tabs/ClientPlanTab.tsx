@@ -414,6 +414,8 @@ const ClientPlanTab = ({ client, detail }: Props) => {
                   {isTrial ? "Grátis" : `+ R$ ${NOTIFICATION_PRICE.toFixed(2)}/mês`}
                 </span>
                 <Switch checked={includeNotification} onCheckedChange={setIncludeNotification} />
+              </div>
+            </div>
           </div>
 
           {/* Resposta Automática Inteligente */}
