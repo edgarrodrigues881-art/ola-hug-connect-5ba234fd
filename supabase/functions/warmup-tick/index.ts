@@ -1574,14 +1574,14 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
     }
   }
 
-  // ── AUTO-RESUME: Reconnected devices auto-restart paused warmup cycles ──
-  {
+  // ── AUTO-RESUME: Reconnected devices auto-restart paused warmup cycles — only primary shard ──
+  if (isPrimaryShard) {
     const { data: pausedCyclesCheck } = await db.from("warmup_cycles")
       .select("id, user_id, device_id, day_index, days_total, chip_state, phase, previous_phase, plan_id, last_error")
       .eq("is_running", false)
       .eq("phase", "paused")
       .not("previous_phase", "is", null)
-      .limit(50);
+      .limit(200);
 
     if (pausedCyclesCheck?.length) {
       const pausedDeviceIds = [...new Set(pausedCyclesCheck.map((c: any) => c.device_id))];
