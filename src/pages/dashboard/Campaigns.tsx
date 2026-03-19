@@ -2244,14 +2244,24 @@ const Campaigns = () => {
                 CONTINUAR <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             ) : (
-              <Button 
-                onClick={handleSendCampaign} 
-                disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
-                className="gap-1.5 sm:gap-2.5 h-10 sm:h-11 flex-1 sm:flex-none sm:px-10 text-xs sm:text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => { setSaveTemplateName(campaignName || ""); setSaveTemplateOpen(true); }}
+                  disabled={!combinedMessage.trim() && !mediaUrl}
+                  className="gap-1.5 h-10 sm:h-11 text-xs sm:text-sm font-bold border-border/40 text-muted-foreground hover:text-foreground"
+                >
+                  <Save className="w-4 h-4" /> Salvar Template
+                </Button>
+                <Button 
+                  onClick={handleSendCampaign} 
+                  disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
+                  className="gap-1.5 sm:gap-2.5 h-10 sm:h-11 flex-1 sm:flex-none sm:px-10 text-xs sm:text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
+                </Button>
+              </>
             )}
           </div>
         </div>
