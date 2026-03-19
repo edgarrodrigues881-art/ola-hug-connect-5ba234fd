@@ -76,18 +76,18 @@ function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Conservador — 1 par para unstable, 2 para new/recovered
-  if (chipState === "unstable") return 1;
-  return Math.min(2, daysSinceCommunity + 1);
+  // Mais pares para conversas mais naturais — unstable=2, outros até 5
+  if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
+  return Math.min(5, daysSinceCommunity + 2);
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // 2-4 bursts por par por dia para garantir que conversas progridam
-  if (chipState === "unstable") return 2;
-  return Math.min(4, daysSinceCommunity + 2);
+  // 4-8 bursts por par por dia — conversas mais longas e naturais
+  if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
+  return Math.min(8, daysSinceCommunity + 3);
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -1005,9 +1005,9 @@ const CONNECTED_STATUSES = ["Ready", "Connected", "authenticated"];
 const INTERACTION_JOB_TYPES = ["group_interaction", "autosave_interaction", "community_interaction"];
 
 // Max active pairs a device can participate in (as A or B)
-// Unstable chips get only 1 pair; new/recovered get 2
+// Unstable chips get 2 pairs; new/recovered get up to 5
 function getMaxPairsForChip(chipState: string): number {
-  return chipState === "unstable" ? 1 : 2;
+  return chipState === "unstable" ? 2 : 5;
 }
 
 async function getActivePairCount(db: any, deviceId: string): Promise<number> {
@@ -2930,7 +2930,7 @@ async function handleTick(db: any) {
                 if (created >= newNeeded) break;
                 if (usedDevices.has(e.device_id)) continue;
                 // Prefer cross-account: skip same-user if alternatives exist
-                if (usedUsers.has(e.user_id) && sorted.some((s: any) => !usedDevices.has(s.device_id) && !usedUsers.has(s.user_id))) continue;
+                // Allow same-user pairing — no cross-account restriction
 
                 const { data: pd } = await db.from("devices")
                   .select("status, number").eq("id", e.device_id).single();
