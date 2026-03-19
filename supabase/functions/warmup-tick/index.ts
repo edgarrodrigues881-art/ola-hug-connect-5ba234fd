@@ -365,11 +365,13 @@ async function scheduleDayJobs(
   let jobsToInsert = jobs;
   if (remainingBudget !== null) {
     const groupJobs = jobs.filter((job) => job.job_type === "group_interaction").slice(0, reservedGroupBudget);
-    const otherJobs = jobs
-      .filter((job) => job.job_type !== "group_interaction")
-      .slice(0, nonGroupBudget ?? jobs.length);
+    // Prioritize autosave over community when budget is limited
+    const autosaveJobs = jobs.filter((job) => job.job_type === "autosave_interaction").slice(0, reservedAutosaveBudget);
+    const communityJobs = jobs.filter((job) => job.job_type === "community_interaction");
+    const communityBudget = Math.max((nonGroupBudget ?? communityJobs.length) - autosaveJobs.length, 0);
+    const trimmedCommunity = communityJobs.slice(0, communityBudget);
 
-    jobsToInsert = [...groupJobs, ...otherJobs]
+    jobsToInsert = [...groupJobs, ...autosaveJobs, ...trimmedCommunity]
       .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
 
     if (jobsToInsert.length < jobs.length) {
