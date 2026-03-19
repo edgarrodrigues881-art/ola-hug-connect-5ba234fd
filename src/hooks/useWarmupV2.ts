@@ -104,12 +104,24 @@ export function useWarmupCycles() {
   return useQuery({
     queryKey: ["warmup_cycles", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("warmup_cycles" as any)
-        .select("id, user_id, device_id, plan_id, chip_state, days_total, started_at, day_index, phase, is_running, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, last_daily_reset_at, next_run_at, last_error, created_at, updated_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as WarmupCycle[];
+      // Paginated fetch for 10k+ scale — only fetch active cycles (not completed/error)
+      let all: any[] = [];
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("warmup_cycles" as any)
+          .select("id, user_id, device_id, plan_id, chip_state, days_total, started_at, day_index, phase, is_running, first_24h_ends_at, daily_interaction_budget_min, daily_interaction_budget_max, daily_interaction_budget_target, daily_interaction_budget_used, daily_unique_recipients_cap, daily_unique_recipients_used, last_daily_reset_at, next_run_at, last_error, created_at, updated_at")
+          .not("phase", "in", '("completed","error")')
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data?.length) break;
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all as unknown as WarmupCycle[];
     },
     enabled: !!user,
     refetchInterval: 10_000,
