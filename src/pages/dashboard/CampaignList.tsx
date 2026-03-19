@@ -263,8 +263,24 @@ const CampaignList = () => {
                     {format(new Date(c.created_at), "dd/MM/yy HH:mm")}
                   </span>
 
-                  {/* Delete */}
-                  <div onClick={(e) => e.stopPropagation()}>
+                  {/* Actions */}
+                  <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    {canSaveAsTemplate(c.status) && c.message_content && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-100 text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
+                        title="Salvar como Template"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSavingCampaign(c);
+                          setSaveTemplateName(c.name || "");
+                          setSaveTemplateOpen(true);
+                        }}
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
