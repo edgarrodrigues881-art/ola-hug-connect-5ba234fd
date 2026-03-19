@@ -456,8 +456,8 @@ const ClientPlanTab = ({ client, detail }: Props) => {
               )}
             </div>
           </div>
-          </div>
         </div>
+      </div>
       </div>
 
       {/* ── Ações ── */}
