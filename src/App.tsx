@@ -136,6 +136,7 @@ const App = () => (
                           <Route path="autosave" element={<AutoSave />} />
                           <Route path="auto-reply" element={<AutoReplyComingSoon />} />
                           <Route path="auto-reply/:id" element={<AutoReplyComingSoon />} />
+                          <Route path="chip-conversation" element={<ChipConversation />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
