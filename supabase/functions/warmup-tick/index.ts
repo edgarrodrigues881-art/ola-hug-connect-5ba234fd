@@ -2375,11 +2375,11 @@ async function handleTick(db: any) {
           const conversationId = isReply ? String(job.payload.conversation_id) : job.id;
           const nextMeta = {
             ...rawPairMeta,
-            initiator: pairMeta.initiator || (iAmInitiator ? "a" : "b"),
+            initiator: hasNextTurn ? (pairMeta.initiator || (iAmInitiator ? "a" : "b")) : null,
             expected_sender_device_id: hasNextTurn ? peerDeviceId : null,
             last_sender_device_id: job.device_id,
             turns_completed: hasNextTurn ? nextTurnNumber : 0,
-            max_turns: maxTurns,
+            max_turns: hasNextTurn ? maxTurns : randInt(40, 80),
             conversation_id: hasNextTurn ? conversationId : null,
             last_turn_at: nowIso,
             last_completed_at: hasNextTurn ? pairMeta.last_completed_at : nowIso,
