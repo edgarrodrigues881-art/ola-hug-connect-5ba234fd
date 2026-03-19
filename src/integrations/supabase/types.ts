@@ -808,6 +808,143 @@ export type Database = {
           },
         ]
       }
+      chip_conversation_logs: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          message_category: string
+          message_content: string
+          receiver_device_id: string
+          receiver_name: string | null
+          sender_device_id: string
+          sender_name: string | null
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_category?: string
+          message_content: string
+          receiver_device_id: string
+          receiver_name?: string | null
+          sender_device_id: string
+          sender_name?: string | null
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_category?: string
+          message_content?: string
+          receiver_device_id?: string
+          receiver_name?: string | null
+          sender_device_id?: string
+          sender_name?: string | null
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_conversation_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chip_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chip_conversations: {
+        Row: {
+          active_days: Json
+          completed_at: string | null
+          created_at: string
+          device_ids: Json
+          duration_hours: number
+          duration_minutes: number
+          end_hour: string
+          id: string
+          last_error: string | null
+          max_delay_seconds: number
+          messages_per_cycle_max: number
+          messages_per_cycle_min: number
+          min_delay_seconds: number
+          name: string
+          pause_after_messages_max: number
+          pause_after_messages_min: number
+          pause_duration_max: number
+          pause_duration_min: number
+          start_hour: string
+          started_at: string | null
+          status: string
+          total_messages_sent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_days?: Json
+          completed_at?: string | null
+          created_at?: string
+          device_ids?: Json
+          duration_hours?: number
+          duration_minutes?: number
+          end_hour?: string
+          id?: string
+          last_error?: string | null
+          max_delay_seconds?: number
+          messages_per_cycle_max?: number
+          messages_per_cycle_min?: number
+          min_delay_seconds?: number
+          name?: string
+          pause_after_messages_max?: number
+          pause_after_messages_min?: number
+          pause_duration_max?: number
+          pause_duration_min?: number
+          start_hour?: string
+          started_at?: string | null
+          status?: string
+          total_messages_sent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_days?: Json
+          completed_at?: string | null
+          created_at?: string
+          device_ids?: Json
+          duration_hours?: number
+          duration_minutes?: number
+          end_hour?: string
+          id?: string
+          last_error?: string | null
+          max_delay_seconds?: number
+          messages_per_cycle_max?: number
+          messages_per_cycle_min?: number
+          min_delay_seconds?: number
+          name?: string
+          pause_after_messages_max?: number
+          pause_after_messages_min?: number
+          pause_duration_max?: number
+          pause_duration_min?: number
+          start_hour?: string
+          started_at?: string | null
+          status?: string
+          total_messages_sent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_messages: {
         Row: {
           admin_id: string
