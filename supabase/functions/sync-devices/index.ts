@@ -1,4 +1,4 @@
-// sync-devices v6.0 — persistent profile pics in storage + circuit breaker + 404 strikes
+// sync-devices v7.0 — sharding support for 10k+ instances + persistent profile pics + circuit breaker
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
