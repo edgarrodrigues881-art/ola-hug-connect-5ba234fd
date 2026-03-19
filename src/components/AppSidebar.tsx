@@ -60,35 +60,22 @@ import { cn } from "@/lib/utils";
 
 const menuGroups = [
   {
-    label: "",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
-    ],
-  },
-  {
     label: "Conexões",
     items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, exact: true },
       { title: "Instâncias", url: "/dashboard/devices", icon: Smartphone },
-    ],
-  },
-  {
-    label: "Campanhas",
-    items: [
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
+      { title: "Template", url: "/dashboard/templates", icon: FileText },
       { title: "Meus Contatos", url: "/dashboard/contacts", icon: BookUser },
     ],
   },
-  {
-    label: "Ferramentas",
-    items: [
-      { title: "Template", url: "/dashboard/templates", icon: FileText },
-      { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
-      { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft, locked: true },
-      { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound, locked: true },
-      { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare, locked: true },
-    ],
-  },
+];
+
+const developmentItems = [
+  { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft, locked: true },
+  { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound, locked: true },
+  { title: "Resposta Automática", url: "/dashboard/auto-reply", icon: BotMessageSquare, locked: true },
 ];
 
 type BadgeKey = "activeCampaigns" | "unreadNotifications";
@@ -171,8 +158,10 @@ export function AppSidebar() {
 
   const warmupItems = [
     { title: "Aquecimento", url: "/dashboard/warmup-v2", icon: Flame },
-    { title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll },
+    { title: "Proxy", url: "/dashboard/proxy", icon: Shield },
     { title: "Grupos", url: "/dashboard/groups", icon: UsersRound },
+    { title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll },
+    { title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText },
   ];
 
   const handleSaveFolder = useCallback(async (data: { name: string; color: string; tags?: any[]; deviceIds: string[] }) => {
@@ -432,14 +421,32 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
+              {renderNavItem({ title: "Proxy", url: "/dashboard/proxy", icon: Shield })}
               {renderNavItem({ title: "Grupos", url: "/dashboard/groups", icon: UsersRound })}
+              {renderNavItem({ title: "Auto Save", url: "/dashboard/autosave", icon: SaveAll })}
               {renderNavItem({ title: "Relatório Via WhatsApp", url: "/dashboard/reports/whatsapp", icon: ScrollText })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ── Suporte section (bottom) ── */}
+        {/* ── Desenvolvimento section ── */}
+        <SidebarGroup className="py-0 mt-1">
+          {!collapsed && (
+            <SidebarGroupLabel className="px-4 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-0.5">
+              Desenvolvimento
+            </SidebarGroupLabel>
+          )}
+          {collapsed && (
+            <div className="mx-3 my-1.5 border-t border-sidebar-border/50" />
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
+              {developmentItems.map((item) => renderNavItem(item as any))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* ── Suporte section ── */}
         <SidebarGroup className="py-0 mt-1">
           {!collapsed && (
             <SidebarGroupLabel className="px-4 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-0.5">
@@ -451,8 +458,6 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className={cn("space-y-[2px]", collapsed ? "px-0 flex flex-col items-center" : "px-2.5")}>
-              {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
-              {renderNavItem({ title: "Configurações", url: "/dashboard/settings", icon: Settings })}
               {/* Meu Plano - Premium animated button */}
               <SidebarMenuItem className="plan-gold-wrap">
                 <SidebarMenuButton asChild tooltip="Meu Plano">
@@ -479,7 +484,7 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              
+              {renderNavItem({ title: "Comunidade", url: "/dashboard/community", icon: UsersRound })}
               {renderNavItem({ title: "Ajuda", url: "/dashboard/custom-module", icon: HelpCircle })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -510,6 +515,11 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
+              <Settings className="w-4 h-4" strokeWidth={1.5} />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4" strokeWidth={1.5} />
               Sair
