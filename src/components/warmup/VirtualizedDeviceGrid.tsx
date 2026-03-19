@@ -26,7 +26,7 @@ function getColumns(width: number) {
 
 const CARD_HEIGHT = 210;
 const GAP = 16;
-const MOBILE_BREAKPOINT = 768;
+const MOBILE_BREAKPOINT = 640;
 
 function MobileRow(props: any): ReactElement | null {
   const { index, style, items, renderItem, cardHeight, gap } = props;
