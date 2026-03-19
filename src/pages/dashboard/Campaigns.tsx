@@ -141,6 +141,7 @@ const Campaigns = () => {
   // Removed: useAutoSyncDevices already runs in DashboardLayout — no duplicate needed
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
+  const createTemplate = useCreateTemplate();
   const { data: savedTemplates = [] } = useTemplates();
   const { data: savedContacts = [] } = useContacts();
   const fileRef = useRef<HTMLInputElement>(null);
