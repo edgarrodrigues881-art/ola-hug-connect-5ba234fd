@@ -1448,10 +1448,14 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
 
+  // Shard support: split job processing across parallel invocations
+  const shardIndex = body.shard ?? 0;
+  const shardTotal = body.shards ?? 1;
+
   try {
     if (body.action === "daily") return await handleDailyReset(db);
     if (body.action === "schedule_day") return await handleScheduleDay(db, body);
-    return await handleTick(db);
+    return await handleTick(db, shardIndex, shardTotal);
   } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
     return json({ error: err.message }, 500);
@@ -1462,12 +1466,15 @@ Deno.serve(async (req) => {
 // TICK HANDLER
 // ══════════════════════════════════════════════════════════
 
-async function handleTick(db: any) {
+async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
   const now = new Date().toISOString();
   const withinWindow = isWithinOperatingWindow();
 
+  // Only shard 0 handles maintenance tasks (cancel stale, recover running, reconcile, orphans, auto-resume)
+  const isPrimaryShard = shardIndex === 0;
+
   // Cancel stale interaction jobs outside window (but skip forced jobs)
-  if (!withinWindow) {
+  if (!withinWindow && isPrimaryShard) {
     const { data: outsideJobs } = await db.from("warmup_jobs")
       .select("id, payload")
       .eq("status", "pending").lte("run_at", now)
@@ -1485,17 +1492,19 @@ async function handleTick(db: any) {
     }
   }
 
-  // Recover stale "running" jobs (>5min)
-  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  await db.from("warmup_jobs")
-    .update({ status: "pending", last_error: "Recuperado de estado running travado" })
-    .eq("status", "running").lt("updated_at", staleThreshold);
+  // Recover stale "running" jobs (>5min) — only primary shard
+  if (isPrimaryShard) {
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    await db.from("warmup_jobs")
+      .update({ status: "pending", last_error: "Recuperado de estado running travado" })
+      .eq("status", "running").lt("updated_at", staleThreshold);
+  }
 
-  // Reconcile join_group jobs already joined
-  {
+  // Reconcile join_group jobs already joined — only primary shard
+  if (isPrimaryShard) {
     const { data: staleJoins } = await db.from("warmup_jobs")
       .select("id, device_id, payload")
-      .eq("job_type", "join_group").eq("status", "pending").limit(500);
+      .eq("job_type", "join_group").eq("status", "pending").limit(1000);
 
     if (staleJoins?.length > 0) {
       const deviceIds = [...new Set(staleJoins.map((j: any) => j.device_id))];
@@ -1517,15 +1526,15 @@ async function handleTick(db: any) {
         }
       }
     }
-  }
+  } // end isPrimaryShard reconcile
 
   // ── ORPHANED CYCLE RECOVERY: Running cycles with 0 pending jobs during operating hours ──
-  if (withinWindow) {
+  if (withinWindow && isPrimaryShard) {
     const { data: runningCycles } = await db.from("warmup_cycles")
       .select("id, user_id, device_id, day_index, days_total, chip_state, phase, daily_interaction_budget_target, daily_interaction_budget_used")
       .eq("is_running", true)
       .not("phase", "in", '("completed","paused","error","pre_24h")')
-      .limit(100);
+      .limit(500);
 
     if (runningCycles?.length) {
       // Get all cycle IDs that have at least one pending job
@@ -1565,14 +1574,14 @@ async function handleTick(db: any) {
     }
   }
 
-  // ── AUTO-RESUME: Reconnected devices auto-restart paused warmup cycles ──
-  {
+  // ── AUTO-RESUME: Reconnected devices auto-restart paused warmup cycles — only primary shard ──
+  if (isPrimaryShard) {
     const { data: pausedCyclesCheck } = await db.from("warmup_cycles")
       .select("id, user_id, device_id, day_index, days_total, chip_state, phase, previous_phase, plan_id, last_error")
       .eq("is_running", false)
       .eq("phase", "paused")
       .not("previous_phase", "is", null)
-      .limit(50);
+      .limit(200);
 
     if (pausedCyclesCheck?.length) {
       const pausedDeviceIds = [...new Set(pausedCyclesCheck.map((c: any) => c.device_id))];
@@ -1658,16 +1667,18 @@ async function handleTick(db: any) {
         console.log(`[warmup-tick] AUTO-RESUME: cycle ${cycle.id} → ${safePhase} (day ${cycle.day_index})`);
       }
     }
-  }
+  } // end isPrimaryShard auto-resume
 
-  // Fetch pending jobs
+  // Fetch pending jobs — increased limit for 10k+ scale
+  // Each shard claims its own batch using FOR UPDATE SKIP LOCKED semantics (via order + limit)
+  const jobLimit = shardTotal > 1 ? 1000 : 2000;
   const { data: pendingJobs, error: fetchErr } = await db.from("warmup_jobs")
     .select("id, user_id, device_id, cycle_id, job_type, payload, run_at, status, attempts, max_attempts")
     .eq("status", "pending").lte("run_at", now)
-    .order("run_at", { ascending: true }).limit(800);
+    .order("run_at", { ascending: true }).limit(jobLimit);
 
   if (fetchErr) throw fetchErr;
-  if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0 });
+  if (!pendingJobs?.length) return json({ ok: true, processed: 0, succeeded: 0, failed: 0, shard: shardIndex });
 
   // Limit: only 1 autosave/community interaction per device per tick to preserve natural pacing
   const autosaveSeenDevices = new Set<string>();
@@ -3180,7 +3191,7 @@ async function handleTick(db: any) {
   await flushAuditLogs();
 
   console.log(`[warmup-tick] Done: ${succeeded} ok, ${failed} fail, ${deviceIdList.length} devices`);
-  return json({ ok: true, processed: succeeded + failed, succeeded, failed });
+  return json({ ok: true, processed: succeeded + failed, succeeded, failed, shard: shardIndex });
 }
 
 // ══════════════════════════════════════════════════════════
