@@ -458,7 +458,6 @@ const ClientPlanTab = ({ client, detail }: Props) => {
           </div>
         </div>
       </div>
-      </div>
 
       {/* ── Ações ── */}
       <div className="bg-card border border-border rounded-xl p-4">
