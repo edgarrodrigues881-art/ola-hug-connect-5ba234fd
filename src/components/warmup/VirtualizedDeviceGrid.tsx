@@ -1,14 +1,5 @@
 import { memo, useMemo, useRef, useEffect, useState } from "react";
-import { Grid } from "react-window";
-
-interface CellData {
-  items: any[];
-  columnCount: number;
-  renderItem: (item: any, index: number) => React.ReactNode;
-  gap: number;
-  cardHeight: number;
-  columnWidth: number;
-}
+import { FixedSizeList as List } from "react-window";
 
 interface VirtualizedDeviceGridProps {
   items: any[];
@@ -34,33 +25,12 @@ function getColumns(width: number) {
 
 const CARD_HEIGHT = 210;
 const GAP = 16;
-
-function CellRenderer({ columnIndex, rowIndex, style, items, columnCount, renderItem, gap, cardHeight, columnWidth }: {
-  columnIndex: number;
-  rowIndex: number;
-  style: React.CSSProperties;
-} & CellData) {
-  const index = rowIndex * columnCount + columnIndex;
-  if (index >= items.length) return null;
-
-  const adjustedStyle: React.CSSProperties = {
-    ...style,
-    left: Number(style.left) + columnIndex * gap,
-    top: Number(style.top) + rowIndex * gap,
-    width: columnWidth,
-    height: cardHeight,
-  };
-
-  return (
-    <div style={adjustedStyle}>
-      {renderItem(items[index], index)}
-    </div>
-  );
-}
+const MOBILE_BREAKPOINT = 768;
 
 const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGHT, gap = GAP }: VirtualizedDeviceGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 800 });
+  const isMobile = dimensions.width > 0 && dimensions.width < MOBILE_BREAKPOINT;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -85,12 +55,8 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     return (dimensions.width - gap * (columnCount - 1)) / columnCount;
   }, [dimensions.width, columnCount, gap]);
 
-  const cellProps = useMemo(() => ({
-    items, columnCount, renderItem, gap, cardHeight, columnWidth,
-  }), [items, columnCount, renderItem, gap, cardHeight, columnWidth]);
-
-  // For small lists (<100), render normally without virtualization
-  if (items.length < 100) {
+  // Small lists: no virtualization needed
+  if (items.length < 50) {
     return (
       <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {items.map((item, i) => (
@@ -102,22 +68,61 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     );
   }
 
+  // Mobile: single-column list with native touch scrolling
+  if (isMobile) {
+    const totalHeight = items.length * (cardHeight + gap);
+    const listHeight = Math.min(dimensions.height, totalHeight);
+
+    return (
+      <div ref={containerRef} style={{ width: "100%", WebkitOverflowScrolling: "touch" }}>
+        {dimensions.width > 0 && (
+          <List
+            height={listHeight}
+            itemCount={items.length}
+            itemSize={cardHeight + gap}
+            width={dimensions.width}
+            overscanCount={5}
+            style={{ overflowX: "hidden" }}
+          >
+            {({ index, style }) => (
+              <div style={{ ...style, height: cardHeight, paddingBottom: gap }}>
+                {renderItem(items[index], index)}
+              </div>
+            )}
+          </List>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: multi-column rows via FixedSizeList
   const totalHeight = rowCount * (cardHeight + gap);
   const gridHeight = Math.min(dimensions.height, totalHeight);
 
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
       {dimensions.width > 0 && (
-        <Grid
-          columnCount={columnCount}
-          columnWidth={columnWidth + gap}
-          rowCount={rowCount}
-          rowHeight={cardHeight + gap}
+        <List
+          height={gridHeight}
+          itemCount={rowCount}
+          itemSize={cardHeight + gap}
+          width={dimensions.width}
           overscanCount={3}
-          style={{ overflowX: "hidden", height: gridHeight }}
-          cellComponent={CellRenderer}
-          cellProps={cellProps as any}
-        />
+        >
+          {({ index: rowIndex, style }) => {
+            const startIdx = rowIndex * columnCount;
+            const rowItems = items.slice(startIdx, startIdx + columnCount);
+            return (
+              <div style={{ ...style, display: "flex", gap }} key={rowIndex}>
+                {rowItems.map((item, colIdx) => (
+                  <div key={item.id || startIdx + colIdx} style={{ width: columnWidth, height: cardHeight, flexShrink: 0 }}>
+                    {renderItem(item, startIdx + colIdx)}
+                  </div>
+                ))}
+              </div>
+            );
+          }}
+        </List>
       )}
     </div>
   );
