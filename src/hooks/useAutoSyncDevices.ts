@@ -33,14 +33,24 @@ export function resumeKeepAlive() {
 
 /**
  * Auto-syncs device statuses.
- * - Scales to 1000+ instances by using longer intervals and smart debouncing.
+ * - Scales to 10k+ instances via sharding (splits sync across parallel calls).
  * - Pauses sync when tab is hidden.
- * - Keep-alive pings only connected devices in small batches.
  */
 export function useAutoSyncDevices(intervalMs = 10_000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
+  const deviceCountRef = useRef(0);
+
+  // Track device count for sharding decisions
+  useEffect(() => {
+    const unsub = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === "devices" && event?.query?.state?.data) {
+        deviceCountRef.current = (event.query.state.data as any[])?.length || 0;
+      }
+    });
+    return () => unsub();
+  }, [queryClient]);
 
   // ── Periodic sync ──
   useEffect(() => {
@@ -51,7 +61,20 @@ export function useAutoSyncDevices(intervalMs = 10_000) {
       if (Date.now() < mutedUntil) return;
       syncingRef.current = true;
       try {
-        await supabase.functions.invoke("sync-devices");
+        const count = deviceCountRef.current;
+        // Shard when device count exceeds 2000
+        if (count > 2000) {
+          const shards = Math.min(5, Math.ceil(count / 2000));
+          await Promise.all(
+            Array.from({ length: shards }, (_, i) =>
+              supabase.functions.invoke("sync-devices", {
+                body: { shard: i, shards },
+              })
+            )
+          );
+        } else {
+          await supabase.functions.invoke("sync-devices");
+        }
         if (Date.now() >= mutedUntil) {
           queryClient.invalidateQueries({ queryKey: ["devices"] });
         }
