@@ -867,7 +867,7 @@ const Templates = () => {
                     {beforeFiles.map((file: MediaFile, i: number) => (
                       <div key={`before-${i}`} className={`${align} max-w-[82%]`}>
                         <div className="rounded-xl overflow-hidden shadow-sm" style={{ background: bubbleBg }}>
-                          {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-48 object-cover" />}
+                          {file.type === "image" && <img src={file.url} alt={file.name} className="w-full max-h-44 object-cover" style={{ aspectRatio: 'auto' }} />}
                           {file.type === "video" && <video src={file.url} controls className="w-full max-h-48" />}
                           {file.type === "audio" && (
                             <div className="px-3 py-2.5 flex items-center gap-2">
@@ -896,13 +896,17 @@ const Templates = () => {
                       <div className="rounded-xl overflow-hidden shadow-md" style={{ background: bubbleBg }}>
                         {withFile && (
                           <>
-                            {withFile.type === "image" && <img src={withFile.url} alt={withFile.name} className="w-full max-h-48 object-cover" />}
+                            {withFile.type === "image" && <img src={withFile.url} alt={withFile.name} className="w-full max-h-44 object-cover" style={{ aspectRatio: 'auto' }} />}
                             {withFile.type === "video" && <video src={withFile.url} controls className="w-full max-h-48" />}
                           </>
                         )}
                         <div className="px-3 py-2">
                           <p className="text-[13px] whitespace-pre-wrap leading-[1.4]" style={{ color: "#e9edef" }}>
-                            {previewTemplate.content}
+                            {(() => {
+                              const raw = previewTemplate.content || "";
+                              const parts = raw.includes("|||") ? raw.split("|||") : raw.includes("|&&|") ? raw.split("|&&|") : [raw];
+                              return parts[0];
+                            })()}
                           </p>
                           <div className="flex justify-end mt-1 gap-1 items-center">
                             <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{time}</span>
