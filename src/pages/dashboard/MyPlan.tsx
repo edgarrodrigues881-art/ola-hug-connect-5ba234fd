@@ -1,4 +1,4 @@
-import { Check, X, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Lock, Activity, TrendingUp, MessageSquare, Bot } from "lucide-react";
+import { Check, ArrowRight, Crown, Bell, Zap, Shield, Sparkles, BarChart3, Lock, Activity, TrendingUp, MessageSquare, Bot } from "lucide-react";
 
 const buildWhatsappUrl = (plan: { name: string; instances: number | string; price: string }) => {
   const inst = typeof plan.instances === "number" ? plan.instances : plan.instances;
@@ -32,43 +32,69 @@ const plans = [
     popular: false,
     highlight: false,
     reportsIncluded: false,
-    features: ["Aquecimento automatizado", "Disparo interativo", "Monitoramento básico", "Suporte padrão"],
+    features: [
+      "Aquecimento automatizado",
+      "Disparo interativo",
+      "Monitoramento em tempo real (limitado)",
+      "Suporte padrão",
+      "Relatórios via WhatsApp (add-on)",
+      "+ Módulos extras disponíveis",
+    ],
   },
   {
     name: "Start",
     instances: 10,
     price: "159,90",
-    subtitle: "Para quem já validou a operação e precisa dobrar capacidade com estabilidade.",
+    subtitle: "Ideal para quem quer escalar com segurança após validar a operação.",
     extraCopy: "Melhor custo-benefício inicial",
     cta: "Começar agora",
     popular: false,
     highlight: false,
     reportsIncluded: false,
-    features: ["Tudo do Essencial", "Painel centralizado", "Monitoramento em tempo real"],
+    features: [
+      "Tudo do Essencial",
+      "Painel centralizado",
+      "Monitoramento em tempo real",
+      "Relatórios via WhatsApp (add-on)",
+      "+ Módulos extras disponíveis",
+    ],
   },
   {
     name: "Pro",
     instances: 30,
     price: "349,90",
     subtitle: "Estrutura ideal para operadores ativos que precisam escalar com consistência.",
-    extraCopy: "Plano mais escolhido por operadores ativos",
+    extraCopy: "Recomendado para operações reais",
     cta: "Escalar operação",
     popular: true,
     highlight: false,
     reportsIncluded: false,
-    features: ["Tudo do Start", "Gestão avançada de instâncias", "Monitoramento completo", "Suporte prioritário"],
+    features: [
+      "Tudo do Start",
+      "Gestão avançada de instâncias",
+      "Monitoramento completo",
+      "Suporte prioritário",
+      "Relatórios via WhatsApp (add-on)",
+      "+ Módulos extras disponíveis",
+    ],
   },
   {
     name: "Scale",
     instances: 50,
     price: "549,90",
-    subtitle: "Para operações em crescimento que exigem volume com estabilidade.",
+    subtitle: "Para operações em crescimento que exigem volume com estabilidade contínua.",
     extraCopy: null,
     cta: "Escalar operação",
     popular: false,
     highlight: false,
     reportsIncluded: true,
-    features: ["Tudo do Pro", "Gestão avançada", "Monitoramento em tempo real", "Suporte prioritário"],
+    features: [
+      "Tudo do Pro",
+      "Gestão avançada",
+      "Monitoramento em tempo real",
+      "Suporte prioritário",
+      "Relatórios WhatsApp incluso",
+    ],
   },
   {
     name: "Elite",
@@ -80,7 +106,14 @@ const plans = [
     popular: false,
     highlight: true,
     reportsIncluded: true,
-    features: ["Tudo do Scale", "Gestão completa de instâncias", "Monitoramento avançado", "Atendimento prioritário dedicado"],
+    features: [
+      "Tudo do Scale",
+      "Gestão completa de instâncias",
+      "Monitoramento avançado",
+      "Atendimento prioritário dedicado",
+      "Relatórios WhatsApp incluso",
+      "Compatível com todos os módulos avançados",
+    ],
   },
   {
     name: "Custom",
@@ -93,7 +126,12 @@ const plans = [
     highlight: false,
     reportsIncluded: true,
     isCustom: true,
-    features: ["Tudo do Elite", "Instâncias ilimitadas", "Infraestrutura dedicada", "Suporte VIP"],
+    features: [
+      "Tudo do Elite",
+      "Infraestrutura dedicada",
+      "Suporte VIP",
+      "Ajustes personalizados",
+    ],
   },
 ];
 
@@ -101,9 +139,10 @@ const comparisonRows = [
   { label: "Instâncias", values: ["5", "10", "30", "50", "100", "200+"] },
   { label: "Aquecimento automático", values: [true, true, true, true, true, true] },
   { label: "Disparo de mensagens", values: [true, true, true, true, true, true] },
-  { label: "Monitoramento", values: ["Básico", "Tempo real", "Completo", "Tempo real", "Avançado", "Avançado"] },
-  { label: "Relatórios via WhatsApp", values: [false, false, false, true, true, true] },
+  { label: "Monitoramento", values: ["Limitado", "Tempo real", "Completo", "Tempo real", "Avançado", "Avançado"] },
+  { label: "Relatórios via WhatsApp", values: ["Add-on", "Add-on", "Add-on", "Incluso", "Incluso", "Incluso"] },
   { label: "Suporte prioritário", values: [false, false, true, true, true, true] },
+  { label: "Módulos extras", values: ["Disponível", "Disponível", "Disponível", "Disponível", "Disponível", "Disponível"] },
 ];
 
 const MyPlan = () => {
@@ -183,18 +222,6 @@ const MyPlan = () => {
                         {f}
                       </div>
                     ))}
-
-                    {/* Report line */}
-                    <div className={`flex items-start gap-2.5 text-xs ${plan.reportsIncluded ? "text-white/40" : "text-white/15"}`}>
-                      {plan.reportsIncluded ? (
-                        <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-emerald-500/60 shrink-0 mt-0.5" />
-                      ) : (
-                        <X className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-red-400/40 shrink-0 mt-0.5" />
-                      )}
-                      <span className={!plan.reportsIncluded ? "line-through decoration-white/10" : ""}>
-                        Relatórios WhatsApp {plan.reportsIncluded ? "incluso" : `+ R$ 18,90`}
-                      </span>
-                    </div>
                   </div>
 
                   <a
@@ -239,8 +266,9 @@ const MyPlan = () => {
                   <div>
                     <h3 className="text-sm font-bold text-white/90 mb-0.5">Relatórios via WhatsApp</h3>
                     <p className="text-[11px] text-white/30 leading-relaxed">
-                      Receba relatórios automáticos e alertas direto no WhatsApp. Já incluso nos planos Scale e Elite.
+                      Receba relatórios automáticos e alertas diretamente no WhatsApp.
                     </p>
+                    <p className="text-[10px] text-white/20 mt-1">Já incluso nos planos Scale e Elite.</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
@@ -291,7 +319,7 @@ const MyPlan = () => {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Até 3 fluxos</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Respostas simples</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-white/20" />Respostas automáticas simples</p>
                     </div>
                     <a
                       href={buildAutoReplyAddonUrl("Básico", "29,90")}
@@ -317,7 +345,8 @@ const MyPlan = () => {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Fluxos ilimitados</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Automação completa</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Automação completa e ilimitada</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Ideal para escalar atendimento</p>
                     </div>
                     <a
                       href={buildAutoReplyAddonUrl("Pro", "49,90")}
@@ -371,7 +400,7 @@ const MyPlan = () => {
                           val ? (
                             <Check className="w-4 h-4 mx-auto text-emerald-500/60" strokeWidth={2.5} />
                           ) : (
-                            <X className="w-4 h-4 mx-auto text-red-400/40" strokeWidth={2} />
+                            <span className="text-xs text-white/20">—</span>
                           )
                         ) : (
                           <span className={`text-xs font-bold ${plans[vi].popular ? "text-amber-400" : "text-white/70"}`}>
