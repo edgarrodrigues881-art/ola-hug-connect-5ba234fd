@@ -1466,7 +1466,7 @@ Deno.serve(async (req) => {
 // TICK HANDLER
 // ══════════════════════════════════════════════════════════
 
-async function handleTick(db: any) {
+async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
   const now = new Date().toISOString();
   const withinWindow = isWithinOperatingWindow();
 
