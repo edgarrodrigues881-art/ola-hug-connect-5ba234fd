@@ -206,10 +206,11 @@ export function AppSidebar() {
     await deleteFolder.mutateAsync(id);
   }, [deleteFolder]);
 
-  const renderNavItem = (item: { title: string; url: string; icon: any; exact?: boolean; badgeKey?: BadgeKey }, indent = false) => {
+  const renderNavItem = (item: { title: string; url: string; icon: any; exact?: boolean; badgeKey?: BadgeKey; locked?: boolean }, indent = false) => {
     const active = isActive(item.url, item.exact);
     const badgeVal = getBadgeValue(item.badgeKey);
     const blocked = isFeatureBlocked(item.url);
+    const isLocked = item.locked || !!blocked;
     
     const handleClick = (e: React.MouseEvent) => {
       if (blocked) {
@@ -221,40 +222,40 @@ export function AppSidebar() {
 
     return (
       <SidebarMenuItem key={item.title}>
-        <SidebarMenuButton asChild tooltip={blocked ? `${item.title} (Em manutenção)` : item.title}>
+        <SidebarMenuButton asChild tooltip={isLocked ? `${item.title} (Em desenvolvimento)` : item.title}>
           <NavLink
-            to={blocked ? "#" : item.url}
-            onClick={handleClick}
+            to={isLocked && !item.locked ? "#" : item.url}
+            onClick={blocked ? handleClick : undefined}
             className={`sidebar-nav-item flex items-center rounded-[10px] text-[13px] relative
               transition-[background-color,color,opacity] duration-[120ms] ease-out
               ${collapsed ? 'gap-0 px-0 py-2.5 justify-center w-10 h-10 mx-auto' : `gap-[11px] ${indent ? 'pl-8' : 'px-3.5'} pr-3.5 py-[10px]`}
-              ${blocked
-                ? 'text-muted-foreground/40 font-medium cursor-not-allowed'
+              ${isLocked
+                ? 'text-muted-foreground/40 font-medium'
                 : active
                   ? 'bg-primary/10 text-foreground font-semibold'
                   : 'text-muted-foreground font-medium hover:text-foreground hover:bg-muted/40'
               }`}
             activeClassName=""
           >
-            {active && !blocked && !collapsed && (
+            {active && !isLocked && !collapsed && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
             )}
             <div className="relative shrink-0">
               <item.icon
-                className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${blocked ? 'text-muted-foreground/30' : active ? 'text-primary' : ''}`}
+                className={`w-[18px] h-[18px] shrink-0 transition-colors duration-150 ${isLocked ? 'text-muted-foreground/30' : active ? 'text-primary' : ''}`}
                 strokeWidth={active ? 2.2 : 1.5}
               />
-              {blocked && (
+              {isLocked && (
                 <Lock className="absolute -bottom-1 -right-1 w-[10px] h-[10px] text-amber-500/70" strokeWidth={2.5} />
               )}
             </div>
             {!collapsed && (
-              <span className={`truncate flex-1 ${blocked ? 'opacity-50' : ''}`}>{item.title}</span>
+              <span className={`truncate flex-1 ${isLocked ? 'opacity-50' : ''}`}>{item.title}</span>
             )}
-            {!collapsed && blocked && (
+            {!collapsed && isLocked && (
               <Lock className="ml-auto w-3.5 h-3.5 text-amber-500/60 shrink-0" />
             )}
-            {!collapsed && !blocked && badgeVal > 0 && (
+            {!collapsed && !isLocked && badgeVal > 0 && (
               <span className="ml-auto text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                 {badgeVal}
               </span>
