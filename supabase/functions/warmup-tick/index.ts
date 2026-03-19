@@ -242,6 +242,13 @@ async function scheduleDayJobs(
     ? Math.max(existingBudgetTarget - existingBudgetUsed, 0)
     : null;
 
+  // Keep group jobs as priority workload. Community/autosave should fit inside the leftover budget,
+  // not starve group warmup after a few community turns have already consumed the daily counter.
+  const reservedGroupBudget = Math.min(volumes.groupMsgs, remainingBudget ?? volumes.groupMsgs);
+  const nonGroupBudget = remainingBudget === null
+    ? null
+    : Math.max(remainingBudget - reservedGroupBudget, 0);
+
   // Cancel existing pending SCHEDULED interaction jobs before creating new ones (prevent duplicates)
   // IMPORTANT: Do NOT cancel community_interaction reply/reburst jobs (they have pair_id or source in payload)
   await db.from("warmup_jobs")
@@ -259,7 +266,6 @@ async function scheduleDayJobs(
     const scheduledBurstIds = pendingCommunityJobs
       .filter((j: any) => {
         const p = j.payload || {};
-        // Keep reply turns (have pair_id + conversation_id) and reburst jobs (source=auto_reburst)
         const isReply = typeof p.pair_id === "string" && typeof p.conversation_id === "string";
         const isReburst = p.source === "auto_reburst" || p.source === "community_reply";
         return !isReply && !isReburst;
@@ -275,7 +281,7 @@ async function scheduleDayJobs(
     }
   }
 
-  if (remainingBudget === 0) {
+  if (remainingBudget === 0 && volumes.groupMsgs <= 0) {
     console.log(`[scheduleDayJobs] Budget already exhausted (${existingBudgetUsed}/${existingBudgetTarget}), skipping`);
     return 0;
   }
@@ -354,9 +360,20 @@ async function scheduleDayJobs(
   }
 
   let jobsToInsert = jobs;
-  if (remainingBudget !== null && jobs.length > remainingBudget) {
-    jobsToInsert = jobs.slice(0, remainingBudget);
-    console.log(`[scheduleDayJobs] Trimming jobs to remaining budget: ${jobs.length} → ${jobsToInsert.length}`);
+  if (remainingBudget !== null) {
+    const groupJobs = jobs.filter((job) => job.job_type === "group_interaction").slice(0, reservedGroupBudget);
+    const otherJobs = jobs
+      .filter((job) => job.job_type !== "group_interaction")
+      .slice(0, nonGroupBudget ?? jobs.length);
+
+    jobsToInsert = [...groupJobs, ...otherJobs]
+      .sort((a, b) => new Date(a.run_at).getTime() - new Date(b.run_at).getTime());
+
+    if (jobsToInsert.length < jobs.length) {
+      console.log(
+        `[scheduleDayJobs] Prioritizing group jobs within remaining budget: ${jobs.length} → ${jobsToInsert.length} (groups reserved=${reservedGroupBudget}, non-group=${nonGroupBudget})`
+      );
+    }
   }
 
   // [BUG 1+2 FIX] Phase transitions are now handled ENTIRELY by daily_reset.
@@ -697,19 +714,29 @@ function buildMsg(ctx: MsgCtx): string {
 // ══════════════════════════════════════════════════════════
 
 async function uazapiSendText(baseUrl: string, token: string, number: string, text: string) {
-  // For group JIDs (@g.us), prioritize endpoints that accept group format
+  const safeText = String(text || "").trim();
+  if (!safeText) throw new Error("Texto vazio para envio");
+
+  // For group JIDs (@g.us), try every payload shape commonly accepted by UaZapi.
+  // Some instances reject /chat/send-text with 405 while still accepting /send/text or /message/sendText.
   const isGroup = number.includes("@g.us");
-  
+
   const attempts: Array<{ path: string; body: Record<string, unknown> }> = isGroup
     ? [
-        { path: "/send/text", body: { chatId: number, number, text } },
-        { path: "/send/text", body: { number, text } },
-        { path: "/chat/send-text", body: { chatId: number, to: number, body: text, text } },
+        { path: "/send/text", body: { chatId: number, text: safeText } },
+        { path: "/send/text", body: { chatId: number, number, text: safeText } },
+        { path: "/send/text", body: { number, text: safeText } },
+        { path: "/chat/send-text", body: { chatId: number, body: safeText } },
+        { path: "/chat/send-text", body: { chatId: number, text: safeText } },
+        { path: "/chat/send-text", body: { chatId: number, to: number, body: safeText, text: safeText } },
+        { path: "/message/sendText", body: { chatId: number, text: safeText } },
+        { path: "/message/sendText", body: { number, text: safeText } },
       ]
     : [
-        { path: "/send/text", body: { number, text } },
-        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: text, text } },
-        { path: "/message/sendText", body: { chatId: number, text } },
+        { path: "/send/text", body: { number, text: safeText } },
+        { path: "/chat/send-text", body: { number, to: number, chatId: number, body: safeText, text: safeText } },
+        { path: "/message/sendText", body: { chatId: number, text: safeText } },
+        { path: "/message/sendText", body: { number, text: safeText } },
       ];
 
   let lastErr = "";
@@ -739,8 +766,7 @@ async function uazapiSendText(baseUrl: string, token: string, number: string, te
           return { ok: true, raw };
         }
       }
-      // Skip 405 for groups — try next endpoint instead of failing
-      if (res.status === 405) { lastErr = `405 @ ${at.path}`; continue; }
+      if (res.status === 405 || res.status === 404) { lastErr = `${res.status} @ ${at.path}`; continue; }
       lastErr = `${res.status} @ ${at.path}: ${raw.substring(0, 240)}`;
     } catch (e) {
       lastErr = `${at.path}: ${e instanceof Error ? e.message : String(e)}`;
@@ -1835,6 +1861,20 @@ async function handleTick(db: any) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: "Fora da janela 07-19 BRT" }).eq("id", job.id);
         return false;
       }
+
+      const desiredGroupMsgs = getVolumes(chipState, cycle.day_index || 1, cycle.phase || "groups_only").groupMsgs;
+      let groupMsgsSentToday = 0;
+
+      if (job.job_type === "group_interaction" && desiredGroupMsgs > 0) {
+        const resetFloor = cycle.last_daily_reset_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await db.from("warmup_audit_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("cycle_id", cycle.id)
+          .eq("event_type", "group_msg_sent")
+          .gte("created_at", resetFloor);
+        groupMsgsSentToday = count || 0;
+      }
+
       // Always read fresh budget from DB to prevent concurrent tick race conditions
       const { data: freshBudget } = await db.from("warmup_cycles")
         .select("daily_interaction_budget_used, daily_interaction_budget_target")
@@ -1845,7 +1885,11 @@ async function handleTick(db: any) {
       }
       const used = cycle.daily_interaction_budget_used || 0;
       const limit = cycle.daily_interaction_budget_target || 500;
-      if (used >= limit) {
+      const preserveGroupQuota = job.job_type === "group_interaction"
+        && desiredGroupMsgs > 0
+        && groupMsgsSentToday < desiredGroupMsgs;
+
+      if (used >= limit && !preserveGroupQuota) {
         await db.from("warmup_jobs").update({ status: "cancelled", last_error: `Budget atingido: ${used}/${limit}` }).eq("id", job.id);
         return false;
       }
