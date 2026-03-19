@@ -242,12 +242,15 @@ async function scheduleDayJobs(
     ? Math.max(existingBudgetTarget - existingBudgetUsed, 0)
     : null;
 
-  // Keep group jobs as priority workload. Community/autosave should fit inside the leftover budget,
-  // not starve group warmup after a few community turns have already consumed the daily counter.
-  const reservedGroupBudget = Math.min(volumes.groupMsgs, remainingBudget ?? volumes.groupMsgs);
+  // Reserve budget for autosave (15 msgs = 5 contacts × 3 msgs) before groups take the rest.
+  // This prevents group volume from starving autosave entirely.
+  const autosaveNeeded = volumes.autosaveContacts * volumes.autosaveRounds; // typically 15
+  const reservedAutosaveBudget = Math.min(autosaveNeeded, remainingBudget ?? autosaveNeeded);
+  const budgetAfterAutosave = remainingBudget === null ? null : Math.max((remainingBudget ?? 0) - reservedAutosaveBudget, 0);
+  const reservedGroupBudget = Math.min(volumes.groupMsgs, budgetAfterAutosave ?? volumes.groupMsgs);
   const nonGroupBudget = remainingBudget === null
     ? null
-    : Math.max(remainingBudget - reservedGroupBudget, 0);
+    : Math.max((remainingBudget ?? 0) - reservedGroupBudget, reservedAutosaveBudget);
 
   // Cancel existing pending SCHEDULED interaction jobs before creating new ones (prevent duplicates)
   // IMPORTANT: Do NOT cancel community_interaction reply/reburst jobs (they have pair_id or source in payload)
