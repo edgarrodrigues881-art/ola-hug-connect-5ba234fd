@@ -2436,7 +2436,17 @@ async function handleTick(db: any) {
           rotatedPool.push(autosavePool[idx]);
         }
 
-        let selectedIndex = ((rIdx % rotatedPool.length) + rotatedPool.length) % rotatedPool.length;
+        // FIX: Use absolute index — never wrap around. If index is out of bounds, skip the job.
+        // Modular wrapping caused the SAME contact to receive 3-6 msgs while others got 0.
+        if (rIdx >= rotatedPool.length) {
+          bufferAudit({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "autosave_skip_no_contact",
+            message: `Auto Save: recipient_index=${rIdx} excede pool (${rotatedPool.length} contatos) — pulando`,
+          });
+          break;
+        }
+        const selectedIndex = rIdx;
         const target = rotatedPool[selectedIndex];
 
         // ── VALIDATION STEP (msg_index=0 only): Pre-validate before sending anything ──
