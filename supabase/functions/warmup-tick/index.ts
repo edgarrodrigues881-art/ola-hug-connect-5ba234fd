@@ -2520,7 +2520,7 @@ async function handleTick(db: any) {
             const resetMeta = {
               ...rawMeta, initiator: null, expected_sender_device_id: null,
               last_sender_device_id: meta.last_sender_device_id,
-              turns_completed: 0, max_turns: 0, conversation_id: null,
+              turns_completed: 0, max_turns: randInt(40, 80), conversation_id: null,
               last_turn_at: meta.last_turn_at, last_completed_at: new Date().toISOString(),
             };
             await db.from("community_pairs").update({ meta: resetMeta }).eq("id", pair.id);
