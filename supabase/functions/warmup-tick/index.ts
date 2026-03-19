@@ -3191,7 +3191,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
   await flushAuditLogs();
 
   console.log(`[warmup-tick] Done: ${succeeded} ok, ${failed} fail, ${deviceIdList.length} devices`);
-  return json({ ok: true, processed: succeeded + failed, succeeded, failed });
+  return json({ ok: true, processed: succeeded + failed, succeeded, failed, shard: shardIndex });
 }
 
 // ══════════════════════════════════════════════════════════
