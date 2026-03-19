@@ -1053,6 +1053,207 @@ async function getDeviceChipState(db: any, deviceId: string): Promise<string> {
   return data?.chip_state || "new";
 }
 
+async function getActiveCommunityPairsForDevice(db: any, deviceId: string): Promise<any[]> {
+  const [{ data: pairsA }, { data: pairsB }] = await Promise.all([
+    db.from("community_pairs")
+      .select("id, cycle_id, instance_id_a, instance_id_b, meta")
+      .eq("instance_id_a", deviceId)
+      .eq("status", "active"),
+    db.from("community_pairs")
+      .select("id, cycle_id, instance_id_a, instance_id_b, meta")
+      .eq("instance_id_b", deviceId)
+      .eq("status", "active"),
+  ]);
+
+  const seen = new Set<string>();
+  return [...(pairsA || []), ...(pairsB || [])].filter((pair: any) => {
+    if (seen.has(pair.id)) return false;
+    seen.add(pair.id);
+    return true;
+  });
+}
+
+async function closeCommunityPairs(db: any, pairIds: string[]): Promise<number> {
+  if (!pairIds.length) return 0;
+
+  for (let i = 0; i < pairIds.length; i += 200) {
+    await db.from("community_pairs")
+      .update({ status: "closed", closed_at: new Date().toISOString() })
+      .in("id", pairIds.slice(i, i + 200));
+  }
+
+  return pairIds.length;
+}
+
+type ReconcileCommunityPairsResult = {
+  pairs: any[];
+  keptCount: number;
+  createdCount: number;
+  closedCount: number;
+  targetPeers: number;
+};
+
+async function reconcileCommunityPairs(
+  db: any,
+  params: {
+    deviceId: string;
+    userId: string;
+    cycleId: string;
+    dayIndex: number;
+    chipState: string;
+  },
+): Promise<ReconcileCommunityPairsResult> {
+  const targetPeers = getCommunityPeers(params.dayIndex, params.chipState);
+  if (targetPeers <= 0) {
+    return { pairs: [], keptCount: 0, createdCount: 0, closedCount: 0, targetPeers };
+  }
+
+  const existingPairs = await getActiveCommunityPairsForDevice(db, params.deviceId);
+  let validPairs = existingPairs;
+  let closedCount = 0;
+
+  const peerIds = existingPairs.map((pair: any) => getCommunityPeerDeviceId(pair, params.deviceId));
+  if (peerIds.length > 0) {
+    const [peerDevicesRes, peerMembershipRes, peerCyclesRes] = await Promise.all([
+      db.from("devices")
+        .select("id, status, number")
+        .in("id", peerIds),
+      db.from("warmup_community_membership")
+        .select("device_id, is_enabled, is_eligible")
+        .in("device_id", peerIds),
+      db.from("warmup_cycles")
+        .select("device_id, is_running, phase")
+        .in("device_id", peerIds)
+        .eq("is_running", true),
+    ]);
+
+    const peerDevicesMap = Object.fromEntries((peerDevicesRes.data || []).map((row: any) => [row.id, row]));
+    const peerMembershipMap = Object.fromEntries((peerMembershipRes.data || []).map((row: any) => [row.device_id, row]));
+    const peerCycleMap = Object.fromEntries((peerCyclesRes.data || []).map((row: any) => [row.device_id, row]));
+
+    const invalidPairIds = existingPairs
+      .filter((pair: any) => {
+        const peerId = getCommunityPeerDeviceId(pair, params.deviceId);
+        const peerDevice = peerDevicesMap[peerId];
+        const peerMembership = peerMembershipMap[peerId];
+        const peerCycle = peerCycleMap[peerId];
+
+        return !peerDevice?.number ||
+          !CONNECTED_STATUSES.includes(peerDevice.status) ||
+          !peerMembership?.is_enabled ||
+          !peerMembership?.is_eligible ||
+          !peerCycle?.is_running ||
+          ["paused", "completed", "error"].includes(peerCycle.phase);
+      })
+      .map((pair: any) => pair.id);
+
+    if (invalidPairIds.length > 0) {
+      closedCount += await closeCommunityPairs(db, invalidPairIds);
+      const invalidSet = new Set(invalidPairIds);
+      validPairs = existingPairs.filter((pair: any) => !invalidSet.has(pair.id));
+    }
+  }
+
+  if (validPairs.length > targetPeers) {
+    const shuffledValid = [...validPairs].sort(() => Math.random() - 0.5);
+    const keptPairs = shuffledValid.slice(0, targetPeers);
+    const overflowIds = shuffledValid.slice(targetPeers).map((pair: any) => pair.id);
+
+    if (overflowIds.length > 0) {
+      closedCount += await closeCommunityPairs(db, overflowIds);
+    }
+
+    validPairs = keptPairs;
+  }
+
+  const usedDevices = new Set<string>(validPairs.map((pair: any) => getCommunityPeerDeviceId(pair, params.deviceId)));
+  usedDevices.add(params.deviceId);
+
+  let createdCount = 0;
+  if (validPairs.length < targetPeers) {
+    const { data: eligible } = await db.from("warmup_community_membership")
+      .select("device_id, user_id")
+      .eq("is_enabled", true)
+      .eq("is_eligible", true)
+      .neq("device_id", params.deviceId)
+      .limit(200);
+
+    const candidateIds = [...new Set((eligible || []).map((row: any) => row.device_id))]
+      .filter((deviceId: string) => !usedDevices.has(deviceId));
+
+    if (candidateIds.length > 0) {
+      const [candidateDevicesRes, candidateCyclesRes] = await Promise.all([
+        db.from("devices")
+          .select("id, user_id, name, status, number")
+          .in("id", candidateIds),
+        db.from("warmup_cycles")
+          .select("id, device_id, user_id, chip_state, day_index, phase, is_running")
+          .in("device_id", candidateIds)
+          .eq("is_running", true),
+      ]);
+
+      const candidateDeviceMap = Object.fromEntries((candidateDevicesRes.data || []).map((row: any) => [row.id, row]));
+      const candidateCycleMap = Object.fromEntries((candidateCyclesRes.data || []).map((row: any) => [row.device_id, row]));
+      const phaseRank = (phase?: string) => {
+        if (phase === "community_enabled") return 0;
+        if (phase === "autosave_enabled") return 1;
+        if (phase === "groups_only") return 2;
+        return 3;
+      };
+
+      const sortedEligible = [...(eligible || [])].sort((a: any, b: any) => {
+        const sameUserA = a.user_id === params.userId ? 0 : 1;
+        const sameUserB = b.user_id === params.userId ? 0 : 1;
+        if (sameUserA !== sameUserB) return sameUserA - sameUserB;
+
+        const cycleA = candidateCycleMap[a.device_id];
+        const cycleB = candidateCycleMap[b.device_id];
+        const phaseDelta = phaseRank(cycleA?.phase) - phaseRank(cycleB?.phase);
+        if (phaseDelta !== 0) return phaseDelta;
+
+        return (cycleB?.day_index || 0) - (cycleA?.day_index || 0);
+      });
+
+      for (const candidate of sortedEligible) {
+        if (validPairs.length + createdCount >= targetPeers) break;
+        if (usedDevices.has(candidate.device_id)) continue;
+
+        const partnerDevice = candidateDeviceMap[candidate.device_id];
+        const partnerCycle = candidateCycleMap[candidate.device_id];
+        if (!partnerDevice?.number || !CONNECTED_STATUSES.includes(partnerDevice.status)) continue;
+        if (!partnerCycle?.is_running || ["paused", "completed", "error"].includes(partnerCycle.phase)) continue;
+
+        const partnerPairCount = await getActivePairCount(db, candidate.device_id);
+        const partnerChipState = partnerCycle.chip_state || "new";
+        if (partnerPairCount >= getMaxPairsForChip(partnerChipState)) continue;
+
+        const { data: insertedPair } = await db.from("community_pairs")
+          .insert({
+            cycle_id: params.cycleId,
+            instance_id_a: params.deviceId,
+            instance_id_b: candidate.device_id,
+            status: "active",
+            meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
+          })
+          .select("id, cycle_id, instance_id_a, instance_id_b, meta")
+          .maybeSingle();
+
+        usedDevices.add(candidate.device_id);
+        createdCount++;
+        if (insertedPair) validPairs.push(insertedPair);
+      }
+    }
+  }
+
+  return {
+    pairs: validPairs,
+    keptCount: Math.max(validPairs.length - createdCount, 0),
+    createdCount,
+    closedCount,
+    targetPeers,
+  };
+}
+
 type CommunityPairMeta = {
   initiator: "a" | "b";
   expected_sender_device_id: string | null;
@@ -2487,31 +2688,44 @@ async function handleTick(db: any) {
           break;
         }
 
-        // ── Novo início: selecionar UM par com prioridade inteligente ──
-        const { data: pairsAsA } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_a", job.device_id).eq("status", "active");
-        const { data: pairsAsB } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_b", job.device_id).eq("status", "active");
-
-        const allPairs = [...(pairsAsA || []), ...(pairsAsB || [])];
-        const seenPairIds = new Set<string>();
-        const uniquePairs = allPairs.filter((p: any) => {
-          if (seenPairIds.has(p.id)) return false;
-          seenPairIds.add(p.id);
-          return true;
+        // ── Novo início: reconciliar pares válidos e selecionar UM com prioridade inteligente ──
+        const pairStats = await reconcileCommunityPairs(db, {
+          deviceId: job.device_id,
+          userId: job.user_id,
+          cycleId: job.cycle_id,
+          dayIndex: cycle.day_index,
+          chipState,
         });
+        const uniquePairs = pairStats.pairs;
+
+        if (pairStats.closedCount > 0 || pairStats.createdCount > 0) {
+          bufferAudit({
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "info", event_type: "community_pairs_reconciled",
+            message: `Pares comunitários reconciliados: ${pairStats.keptCount} mantidos, ${pairStats.createdCount} novos, ${pairStats.closedCount} fechados`,
+            meta: {
+              kept: pairStats.keptCount,
+              created: pairStats.createdCount,
+              closed: pairStats.closedCount,
+              target: pairStats.targetPeers,
+            },
+          });
+        }
 
         if (!uniquePairs.length) {
           const retryAt = new Date(Date.now() + randInt(300, 900) * 1000).toISOString();
           await db.from("warmup_jobs")
-            .update({ status: "pending", run_at: retryAt, last_error: "Nenhum par ativo para conversar" })
+            .update({ status: "pending", run_at: retryAt, last_error: "Nenhum par ativo e válido para conversar" })
             .eq("id", job.id);
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
             level: "warn", event_type: "community_no_pairs",
-            message: "Nenhum par ativo para conversar",
+            message: "Nenhum par ativo e válido para conversar",
+            meta: {
+              closed: pairStats.closedCount,
+              created: pairStats.createdCount,
+              target: pairStats.targetPeers,
+            },
           });
           return false;
         }
@@ -2656,121 +2870,25 @@ async function handleTick(db: any) {
 
       // ── ENABLE COMMUNITY ──
       case "enable_community": {
-        const targetPeers = getCommunityPeers(cycle.day_index, chipState);
-
-        // Fetch eligible devices from other users
-        const { data: eligible } = await db.from("warmup_community_membership")
-          .select("device_id, user_id")
-          .eq("is_enabled", true).eq("is_eligible", true)
-          .neq("device_id", job.device_id)
-          .limit(100);
-
-        // Get existing active pairs by device_id (not cycle_id) to find pairs from either side
-        const { data: ecPairsA } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_a", job.device_id).eq("status", "active");
-        const { data: ecPairsB } = await db.from("community_pairs")
-          .select("id, instance_id_a, instance_id_b, meta")
-          .eq("instance_id_b", job.device_id).eq("status", "active");
-        const ecDedupSet = new Set<string>();
-        const existingPairs = [...(ecPairsA || []), ...(ecPairsB || [])].filter(p => {
-          if (ecDedupSet.has(p.id)) return false; ecDedupSet.add(p.id); return true;
+        const pairStats = await reconcileCommunityPairs(db, {
+          deviceId: job.device_id,
+          userId: job.user_id,
+          cycleId: cycle.id,
+          dayIndex: cycle.day_index,
+          chipState,
         });
-
-        // Strategy: keep ~40% of existing pairs (old contacts), fill rest with new
-        const keepCount = Math.min(
-          Math.floor(targetPeers * 0.4),
-          existingPairs?.length || 0
-        );
-        const newNeeded = targetPeers - keepCount;
-
-        // Close excess old pairs (keep only keepCount)
-        if (existingPairs?.length) {
-          const shuffledExisting = existingPairs.sort(() => Math.random() - 0.5);
-          const toKeep = shuffledExisting.slice(0, keepCount);
-          const toClose = shuffledExisting.slice(keepCount);
-          if (toClose.length > 0) {
-            const closeIds = toClose.map((p: any) => p.id);
-            await db.from("community_pairs")
-              .update({ status: "closed", closed_at: new Date().toISOString() })
-              .in("id", closeIds);
-          }
-          // Track kept devices to avoid duplicates
-          var keptDevices = new Set<string>();
-          var keptUsers = new Set<string>();
-          for (const p of toKeep) {
-            const peerId = p.instance_id_a === job.device_id ? p.instance_id_b : p.instance_id_a;
-            keptDevices.add(peerId);
-            // Find user of kept peer
-            const keptEligible = eligible?.find((e: any) => e.device_id === peerId);
-            if (keptEligible) keptUsers.add(keptEligible.user_id);
-          }
-        } else {
-          var keptDevices = new Set<string>();
-          var keptUsers = new Set<string>();
-        }
-
-        let pairsCreated = 0;
-        if (eligible?.length && newNeeded > 0) {
-          // Shuffle and pick new unique partners
-          const shuffled = eligible.sort(() => Math.random() - 0.5);
-          const usedUsers = new Set<string>(keptUsers);
-          const usedDevices = new Set<string>(keptDevices);
-
-          // Prefer devices NOT in "new" chip state (avoid fresh accounts pairing)
-          // Check which devices have older cycles (non-new)
-          const eligibleDeviceIds = shuffled.map((e: any) => e.device_id);
-          const { data: peerCycles } = await db.from("warmup_cycles")
-            .select("device_id, chip_state, day_index")
-            .in("device_id", eligibleDeviceIds.slice(0, 50))
-            .eq("is_running", true);
-
-          const peerCycleMap: Record<string, any> = {};
-          peerCycles?.forEach((c: any) => { peerCycleMap[c.device_id] = c; });
-
-          // Sort: prefer non-new chips and older cycles first
-          const sorted = shuffled.sort((a: any, b: any) => {
-            const ca = peerCycleMap[a.device_id];
-            const cb = peerCycleMap[b.device_id];
-            const aNew = ca?.chip_state === "new" && (ca?.day_index || 0) < 10 ? 1 : 0;
-            const bNew = cb?.chip_state === "new" && (cb?.day_index || 0) < 10 ? 1 : 0;
-            return aNew - bNew; // non-new first
-          });
-
-          for (const e of sorted) {
-            if (pairsCreated >= newNeeded) break;
-            if (usedDevices.has(e.device_id)) continue;
-
-            // Check if partner device is connected
-            const { data: partnerDev } = await db.from("devices")
-              .select("status, number").eq("id", e.device_id).single();
-            if (!partnerDev?.number || !CONNECTED_STATUSES.includes(partnerDev.status)) continue;
-
-            // Check if partner already has too many active pairs
-            const partnerPairCount = await getActivePairCount(db, e.device_id);
-            const partnerChipState = await getDeviceChipState(db, e.device_id);
-            if (partnerPairCount >= getMaxPairsForChip(partnerChipState)) continue;
-
-            await db.from("community_pairs").insert({
-              cycle_id: cycle.id,
-              instance_id_a: job.device_id,
-              instance_id_b: e.device_id,
-              status: "active",
-              meta: { initiator: Math.random() < 0.5 ? "a" : "b", is_new: true },
-            });
-
-            usedUsers.add(e.user_id);
-            usedDevices.add(e.device_id);
-            pairsCreated++;
-          }
-        }
 
         await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_enabled",
-          message: `Comunidade ativada: ${keepCount} pares mantidos + ${pairsCreated} novos = ${keepCount + pairsCreated}/${targetPeers} (dia ${cycle.day_index})`,
-          meta: { pairs_kept: keepCount, pairs_new: pairsCreated, target: targetPeers },
+          message: `Comunidade ativada: ${pairStats.keptCount} pares válidos + ${pairStats.createdCount} novos = ${pairStats.pairs.length}/${pairStats.targetPeers} (fechados inválidos: ${pairStats.closedCount})`,
+          meta: {
+            pairs_kept: pairStats.keptCount,
+            pairs_new: pairStats.createdCount,
+            pairs_closed: pairStats.closedCount,
+            target: pairStats.targetPeers,
+          },
         });
         break;
       }
