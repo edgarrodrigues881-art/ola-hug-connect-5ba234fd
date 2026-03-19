@@ -105,7 +105,7 @@ const plans = [
   {
     name: "Elite",
     instances: 100,
-    price: "949,90",
+    price: "999,90",
     subtitle: "Ideal para operações que exigem volume alto com performance e suporte dedicado.",
     extraCopy: "Alta performance garantida",
     cta: "Ir para o Elite",
