@@ -1,6 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useEffect, useState } from "react";
-import { FixedSizeGrid as Grid } from "react-window";
-// @ts-ignore - react-window types may not export FixedSizeGrid directly
+import { Grid } from "react-window";
 
 interface VirtualizedDeviceGridProps {
   items: any[];
@@ -10,10 +9,10 @@ interface VirtualizedDeviceGridProps {
 }
 
 const BREAKPOINTS = [
-  { min: 1536, cols: 5 },  // 2xl
-  { min: 1280, cols: 4 },  // xl
-  { min: 1024, cols: 3 },  // lg
-  { min: 640, cols: 2 },   // sm
+  { min: 1536, cols: 5 },
+  { min: 1280, cols: 4 },
+  { min: 1024, cols: 3 },
+  { min: 640, cols: 2 },
   { min: 0, cols: 1 },
 ];
 
@@ -26,6 +25,27 @@ function getColumns(width: number) {
 
 const CARD_HEIGHT = 210;
 const GAP = 16;
+
+const CellWrapper = memo(({ columnIndex, rowIndex, style, data }: any) => {
+  const { items, columnCount, renderItem, gap, cardHeight, columnWidth } = data;
+  const index = rowIndex * columnCount + columnIndex;
+  if (index >= items.length) return null;
+
+  const adjustedStyle: React.CSSProperties = {
+    ...style,
+    left: Number(style.left) + columnIndex * gap,
+    top: Number(style.top) + rowIndex * gap,
+    width: columnWidth,
+    height: cardHeight,
+  };
+
+  return (
+    <div style={adjustedStyle}>
+      {renderItem(items[index], index)}
+    </div>
+  );
+});
+CellWrapper.displayName = "CellWrapper";
 
 const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGHT, gap = GAP }: VirtualizedDeviceGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,27 +74,11 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     return (dimensions.width - gap * (columnCount - 1)) / columnCount;
   }, [dimensions.width, columnCount, gap]);
 
-  const Cell = useCallback(({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
-    const index = rowIndex * columnCount + columnIndex;
-    if (index >= items.length) return null;
+  const itemData = useMemo(() => ({
+    items, columnCount, renderItem, gap, cardHeight, columnWidth,
+  }), [items, columnCount, renderItem, gap, cardHeight, columnWidth]);
 
-    const adjustedStyle: React.CSSProperties = {
-      ...style,
-      left: Number(style.left) + columnIndex * gap,
-      top: Number(style.top) + rowIndex * gap,
-      width: columnWidth,
-      height: cardHeight,
-      paddingRight: 0,
-    };
-
-    return (
-      <div style={adjustedStyle}>
-        {renderItem(items[index], index)}
-      </div>
-    );
-  }, [items, columnCount, columnWidth, cardHeight, gap, renderItem]);
-
-  // For small lists (< 100), render normally without virtualization
+  // For small lists (<100), render normally without virtualization
   if (items.length < 100) {
     return (
       <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
@@ -96,14 +100,13 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
         <Grid
           columnCount={columnCount}
           columnWidth={columnWidth + gap}
-          height={gridHeight}
           rowCount={rowCount}
           rowHeight={cardHeight + gap}
-          width={dimensions.width + gap}
-          overscanRowCount={3}
-          style={{ overflowX: "hidden" }}
+          overscanCount={3}
+          style={{ overflowX: "hidden", height: gridHeight }}
+          cellProps={itemData}
         >
-          {Cell}
+          {CellWrapper}
         </Grid>
       )}
     </div>
