@@ -1017,31 +1017,27 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(deviceId);
   }, []);
 
-  const renderedCards = useMemo(
-    () =>
-      displayed.map((device) => (
-        <DeviceCard
-          key={device.id}
-          device={device}
-          cycle={cycleByDeviceId.get(device.id)}
-          onPause={handlePause}
-          onResume={handleResume}
-          onCancel={onCancelClick}
-          onConnect={openConnect}
-          onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
-          formatPhone={formatPhone}
-          deviceTags={activeFolder?.device_tags?.get(device.id)}
-          availableTags={activeFolder?.tags}
-          onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
-          onRemoveFromFolder={activeFolder ? (deviceId) => {
-            removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
-              toast({ title: "Instância removida da pasta" });
-            });
-          } : undefined}
-        />
-      )),
-    [displayed, cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder]
-  );
+  const renderDeviceCard = useCallback((device: any) => (
+    <DeviceCard
+      key={device.id}
+      device={device}
+      cycle={cycleByDeviceId.get(device.id)}
+      onPause={handlePause}
+      onResume={handleResume}
+      onCancel={onCancelClick}
+      onConnect={openConnect}
+      onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
+      formatPhone={formatPhone}
+      deviceTags={activeFolder?.device_tags?.get(device.id)}
+      availableTags={activeFolder?.tags}
+      onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
+      onRemoveFromFolder={activeFolder ? (deviceId) => {
+        removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
+          toast({ title: "Instância removida da pasta" });
+        });
+      } : undefined}
+    />
+  ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder, activeFolderId]);
 
   return (
     <div className="space-y-5">
