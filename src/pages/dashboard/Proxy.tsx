@@ -403,7 +403,7 @@ const Proxy = () => {
       </Dialog>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
             <Globe className="w-6 h-6 text-primary" />
@@ -411,14 +411,14 @@ const Proxy = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Conexão dedicada por instância para saúde do chip</p>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 w-full md:w-auto">
           <input ref={fileInputRef} type="file" accept=".txt,.csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-3.5 h-3.5" /> Importar
+          <Button variant="outline" size="sm" className="gap-1 md:gap-1.5 text-[10px] md:text-xs flex-1 md:flex-none" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="w-3.5 h-3.5 shrink-0" /> Importar
           </Button>
-          <div className="relative">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
-              <Download className="w-3.5 h-3.5" /> Exportar
+          <div className="relative flex-1 md:flex-none">
+            <Button variant="outline" size="sm" className="gap-1 md:gap-1.5 text-[10px] md:text-xs w-full" onClick={() => setExportMenuOpen(!exportMenuOpen)}>
+              <Download className="w-3.5 h-3.5 shrink-0" /> Exportar
             </Button>
             {exportMenuOpen && (
               <>
@@ -433,8 +433,8 @@ const Proxy = () => {
               </>
             )}
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleSync}>
-            <RefreshCw className="w-3.5 h-3.5" /> Sincronizar
+          <Button variant="outline" size="sm" className="gap-1 md:gap-1.5 text-[10px] md:text-xs flex-1 md:flex-none" onClick={handleSync}>
+            <RefreshCw className="w-3.5 h-3.5 shrink-0" /> Sincronizar
           </Button>
         </div>
       </div>
