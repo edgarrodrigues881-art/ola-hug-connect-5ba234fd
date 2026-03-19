@@ -138,6 +138,7 @@ const App = () => (
                           <Route path="auto-reply" element={<AutoReplyComingSoon />} />
                           <Route path="auto-reply/:id" element={<AutoReplyComingSoon />} />
                           <Route path="chip-conversation" element={<ChipConversation />} />
+                          <Route path="group-interaction" element={<GroupInteraction />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
