@@ -248,9 +248,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
       )} />
 
-      <div className="px-4 pt-3.5 flex flex-wrap items-start justify-between gap-1.5">
+      <div className="px-3 sm:px-4 pt-3 sm:pt-3.5 flex flex-wrap items-start justify-between gap-1">
         <div className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shrink-0",
+          "inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-widest shrink-0",
           connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
         )}>
           <span className={cn(
@@ -259,9 +259,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex flex-col items-end gap-1 shrink min-w-0 max-w-[55%]">
           {cycle && warmupProgress !== null && (
-            <div className="relative flex items-center gap-1 rounded-lg px-2 py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden">
+            <div className="relative flex items-center gap-1 rounded-lg px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden">
               <div
                 className="absolute inset-0 rounded-lg transition-all duration-700 ease-out"
                 style={{
@@ -269,11 +269,11 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
                 }}
               />
               <Flame className="w-3 h-3 text-orange-400 relative z-10 shrink-0" />
-              <span className="text-[11px] font-bold text-orange-300 relative z-10 tabular-nums shrink-0">
+              <span className="text-[10px] sm:text-[11px] font-bold text-orange-300 relative z-10 tabular-nums shrink-0">
                 {warmupProgress}%
               </span>
               <span className={cn(
-                "relative z-10 text-[7px] font-extrabold uppercase tracking-wider px-1 py-[1px] rounded shrink-0 truncate max-w-[60px]",
+                "relative z-10 text-[6px] sm:text-[7px] font-extrabold uppercase tracking-wider px-1 py-[1px] rounded shrink-0 truncate max-w-[50px] sm:max-w-[60px]",
                 cycle.phase === "pre_24h" && "bg-sky-500/20 text-sky-300",
                 cycle.phase === "groups_only" && "bg-emerald-500/20 text-emerald-300",
                 cycle.phase === "autosave_enabled" && "bg-violet-500/20 text-violet-300",
@@ -306,7 +306,7 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
               );
             })()}
             {deviceTags && deviceTags.length > 0 && deviceTags.map((tag) => (
-              <span key={tag.label} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold text-white leading-tight whitespace-nowrap" style={{ backgroundColor: tag.color }}>
+              <span key={tag.label} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[7px] sm:text-[8px] font-semibold text-white leading-tight truncate max-w-[70px] sm:max-w-none" style={{ backgroundColor: tag.color }}>
                 {tag.label}
               </span>
             ))}
