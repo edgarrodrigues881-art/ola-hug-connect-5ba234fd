@@ -1401,7 +1401,7 @@ const Campaigns = () => {
                           // Compress images before uploading
                           const optimized = await compressImage(file);
                           const ext = optimized.name.split(".").pop() || "bin";
-                          const path = `campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                          const path = `${session!.user.id}/campaigns/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
                           const { error: uploadError } = await supabase.storage.from("media").upload(path, optimized);
                           if (uploadError) throw uploadError;
                           const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
