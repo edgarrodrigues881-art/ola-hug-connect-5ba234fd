@@ -211,14 +211,21 @@ Deno.serve(async (req) => {
     const userId = user.id;
     const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // ── Shard support: split large device sets across multiple invocations ──
+    let body: any = {};
+    try { body = await req.json(); } catch { /* empty body ok */ }
+    const shardIndex = body.shard ?? 0;     // 0-based shard index
+    const shardTotal = body.shards ?? 1;    // total number of shards
+
     // ── Fetch all devices with pagination ──
     let devices: any[] = [];
     let from = 0;
-    const PAGE = 500;
+    const PAGE = 1000;
     while (true) {
       const { data, error } = await svc.from("devices")
         .select("id, name, number, status, uazapi_token, uazapi_base_url, proxy_id, instance_type, login_type, user_id, profile_name, profile_picture, updated_at")
         .eq("user_id", userId)
+        .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
       if (error) throw error;
       if (!data?.length) break;
@@ -227,10 +234,17 @@ Deno.serve(async (req) => {
       from += PAGE;
     }
 
+    // Apply sharding: each shard processes a slice of devices
+    if (shardTotal > 1) {
+      const chunkSize = Math.ceil(devices.length / shardTotal);
+      const start = shardIndex * chunkSize;
+      devices = devices.slice(start, start + chunkSize);
+    }
+
     const syncable = devices.filter(d => d.uazapi_token && d.uazapi_base_url);
     const skipped = devices.length - syncable.length;
 
-    const deadline = Date.now() + 48_000;
+    const deadline = Date.now() + 50_000;
 
     // ── Collect results per device ──
     interface SyncResult {
