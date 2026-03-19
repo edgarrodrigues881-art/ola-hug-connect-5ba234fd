@@ -2272,7 +2272,10 @@ async function handleTick(db: any) {
             if (pairMeta.conversation_id !== job.payload.conversation_id) return "skip";
             if (pairMeta.expected_sender_device_id !== job.device_id || pairMeta.turns_completed !== currentTurnIndex) return "skip";
           } else {
-            if (!iAmInitiator) return "skip";
+            // Allow either side to initiate when there's NO active conversation
+            // The initiator check only matters during active conversations to prevent race conditions
+            const hasActiveConversation = Boolean(rawPairMeta.conversation_id && rawPairMeta.expected_sender_device_id);
+            if (hasActiveConversation && !iAmInitiator) return "skip";
 
             const pairBusy = Boolean(pairMeta.conversation_id && pairMeta.expected_sender_device_id);
             if (pairBusy) {
@@ -2284,7 +2287,7 @@ async function handleTick(db: any) {
                 const resetMeta = {
                   ...rawPairMeta, initiator: null, expected_sender_device_id: null,
                   last_sender_device_id: pairMeta.last_sender_device_id,
-                  turns_completed: 0, max_turns: 0, conversation_id: null,
+                  turns_completed: 0, max_turns: randInt(40, 80), conversation_id: null,
                   last_turn_at: pairMeta.last_turn_at, last_completed_at: new Date().toISOString(),
                 };
                 await db.from("community_pairs").update({ meta: resetMeta }).eq("id", selectedPair.id);
@@ -2372,11 +2375,11 @@ async function handleTick(db: any) {
           const conversationId = isReply ? String(job.payload.conversation_id) : job.id;
           const nextMeta = {
             ...rawPairMeta,
-            initiator: pairMeta.initiator || (iAmInitiator ? "a" : "b"),
+            initiator: hasNextTurn ? (pairMeta.initiator || (iAmInitiator ? "a" : "b")) : null,
             expected_sender_device_id: hasNextTurn ? peerDeviceId : null,
             last_sender_device_id: job.device_id,
             turns_completed: hasNextTurn ? nextTurnNumber : 0,
-            max_turns: maxTurns,
+            max_turns: hasNextTurn ? maxTurns : randInt(40, 80),
             conversation_id: hasNextTurn ? conversationId : null,
             last_turn_at: nowIso,
             last_completed_at: hasNextTurn ? pairMeta.last_completed_at : nowIso,
@@ -2517,7 +2520,7 @@ async function handleTick(db: any) {
             const resetMeta = {
               ...rawMeta, initiator: null, expected_sender_device_id: null,
               last_sender_device_id: meta.last_sender_device_id,
-              turns_completed: 0, max_turns: 0, conversation_id: null,
+              turns_completed: 0, max_turns: randInt(40, 80), conversation_id: null,
               last_turn_at: meta.last_turn_at, last_completed_at: new Date().toISOString(),
             };
             await db.from("community_pairs").update({ meta: resetMeta }).eq("id", pair.id);
