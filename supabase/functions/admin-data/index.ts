@@ -191,6 +191,7 @@ Deno.serve(async (req) => {
 
       const authUser = authUserRes.data;
       const profile = profileRes.data;
+      const adminData = adminDataRes.data;
       const sub = subRes.data;
       const devices = devicesRes.data;
       const campaigns = campaignsRes.data;
