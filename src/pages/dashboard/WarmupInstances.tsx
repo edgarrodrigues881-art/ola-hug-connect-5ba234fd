@@ -379,81 +379,81 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
       </div>
 
 
-      <div className="px-4 pb-4 space-y-2">
+      <div className="px-3 md:px-4 pb-3 md:pb-4 space-y-1.5 md:space-y-2">
         {/* Tag button for folder view */}
         {availableTags && availableTags.length > 0 && onTagClick && (
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-8 gap-1.5 rounded-lg font-semibold border-border/20"
+            className="w-full text-[10px] md:text-[11px] h-7 md:h-8 gap-1 md:gap-1.5 rounded-lg font-semibold border-border/20"
             onClick={(e) => { e.stopPropagation(); onTagClick(device.id); }}
           >
-            <Tag className="w-3 h-3" /> Gerenciar tags
+            <Tag className="w-3 h-3 shrink-0" /> Gerenciar tags
           </Button>
         )}
         {!connected ? (
           <Button
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg font-semibold"
             onClick={(e) => { e.stopPropagation(); onConnect(device); }}
           >
-            <Wifi className="w-3.5 h-3.5" /> Conectar
+            <Wifi className="w-3.5 h-3.5 shrink-0" /> Conectar
           </Button>
         ) : cycle && isWarming ? (
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg border-primary/20 text-primary hover:bg-primary/8 font-semibold"
             onClick={(e) => onPause(device.id, e)}
           >
-            <Pause className="w-3.5 h-3.5" /> Parar aquecimento
+            <Pause className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Parar aquecimento</span>
           </Button>
         ) : cycle?.phase === "paused" ? (
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg border-border/20 text-foreground hover:bg-muted/20 font-semibold"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg border-border/20 text-foreground hover:bg-muted/20 font-semibold"
             onClick={(e) => onResume(device.id, e)}
           >
-            <Play className="w-3.5 h-3.5" /> Retomar aquecimento
+            <Play className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Retomar aquecimento</span>
           </Button>
         ) : connected && !cycle ? (
           <Button
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white"
             onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
           >
-            <Flame className="w-3.5 h-3.5" /> Aquecer
+            <Flame className="w-3.5 h-3.5 shrink-0" /> Aquecer
           </Button>
         ) : null}
         {cycle && (
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg font-semibold border-destructive/20 text-destructive hover:bg-destructive/8"
             onClick={(e) => { e.stopPropagation(); onCancel(device.id); }}
           >
-            <XCircle className="w-3.5 h-3.5" /> Cancelar aquecimento
+            <XCircle className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Cancelar aquecimento</span>
           </Button>
         )}
         {cycle && (
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg font-semibold"
             onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
           >
-            <Pencil className="w-3.5 h-3.5" /> Editar
+            <Pencil className="w-3.5 h-3.5 shrink-0" /> Editar
           </Button>
         )}
         {onRemoveFromFolder && (
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-[11px] h-9 gap-1.5 rounded-lg font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500/8"
+            className="w-full text-[10px] md:text-[11px] h-8 md:h-9 gap-1 md:gap-1.5 rounded-lg font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500/8"
             onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(device.id); }}
           >
-            <FolderOpen className="w-3.5 h-3.5" /> Remover da pasta
+            <FolderOpen className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Remover da pasta</span>
           </Button>
         )}
       </div>
