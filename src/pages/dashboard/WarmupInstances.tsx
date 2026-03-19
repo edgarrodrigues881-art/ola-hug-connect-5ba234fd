@@ -259,10 +259,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
-        <div className="flex flex-col items-end gap-1 shrink min-w-0">
+        <div className="flex flex-col items-end gap-1 shrink-0">
           {cycle && warmupProgress !== null && (
-            <div className="relative flex items-center gap-1 rounded-lg px-2 py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden max-w-full">
-              {/* Background progress bar */}
+            <div className="relative flex items-center gap-1 rounded-lg px-2 py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden">
               <div
                 className="absolute inset-0 rounded-lg transition-all duration-700 ease-out"
                 style={{
@@ -273,7 +272,6 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
               <span className="text-[11px] font-bold text-orange-300 relative z-10 tabular-nums shrink-0">
                 {warmupProgress}%
               </span>
-              {/* Phase pill */}
               <span className={cn(
                 "relative z-10 text-[7px] font-extrabold uppercase tracking-wider px-1 py-[1px] rounded shrink-0 truncate max-w-[60px]",
                 cycle.phase === "pre_24h" && "bg-sky-500/20 text-sky-300",
@@ -287,34 +285,32 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
               </span>
             </div>
           )}
-          {!connected && countdown && device.number && (() => {
-            const [hh, mm] = countdown.split(":");
-            return (
-              <div className="flex items-center gap-0.5 rounded-full bg-destructive/8 border border-destructive/15 px-2 py-0.5">
-                <Timer className="w-2.5 h-2.5 text-destructive/50 mr-0.5" />
-                <div className="flex items-center gap-0">
-                  <div className="flex flex-col items-center">
-                    <span className="text-[6px] font-medium text-destructive/40 uppercase leading-none">Hrs</span>
-                    <span className="text-[10px] font-mono font-bold text-destructive/70 tabular-nums leading-tight">{hh}</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-destructive/50 tabular-nums leading-tight mx-px">:</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-[6px] font-medium text-destructive/40 uppercase leading-none">Min</span>
-                    <span className="text-[10px] font-mono font-bold text-destructive/70 tabular-nums leading-tight">{mm}</span>
+          <div className="flex items-center gap-1 flex-wrap justify-end">
+            {!connected && countdown && device.number && (() => {
+              const [hh, mm] = countdown.split(":");
+              return (
+                <div className="flex items-center gap-0.5 rounded-full bg-destructive/8 border border-destructive/15 px-1.5 py-0.5">
+                  <Timer className="w-2.5 h-2.5 text-destructive/50 mr-0.5" />
+                  <div className="flex items-center gap-0">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[6px] font-medium text-destructive/40 uppercase leading-none">Hrs</span>
+                      <span className="text-[10px] font-mono font-bold text-destructive/70 tabular-nums leading-tight">{hh}</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-destructive/50 tabular-nums leading-tight mx-px">:</span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[6px] font-medium text-destructive/40 uppercase leading-none">Min</span>
+                      <span className="text-[10px] font-mono font-bold text-destructive/70 tabular-nums leading-tight">{mm}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
-          {deviceTags && deviceTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 justify-end max-w-[55%]">
-              {deviceTags.map((tag) => (
-                <span key={tag.label} className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-semibold text-white leading-tight" style={{ backgroundColor: tag.color }}>
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          )}
+              );
+            })()}
+            {deviceTags && deviceTags.length > 0 && deviceTags.map((tag) => (
+              <span key={tag.label} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold text-white leading-tight whitespace-nowrap" style={{ backgroundColor: tag.color }}>
+                {tag.label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
