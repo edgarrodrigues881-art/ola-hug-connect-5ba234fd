@@ -240,8 +240,8 @@ Deno.serve(async (req) => {
 
     const webhookSecret = req.headers.get("x-webhook-secret") || "";
     const expectedWebhookSecret = Deno.env.get("WEBHOOK_SECRET") || "";
-    if (webhookSecret && expectedWebhookSecret && webhookSecret !== expectedWebhookSecret) {
-      return json({ error: "Invalid webhook secret" }, 401);
+    if (!expectedWebhookSecret || !webhookSecret || webhookSecret !== expectedWebhookSecret) {
+      return json({ error: "Unauthorized" }, 401);
     }
 
     // ── UaZapi NATIVE format (EventType + chat object) ──
