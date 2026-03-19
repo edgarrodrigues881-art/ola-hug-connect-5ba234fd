@@ -686,13 +686,24 @@ const WarmupInstances = () => {
   const { data: devices = [], isLoading: devicesLoading } = useQuery({
     queryKey: ["devices", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("devices")
-        .select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at, updated_at")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data || []).sort((a, b) => {
+      // Paginated fetch to support 10k+ devices
+      let all: any[] = [];
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("devices")
+          .select("id, name, number, status, profile_name, profile_picture, login_type, proxy_id, created_at, updated_at")
+          .eq("user_id", user!.id)
+          .order("created_at", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data?.length) break;
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all.sort((a, b) => {
         const onlineStatuses = ["Connected", "Ready", "authenticated"];
         const aOnline = onlineStatuses.includes(a.status) ? 0 : 1;
         const bOnline = onlineStatuses.includes(b.status) ? 0 : 1;
