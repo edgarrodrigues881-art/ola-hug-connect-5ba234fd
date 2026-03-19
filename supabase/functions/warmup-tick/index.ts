@@ -1470,8 +1470,11 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
   const now = new Date().toISOString();
   const withinWindow = isWithinOperatingWindow();
 
+  // Only shard 0 handles maintenance tasks (cancel stale, recover running, reconcile, orphans, auto-resume)
+  const isPrimaryShard = shardIndex === 0;
+
   // Cancel stale interaction jobs outside window (but skip forced jobs)
-  if (!withinWindow) {
+  if (!withinWindow && isPrimaryShard) {
     const { data: outsideJobs } = await db.from("warmup_jobs")
       .select("id, payload")
       .eq("status", "pending").lte("run_at", now)
