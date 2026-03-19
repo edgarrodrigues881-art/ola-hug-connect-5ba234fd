@@ -307,9 +307,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
             );
           })()}
           {deviceTags && deviceTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">
+            <div className="flex flex-wrap gap-0.5 sm:gap-1 justify-end max-w-[55%]">
               {deviceTags.map((tag) => (
-                <span key={tag.label} className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold text-white leading-tight" style={{ backgroundColor: tag.color }}>
+                <span key={tag.label} className="inline-flex items-center px-1 sm:px-1.5 md:px-2 py-px sm:py-0.5 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-semibold text-white leading-tight truncate max-w-[60px] sm:max-w-[80px] md:max-w-[100px]" style={{ backgroundColor: tag.color }}>
                   {tag.label}
                 </span>
               ))}
