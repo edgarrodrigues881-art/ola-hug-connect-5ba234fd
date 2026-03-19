@@ -266,8 +266,9 @@ const MyPlan = () => {
                   <div>
                     <h3 className="text-sm font-bold text-white/90 mb-0.5">Relatórios via WhatsApp</h3>
                     <p className="text-[11px] text-white/30 leading-relaxed">
-                      Receba relatórios automáticos e alertas direto no WhatsApp. Já incluso nos planos Scale e Elite.
+                      Receba relatórios automáticos e alertas diretamente no WhatsApp.
                     </p>
+                    <p className="text-[10px] text-white/20 mt-1">Já incluso nos planos Scale e Elite.</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
