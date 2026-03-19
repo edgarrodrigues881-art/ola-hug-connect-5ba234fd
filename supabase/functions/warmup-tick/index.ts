@@ -242,11 +242,38 @@ async function scheduleDayJobs(
     ? Math.max(existingBudgetTarget - existingBudgetUsed, 0)
     : null;
 
-  // Cancel existing pending interaction jobs before creating new ones (prevent duplicates)
+  // Cancel existing pending SCHEDULED interaction jobs before creating new ones (prevent duplicates)
+  // IMPORTANT: Do NOT cancel community_interaction reply/reburst jobs (they have pair_id or source in payload)
   await db.from("warmup_jobs")
     .update({ status: "cancelled", last_error: "Substituído por novo agendamento" })
     .eq("cycle_id", cycleId).eq("status", "pending")
-    .in("job_type", ["group_interaction", "autosave_interaction", "community_interaction"]);
+    .in("job_type", ["group_interaction", "autosave_interaction"]);
+
+  // For community_interaction: only cancel SCHEDULED burst jobs (peer_index in payload), preserve reply/reburst jobs
+  const { data: pendingCommunityJobs } = await db.from("warmup_jobs")
+    .select("id, payload")
+    .eq("cycle_id", cycleId).eq("status", "pending")
+    .eq("job_type", "community_interaction");
+  
+  if (pendingCommunityJobs?.length) {
+    const scheduledBurstIds = pendingCommunityJobs
+      .filter((j: any) => {
+        const p = j.payload || {};
+        // Keep reply turns (have pair_id + conversation_id) and reburst jobs (source=auto_reburst)
+        const isReply = typeof p.pair_id === "string" && typeof p.conversation_id === "string";
+        const isReburst = p.source === "auto_reburst" || p.source === "community_reply";
+        return !isReply && !isReburst;
+      })
+      .map((j: any) => j.id);
+    
+    if (scheduledBurstIds.length > 0) {
+      for (let i = 0; i < scheduledBurstIds.length; i += 200) {
+        await db.from("warmup_jobs")
+          .update({ status: "cancelled", last_error: "Substituído por novo agendamento" })
+          .in("id", scheduledBurstIds.slice(i, i + 200));
+      }
+    }
+  }
 
   if (remainingBudget === 0) {
     console.log(`[scheduleDayJobs] Budget already exhausted (${existingBudgetUsed}/${existingBudgetTarget}), skipping`);
