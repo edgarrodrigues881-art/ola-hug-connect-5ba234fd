@@ -22,10 +22,10 @@ import {
   Phone, Type, ImageIcon, Flame, ShieldAlert, Activity,
   Zap, Clock, Hash, Wifi, WifiOff, RefreshCw, Settings2, Calendar,
   CheckCircle2, XCircle, Copy, Eraser, Sparkles, Loader2, Check,
-  ArrowRight, Lock, Timer, TrendingUp, ArrowUp, ArrowDown, Pencil, Search
+  ArrowRight, Lock, Timer, TrendingUp, ArrowUp, ArrowDown, Pencil, Search, Save
 } from "lucide-react";
 import { useCreateCampaign, useStartCampaign } from "@/hooks/useCampaigns";
-import { useTemplates } from "@/hooks/useTemplates";
+import { useTemplates, useCreateTemplate } from "@/hooks/useTemplates";
 import { useContacts } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -141,6 +141,7 @@ const Campaigns = () => {
   // Removed: useAutoSyncDevices already runs in DashboardLayout — no duplicate needed
   const createCampaign = useCreateCampaign();
   const startCampaign = useStartCampaign();
+  const createTemplate = useCreateTemplate();
   const { data: savedTemplates = [] } = useTemplates();
   const { data: savedContacts = [] } = useContacts();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -237,6 +238,8 @@ const Campaigns = () => {
   } | null>(null);
   const CONTACTS_PER_PAGE = 50;
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
 
   // Send control
   const [messageLimit, setMessageLimit] = useState(100);
@@ -575,6 +578,33 @@ const Campaigns = () => {
           desc = "O template selecionado foi removido. Escolha outro na aba 'Mensagem'.";
         }
         toast({ title: "Erro ao criar campanha", description: desc, variant: "destructive" });
+      },
+    });
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (!saveTemplateName.trim()) {
+      toast({ title: "Nome obrigatório", description: "Informe um nome para o template.", variant: "destructive" });
+      return;
+    }
+    if (!combinedMessage.trim() && !mediaUrl) {
+      toast({ title: "Template vazio", description: "Escreva uma mensagem ou adicione mídia.", variant: "destructive" });
+      return;
+    }
+    createTemplate.mutate({
+      name: saveTemplateName.trim(),
+      content: combinedMessage,
+      type: computedMessageType,
+      media_url: mediaUrl || undefined,
+      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+    }, {
+      onSuccess: () => {
+        toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" foi salvo e está disponível em Templates.` });
+        setSaveTemplateOpen(false);
+        setSaveTemplateName("");
+      },
+      onError: (err: any) => {
+        toast({ title: "Erro ao salvar template", description: err.message, variant: "destructive" });
       },
     });
   };
@@ -2214,14 +2244,24 @@ const Campaigns = () => {
                 CONTINUAR <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             ) : (
-              <Button 
-                onClick={handleSendCampaign} 
-                disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
-                className="gap-1.5 sm:gap-2.5 h-10 sm:h-11 flex-1 sm:flex-none sm:px-10 text-xs sm:text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => { setSaveTemplateName(campaignName || ""); setSaveTemplateOpen(true); }}
+                  disabled={!combinedMessage.trim() && !mediaUrl}
+                  className="gap-1.5 h-10 sm:h-11 text-xs sm:text-sm font-bold border-border/40 text-muted-foreground hover:text-foreground"
+                >
+                  <Save className="w-4 h-4" /> Salvar Template
+                </Button>
+                <Button 
+                  onClick={handleSendCampaign} 
+                  disabled={createCampaign.isPending || !campaignName || selectedDevices.length === 0 || validContacts.length === 0 || !message}
+                  className="gap-1.5 sm:gap-2.5 h-10 sm:h-11 flex-1 sm:flex-none sm:px-10 text-xs sm:text-sm font-bold tracking-wide shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {scheduleEnabled ? "AGENDAR" : "ENVIAR AGORA"}
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -2505,6 +2545,38 @@ const Campaigns = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Template Dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Salvar como Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Nome do template</Label>
+              <Input
+                value={saveTemplateName}
+                onChange={(e) => setSaveTemplateName(e.target.value)}
+                placeholder="Ex: Promoção Black Friday"
+                className="h-9"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleSaveAsTemplate(); }}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              O template ficará disponível em <strong>Templates</strong> para uso em futuras campanhas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSaveTemplateOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleSaveAsTemplate} disabled={createTemplate.isPending} className="gap-1.5">
+              {createTemplate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              Salvar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

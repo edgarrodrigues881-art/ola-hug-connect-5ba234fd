@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -11,9 +12,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Megaphone, Search, Trash2, Plus, Send, Clock, CheckCircle2, XCircle, Pause, Ban, Save, Loader2,
 } from "lucide-react";
 import { useCampaigns, useDeleteCampaign } from "@/hooks/useCampaigns";
+import { useCreateTemplate } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -34,11 +39,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 const CampaignList = () => {
   const { data: campaigns = [], isLoading } = useCampaigns();
   const deleteCampaign = useDeleteCampaign();
+  const createTemplate = useCreateTemplate();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const [savingCampaign, setSavingCampaign] = useState<any>(null);
 
   const filtered = useMemo(() => {
     return campaigns.filter((c) => {
@@ -82,6 +91,27 @@ const CampaignList = () => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
+
+  const handleSaveAsTemplate = () => {
+    if (!saveTemplateName.trim() || !savingCampaign) return;
+    createTemplate.mutate({
+      name: saveTemplateName.trim(),
+      content: savingCampaign.message_content || "",
+      type: savingCampaign.message_type || "texto",
+      media_url: savingCampaign.media_url || undefined,
+      buttons: Array.isArray(savingCampaign.buttons) ? savingCampaign.buttons : [],
+    }, {
+      onSuccess: () => {
+        toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" salvo em Templates.` });
+        setSaveTemplateOpen(false);
+        setSaveTemplateName("");
+        setSavingCampaign(null);
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
+  };
+
+  const canSaveAsTemplate = (status: string) => !["running", "processing", "queued"].includes(status);
 
   const getProgress = (c: any) => {
     const total = c.total_contacts || 0;
@@ -233,8 +263,24 @@ const CampaignList = () => {
                     {format(new Date(c.created_at), "dd/MM/yy HH:mm")}
                   </span>
 
-                  {/* Delete */}
-                  <div onClick={(e) => e.stopPropagation()}>
+                  {/* Actions */}
+                  <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    {canSaveAsTemplate(c.status) && c.message_content && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-100 text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
+                        title="Salvar como Template"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSavingCampaign(c);
+                          setSaveTemplateName(c.name || "");
+                          setSaveTemplateOpen(true);
+                        }}
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -268,6 +314,38 @@ const CampaignList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Save as Template Dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Salvar como Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Nome do template</Label>
+              <Input
+                value={saveTemplateName}
+                onChange={(e) => setSaveTemplateName(e.target.value)}
+                placeholder="Ex: Promoção Black Friday"
+                className="h-9"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleSaveAsTemplate(); }}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              O template ficará disponível em <strong>Templates</strong> para uso em futuras campanhas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSaveTemplateOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleSaveAsTemplate} disabled={createTemplate.isPending} className="gap-1.5">
+              {createTemplate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
