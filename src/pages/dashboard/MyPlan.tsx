@@ -345,7 +345,8 @@ const MyPlan = () => {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Fluxos ilimitados</p>
-                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Automação completa</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Automação completa e ilimitada</p>
+                      <p className="text-[10px] text-white/25 flex items-center gap-1"><Check className="w-3 h-3 text-teal-500/50" />Ideal para escalar atendimento</p>
                     </div>
                     <a
                       href={buildAutoReplyAddonUrl("Pro", "49,90")}
