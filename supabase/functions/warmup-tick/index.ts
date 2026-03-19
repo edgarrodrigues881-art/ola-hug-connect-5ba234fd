@@ -1448,10 +1448,14 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch { /* empty */ }
 
+  // Shard support: split job processing across parallel invocations
+  const shardIndex = body.shard ?? 0;
+  const shardTotal = body.shards ?? 1;
+
   try {
     if (body.action === "daily") return await handleDailyReset(db);
     if (body.action === "schedule_day") return await handleScheduleDay(db, body);
-    return await handleTick(db);
+    return await handleTick(db, shardIndex, shardTotal);
   } catch (err) {
     console.error("[warmup-tick] Error:", err.message);
     return json({ error: err.message }, 500);
