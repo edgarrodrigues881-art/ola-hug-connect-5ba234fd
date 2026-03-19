@@ -222,18 +222,6 @@ const MyPlan = () => {
                         {f}
                       </div>
                     ))}
-
-                    {/* Report line */}
-                    <div className={`flex items-start gap-2.5 text-xs ${plan.reportsIncluded ? "text-white/40" : "text-white/15"}`}>
-                      {plan.reportsIncluded ? (
-                        <Check className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-emerald-500/60 shrink-0 mt-0.5" />
-                      ) : (
-                        <X className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] text-red-400/40 shrink-0 mt-0.5" />
-                      )}
-                      <span className={!plan.reportsIncluded ? "line-through decoration-white/10" : ""}>
-                        Relatórios WhatsApp {plan.reportsIncluded ? "incluso" : `+ R$ 18,90`}
-                      </span>
-                    </div>
                   </div>
 
                   <a
