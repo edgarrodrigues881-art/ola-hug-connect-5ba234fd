@@ -40,12 +40,10 @@ const PlansSection = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  const handleContratarPlano = () => {
-    if (session) {
-      navigate("/dashboard/my-plan");
-    } else {
-      navigate("/auth?redirect=/dashboard/my-plan");
-    }
+  const handleContratarPlano = (plan: typeof plans[0]) => {
+    const msg = `Olá, tudo bem?\nTenho interesse em contratar o plano DG Contingência – ${plan.name} (${plan.instances} Instâncias) no valor de R$ ${plan.price}/mês.\nPode me enviar os dados para ativação e pagamento?`;
+    const url = `https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
   };
 
   return (
