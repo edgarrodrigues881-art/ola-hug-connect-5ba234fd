@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useEffect, useState, type CSSProperties, type ReactElement } from "react";
+import { memo, useMemo, useRef, useEffect, useState, type ReactElement } from "react";
 import { List } from "react-window";
 
 interface VirtualizedDeviceGridProps {
@@ -27,7 +27,6 @@ const CARD_HEIGHT = 210;
 const GAP = 16;
 const MOBILE_BREAKPOINT = 768;
 
-// Mobile row: renders a single item
 function MobileRow(props: any): ReactElement | null {
   const { index, style, items, renderItem, cardHeight, gap } = props;
   if (index >= items.length) return null;
@@ -38,7 +37,6 @@ function MobileRow(props: any): ReactElement | null {
   );
 }
 
-// Desktop row: renders a full row of columns
 function DesktopRow(props: any): ReactElement | null {
   const { index, style, items, renderItem, columnCount, columnWidth, cardHeight, gap } = props;
   const startIdx = index * columnCount;
@@ -99,7 +97,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     return <div ref={containerRef} style={{ width: "100%", minHeight: 400 }} />;
   }
 
-  // Mobile: single-column list with better touch scroll
+  // Mobile: single-column list with native touch scroll
   if (isMobile) {
     const totalHeight = items.length * (cardHeight + gap);
     const listHeight = Math.min(dimensions.height, totalHeight);
@@ -107,12 +105,10 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
     return (
       <div ref={containerRef} style={{ width: "100%", WebkitOverflowScrolling: "touch" }}>
         <List
-          height={listHeight}
-          itemCount={items.length}
-          itemSize={cardHeight + gap}
-          width={dimensions.width}
+          rowCount={items.length}
+          rowHeight={cardHeight + gap}
           overscanCount={5}
-          style={{ overflowX: "hidden" }}
+          style={{ height: listHeight, width: dimensions.width, overflowX: "hidden" }}
           rowComponent={MobileRow}
           rowProps={{ items, renderItem, cardHeight, gap }}
         />
@@ -127,11 +123,10 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
       <List
-        height={gridHeight}
-        itemCount={rowCount}
-        itemSize={cardHeight + gap}
-        width={dimensions.width}
+        rowCount={rowCount}
+        rowHeight={cardHeight + gap}
         overscanCount={3}
+        style={{ height: gridHeight, width: dimensions.width }}
         rowComponent={DesktopRow}
         rowProps={{ items, renderItem, columnCount, columnWidth, cardHeight, gap }}
       />
