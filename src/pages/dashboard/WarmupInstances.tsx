@@ -248,9 +248,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
         isWarming ? "bg-primary/60" : connected ? "bg-primary/25" : "bg-border/30"
       )} />
 
-      <div className="px-4 pt-3.5 flex items-start justify-between gap-2">
+      <div className="px-4 pt-3.5 flex flex-wrap items-start justify-between gap-1.5">
         <div className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shrink-0",
           connected ? "text-primary bg-primary/8" : "text-muted-foreground bg-muted/30"
         )}>
           <span className={cn(
@@ -259,9 +259,9 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
           )} />
           {connected ? "CONECTADO" : "DESCONECTADO"}
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-1 shrink min-w-0">
           {cycle && warmupProgress !== null && (
-            <div className="relative flex items-center gap-1.5 rounded-lg px-2.5 py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden min-w-[72px]">
+            <div className="relative flex items-center gap-1 rounded-lg px-2 py-1 bg-[#1a1a1a] border border-orange-500/20 overflow-hidden max-w-full">
               {/* Background progress bar */}
               <div
                 className="absolute inset-0 rounded-lg transition-all duration-700 ease-out"
@@ -270,12 +270,12 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
                 }}
               />
               <Flame className="w-3 h-3 text-orange-400 relative z-10 shrink-0" />
-              <span className="text-[11px] font-bold text-orange-300 relative z-10 tabular-nums">
+              <span className="text-[11px] font-bold text-orange-300 relative z-10 tabular-nums shrink-0">
                 {warmupProgress}%
               </span>
               {/* Phase pill */}
               <span className={cn(
-                "relative z-10 text-[7px] font-extrabold uppercase tracking-widest px-1.5 py-[1px] rounded ml-0.5",
+                "relative z-10 text-[7px] font-extrabold uppercase tracking-wider px-1 py-[1px] rounded shrink-0 truncate max-w-[60px]",
                 cycle.phase === "pre_24h" && "bg-sky-500/20 text-sky-300",
                 cycle.phase === "groups_only" && "bg-emerald-500/20 text-emerald-300",
                 cycle.phase === "autosave_enabled" && "bg-violet-500/20 text-violet-300",
