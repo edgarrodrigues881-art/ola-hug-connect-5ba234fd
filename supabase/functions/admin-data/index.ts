@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
         costsRes,
       ] = await Promise.all([
         adminClient.auth.admin.listUsers(),
-        adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at"),
+        adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at"),
         adminClient.from("user_roles").select("id, user_id, role"),
         adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, created_at"),
         adminClient.from("campaigns").select("id, user_id, name, status, total_contacts, sent_count, failed_count, created_at"),
@@ -104,6 +104,9 @@ Deno.serve(async (req) => {
         adminClient.from("admin_logs").select("id, admin_id, action, details, target_user_id, created_at").order("created_at", { ascending: false }).limit(500),
         adminClient.from("admin_costs").select("id, admin_id, category, amount, description, cost_date, created_at"),
       ]);
+
+      // Fetch admin-only profile data separately
+      const { data: adminProfileData } = await adminClient.from("admin_profile_data").select("id, admin_notes, risk_flag");
 
       const authUsers = authUsersRes.data;
       const profiles = profilesRes.data;
@@ -118,6 +121,7 @@ Deno.serve(async (req) => {
 
       const users = authUsers?.users?.map((u: any) => {
         const profile = profiles?.find((p: any) => p.id === u.id);
+        const adminData = adminProfileData?.find((a: any) => a.id === u.id);
         const userRoles = roles?.filter((r: any) => r.user_id === u.id).map((r: any) => r.role) || [];
         const userDevices = devices?.filter((d: any) => d.user_id === u.id) || [];
         const userCampaigns = campaigns?.filter((c: any) => c.user_id === u.id) || [];
@@ -131,8 +135,8 @@ Deno.serve(async (req) => {
           document: profile?.document || null,
           avatar_url: profile?.avatar_url || null,
           status: profile?.status || "active",
-          risk_flag: profile?.risk_flag || false,
-          admin_notes: profile?.admin_notes || null,
+          risk_flag: adminData?.risk_flag || false,
+          admin_notes: adminData?.admin_notes || null,
           roles: userRoles,
           devices_count: userDevices.length,
           devices_connected: userDevices.filter((d: any) => d.status === "Connected").length,
@@ -172,9 +176,10 @@ Deno.serve(async (req) => {
       const { target_user_id } = await req.json();
       
       // Run all queries in parallel
-      const [authUserRes, profileRes, subRes, devicesRes, campaignsRes, logsRes, paymentsRes, cyclesRes, apiTokensRes] = await Promise.all([
+      const [authUserRes, profileRes, adminDataRes, subRes, devicesRes, campaignsRes, logsRes, paymentsRes, cyclesRes, apiTokensRes] = await Promise.all([
         adminClient.auth.admin.getUserById(target_user_id),
-        adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, risk_flag, admin_notes, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at").eq("id", target_user_id).maybeSingle(),
+        adminClient.from("profiles").select("id, full_name, company, phone, document, avatar_url, status, instance_override, client_type, notificacao_liberada, whatsapp_monitor_token, created_at, updated_at").eq("id", target_user_id).maybeSingle(),
+        adminClient.from("admin_profile_data").select("id, admin_notes, risk_flag").eq("id", target_user_id).maybeSingle(),
         adminClient.from("subscriptions").select("id, user_id, plan_name, plan_price, max_instances, started_at, expires_at").eq("user_id", target_user_id).maybeSingle(),
         adminClient.from("devices").select("id, user_id, name, number, status, instance_type, login_type, proxy_id, uazapi_token, uazapi_base_url, created_at, updated_at").eq("user_id", target_user_id).order("created_at", { ascending: false }),
         adminClient.from("campaigns").select("id, name, status, created_at, sent_count, total_contacts").eq("user_id", target_user_id).order("created_at", { ascending: false }).limit(20),
@@ -186,6 +191,7 @@ Deno.serve(async (req) => {
 
       const authUser = authUserRes.data;
       const profile = profileRes.data;
+      const adminData = adminDataRes.data;
       const sub = subRes.data;
       const devices = devicesRes.data;
       const campaigns = campaignsRes.data;
@@ -202,7 +208,7 @@ Deno.serve(async (req) => {
 
       // If profile has no monitor token but device report_wa does, use device token as fallback
       const reportDevice = (devices || []).find((d: any) => d.login_type === "report_wa");
-      const effectiveProfile = profile ? { ...profile } : null;
+      const effectiveProfile = profile ? { ...profile, admin_notes: adminData?.admin_notes || null, risk_flag: adminData?.risk_flag || false } : null;
       if (effectiveProfile && !effectiveProfile.whatsapp_monitor_token && reportDevice?.uazapi_token) {
         effectiveProfile.whatsapp_monitor_token = reportDevice.uazapi_token;
       }
@@ -232,10 +238,18 @@ Deno.serve(async (req) => {
       const newOverride = instance_override ?? 0;
 
       await adminClient.from("profiles").update({
-        full_name, phone, document, company, status, risk_flag, admin_notes,
+        full_name, phone, document, company, status,
         instance_override: newOverride,
         updated_at: new Date().toISOString(),
       }).eq("id", target_user_id);
+
+      // Update admin-only fields in separate table
+      await adminClient.from("admin_profile_data").upsert({
+        id: target_user_id,
+        risk_flag: risk_flag ?? false,
+        admin_notes: admin_notes ?? null,
+        updated_at: new Date().toISOString(),
+      });
 
       await logAction(adminClient, user.id, target_user_id, "update-client", `Dados atualizados`);
 
