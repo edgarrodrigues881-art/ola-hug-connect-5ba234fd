@@ -1654,6 +1654,39 @@ const WarmupInstances = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Remove from folder confirmation */}
+      <Dialog open={!!removeFromFolderTarget} onOpenChange={(open) => { if (!open) setRemoveFromFolderTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Remover da pasta?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A instância <strong>{removeFromFolderTarget ? (displayed.find(d => d.id === removeFromFolderTarget)?.name || "") : ""}</strong> será removida desta pasta. Ela continuará disponível na lista geral.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setRemoveFromFolderTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => {
+                if (removeFromFolderTarget && activeFolder) {
+                  removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId: removeFromFolderTarget }).then(() => {
+                    toast({ title: "Instância removida da pasta" });
+                    setRemoveFromFolderTarget(null);
+                  });
+                }
+              }}
+            >
+              Sim, remover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Bulk warmup dialog — Wizard redesign */}
       <Dialog open={bulkOpen} onOpenChange={(v) => { setBulkOpen(v); if (!v) setBulkStep(1); }}>
         <DialogContent className="max-w-[540px] p-0 overflow-hidden rounded-3xl border-border/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.7)] backdrop-blur-3xl bg-background/95">
