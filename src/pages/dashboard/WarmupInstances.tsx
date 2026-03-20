@@ -560,6 +560,7 @@ const WarmupInstances = () => {
   const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [deviceTagTarget, setDeviceTagTarget] = useState<string | null>(null);
+  const [removeFromFolderTarget, setRemoveFromFolderTarget] = useState<string | null>(null);
   
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
