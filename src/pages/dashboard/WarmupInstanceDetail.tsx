@@ -1449,11 +1449,38 @@ const WarmupInstanceDetail = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12">
-                    {pc?.label}
-                  </Badge>
+                {/* Volume and mode info */}
+                {(() => {
+                  const vol = getExpectedDailyVolume(cycle!.day_index, cycle!.chip_state || "new");
+                  const modeLabel = chipStateLabels[cycle!.chip_state || "new"] || "Chip Novo";
+                  return (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12">
+                        {pc?.label}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">{modeLabel}</span>
+                    </div>
+                  );
+                })()}
                 </div>
 
+                {/* Volume progression info */}
+                {!isPre24h && (() => {
+                  const vol = getExpectedDailyVolume(cycle!.day_index, cycle!.chip_state || "new");
+                  return (
+                    <div className="px-6 pb-2 flex items-center gap-3 text-[10px]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/5 border border-primary/10">
+                        <Target className="w-3 h-3 text-primary" />
+                        <span className="text-muted-foreground">Volume:</span>
+                        <span className="font-bold text-foreground">{vol.min}–{vol.max} msgs</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/10 border border-border/15">
+                        <CalendarDays className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">{vol.phase}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Today's activity */}
                 <div className="px-6 py-4">
