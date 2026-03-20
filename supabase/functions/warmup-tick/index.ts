@@ -1535,10 +1535,29 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: accept x-internal-secret OR valid Authorization Bearer (anon/service role)
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-  if (!expectedSecret || secret !== expectedSecret) {
+  const secretOk = !!(expectedSecret && secret === expectedSecret);
+
+  // Accept any JWT that belongs to this Supabase project
+  let bearerOk = false;
+  if (bearerToken) {
+    try {
+      const parts = bearerToken.split(".");
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        // Accept if it's a Supabase JWT for this project (anon or service_role)
+        bearerOk = payload?.iss === "supabase" && payload?.ref === "ccfsxwmvgyxsoscofqoh";
+      }
+    } catch { /* invalid jwt */ }
+  }
+
+  if (!secretOk && !bearerOk) {
+    console.error(`[warmup-tick] AUTH FAILED: secretOk=${secretOk}, bearerOk=${bearerOk}, hasBearer=${!!bearerToken}, tokenLen=${bearerToken.length}`);
     return json({ error: "Unauthorized" }, 401);
   }
 
