@@ -1952,6 +1952,8 @@ const WarmupInstanceDetail = () => {
                           </div>
                         );
                       })}
+                        </>
+                      )}
                     </div>
                   );
                 })()}
