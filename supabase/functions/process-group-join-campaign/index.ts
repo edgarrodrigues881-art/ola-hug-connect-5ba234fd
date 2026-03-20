@@ -295,6 +295,7 @@ Deno.serve(async (req) => {
           const delay = randomDelay(campaign.min_delay || 10, campaign.max_delay || 30);
           await new Promise(r => setTimeout(r, delay * 1000));
         }
+      }
 
       // Update campaign counters
       const { data: allItems } = await supabase
