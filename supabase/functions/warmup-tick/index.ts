@@ -1854,10 +1854,18 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
     if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
     autosaveMap[c.user_id].push(c);
   });
-  // Sort by created_at ASC for stable rotation — newest contacts are at the END
-  // so dayOffset rotation naturally picks different contacts each day
+  // Smart rotation: prioritize "new" contacts first, then lowest use_count
   Object.values(autosaveMap).forEach((contacts: any[]) => {
     contacts.sort((a, b) => {
+      // Priority 1: "new" contacts first
+      const aNew = (a.contact_status || "new") === "new" ? 0 : 1;
+      const bNew = (b.contact_status || "new") === "new" ? 0 : 1;
+      if (aNew !== bNew) return aNew - bNew;
+      // Priority 2: lowest use_count
+      const aUse = a.use_count || 0;
+      const bUse = b.use_count || 0;
+      if (aUse !== bUse) return aUse - bUse;
+      // Priority 3: oldest first
       const aCreated = new Date(a.created_at || 0).getTime();
       const bCreated = new Date(b.created_at || 0).getTime();
       if (aCreated !== bCreated) return aCreated - bCreated;
