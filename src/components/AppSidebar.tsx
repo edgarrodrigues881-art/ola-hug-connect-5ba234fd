@@ -13,6 +13,7 @@ import {
   ArrowRightLeft,
   Heart,
   LogOut,
+  LogIn,
   Settings,
   ChevronUp,
   Crown,
