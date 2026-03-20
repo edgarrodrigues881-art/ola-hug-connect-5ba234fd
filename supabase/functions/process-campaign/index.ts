@@ -163,34 +163,25 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   const choices = hasButtons ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice)) : [];
   if (choices.length > 0) {
     const isAudioMedia = mediaUrl ? detectMediaType(mediaUrl) === "audio" : false;
-    // Try native interactive buttons first, fallback to text-based if it fails (incompatibility)
-    try {
-      const payload: any = { number: phone, type: "button", text: body, choices };
-      if (mediaUrl && !isAudioMedia) payload.imageButton = mediaUrl;
+    const hasImageMedia = mediaUrl && !isAudioMedia;
+
+    // If there's an image + buttons: send image first, then buttons separately (avoids imageButton incompatibility)
+    if (hasImageMedia) {
+      await uazapiRequest(baseUrl, token, "/send/media", {
+        number: phone, file: mediaUrl, media: mediaUrl, type: detectMediaType(mediaUrl),
+        caption: body || "", compress: false,
+      });
+      // Small delay to ensure image arrives before buttons
+      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+      // Send buttons without image and without repeating the text
+      const payload: any = { number: phone, type: "button", text: "Escolha uma opção:", choices };
       await uazapiRequest(baseUrl, token, "/send/menu", payload);
-    } catch (menuErr) {
-      const errMsg = (menuErr?.message || "").toLowerCase();
-      // If incompatible or unsupported, fallback to plain text with buttons as text
-      if (errMsg.includes("incompatible") || errMsg.includes("update") || errMsg.includes("unsupported") || errMsg.includes("not supported") || errMsg.includes("405") || errMsg.includes("400")) {
-        console.log(`⚠️ Menu incompatível para ${phone}, enviando como texto`);
-        let textWithButtons = body || "";
-        textWithButtons += "\n\n";
-        choices.forEach((c, i) => {
-          const label = c.split("|")[0];
-          textWithButtons += `${i + 1}. ${label}\n`;
-        });
-        if (mediaUrl && !isAudioMedia) {
-          await uazapiRequest(baseUrl, token, "/send/media", {
-            number: phone, file: mediaUrl, media: mediaUrl, type: "image",
-            caption: textWithButtons.trim(), compress: false,
-          });
-        } else {
-          await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: textWithButtons.trim() });
-        }
-      } else {
-        throw menuErr;
-      }
+    } else {
+      // No image — send menu normally (this works fine)
+      const payload: any = { number: phone, type: "button", text: body, choices };
+      await uazapiRequest(baseUrl, token, "/send/menu", payload);
     }
+
     // If media is audio, send it as a voice note after the menu
     if (mediaUrl && detectMediaType(mediaUrl) === "audio") {
       await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
