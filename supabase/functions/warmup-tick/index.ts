@@ -2496,25 +2496,21 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         const rIdx = Number(job.payload?.recipient_index ?? 0);
         const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
+        const maxRounds = getAutosaveRoundsPerContact(chipState);
 
-        if (mIdx >= 3) {
+        if (mIdx >= maxRounds) {
           await db.from("warmup_jobs")
-            .update({ status: "cancelled", last_error: "Auto Save limitado a 3 mensagens por contato" })
+            .update({ status: "cancelled", last_error: `Auto Save limitado a ${maxRounds} mensagens por contato` })
             .eq("id", job.id);
           bufferAudit({
-            user_id: job.user_id,
-            device_id: job.device_id,
-            cycle_id: job.cycle_id,
-            level: "warn",
-            event_type: "autosave_job_cancelled",
-            message: `Job Auto Save excedente cancelado (recipient_index=${rIdx}, msg_index=${mIdx})`,
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "autosave_job_cancelled",
+            message: `Job Auto Save excedente cancelado (recipient_index=${rIdx}, msg_index=${mIdx}, max=${maxRounds})`,
           });
           return false;
         }
 
-        const autosaveStartDay = getGroupsEndDay(chipState) + 1;
-        const autosaveDayIndex = Math.max(0, (cycle.day_index || autosaveStartDay) - autosaveStartDay);
-        const dayOffset = autosaveDayIndex * 5;
+        // Smart rotation: contacts are already sorted by contact_status='new' first, then use_count ASC
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
           .filter((c: any) => c._phone.length >= 10);
@@ -2524,15 +2520,20 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           break;
         }
 
-        // Prioriza contatos mais novos/atualizados e rotaciona 5 por dia a partir do 1º dia de Auto Save
-        const rotatedPool: typeof autosavePool = [];
-        for (let i = 0; i < Math.min(5, autosavePool.length); i++) {
-          const idx = (dayOffset + i) % autosavePool.length;
-          rotatedPool.push(autosavePool[idx]);
+        // Check if all contacts have been used — if so, reset for new cycle
+        const newContacts = autosavePool.filter((c: any) => (c.contact_status || "new") === "new");
+        const contactsForDay = getAutosaveContactsForDay(cycle.day_index || 1, chipState);
+
+        // Smart selection: pick from pool sequentially (already sorted by priority)
+        // The pool is pre-sorted: new contacts first, then lowest use_count
+        const rotatedPool = autosavePool.slice(0, contactsForDay);
+
+        // If we've exhausted all new contacts but still need more, allow reuse
+        if (rotatedPool.length === 0) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Todos os contatos já utilizados, sem novos disponíveis" });
+          break;
         }
 
-        // FIX: Use absolute index — never wrap around. If index is out of bounds, skip the job.
-        // Modular wrapping caused the SAME contact to receive 3-6 msgs while others got 0.
         if (rIdx >= rotatedPool.length) {
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
