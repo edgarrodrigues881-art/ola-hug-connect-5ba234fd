@@ -65,7 +65,7 @@ function getPhaseForDay(day: number, chipState: string): string {
 }
 
 function isCommunityPhase(phase: string): boolean {
-  return phase === "community_ramp_up" || phase === "community_stable";
+  return phase === "community_ramp_up" || phase === "community_stable" || phase === "community_enabled" || phase === "community_light";
 }
 
 // ══════════════════════════════════════════════════════════
