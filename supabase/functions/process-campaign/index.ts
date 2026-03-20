@@ -201,29 +201,19 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     const hasVisualMedia = !!mediaUrl && !isAudioMedia;
 
     if (hasVisualMedia && mediaUrl) {
-      // Unified: image + copy + buttons in one card (works for both reply and url buttons)
-      try {
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text: text || "Escolha uma opção:",
-          choices,
-          imageButton: mediaUrl,
-        });
-        return;
-      } catch (error) {
-        console.warn(`Unified menu+image failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
-        // Fallback: send image with caption, then buttons separately
-        await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType || "image", text);
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text: text || "Escolha uma opção:",
-          choices,
-        });
-        return;
-      }
+      // NEVER use imageButton — it creates interactive format incompatible with older WhatsApp versions
+      // Step 1: Send image with full caption text (works on ALL WhatsApp versions)
+      await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType || "image", text);
+      // Step 2: Brief delay
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
+      // Step 3: Send buttons separately (text-only, no image)
+      await uazapiRequest(baseUrl, token, "/send/menu", {
+        number: phone,
+        type: "button",
+        text: "⬇️ Escolha uma opção:",
+        choices,
+      });
+      return;
     }
 
     // Text-only buttons (no image)
