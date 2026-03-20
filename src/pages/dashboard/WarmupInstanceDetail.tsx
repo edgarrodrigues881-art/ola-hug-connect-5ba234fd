@@ -1452,7 +1452,7 @@ const WarmupInstanceDetail = () => {
                             { label: "Grupos", done: groupDone, total: groupTotal, color: "bg-emerald-500", shadow: "shadow-[0_0_8px_hsl(142_71%_45%/0.3)]" },
                             { label: "Auto Save", done: autosaveDone, total: autosaveTotal, color: "bg-sky-500", shadow: "shadow-[0_0_8px_hsl(199_89%_48%/0.3)]" },
                             { label: "Comunitário", done: communityDone, total: communityTotal, color: "bg-violet-500", shadow: "shadow-[0_0_8px_hsl(263_70%_50%/0.3)]" },
-                          ].filter(c => c.total > 0);
+                          ];
 
                           return categories.map((cat) => {
                             const pct = cat.total > 0 ? Math.min(100, Math.round((cat.done / cat.total) * 100)) : 0;
