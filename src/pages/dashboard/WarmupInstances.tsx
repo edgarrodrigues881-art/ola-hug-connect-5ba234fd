@@ -459,6 +459,21 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
       </div>
     </div>
   );
+}, (prev, next) => {
+  return (
+    prev.device === next.device &&
+    prev.cycle === next.cycle &&
+    prev.deviceTags === next.deviceTags &&
+    prev.availableTags === next.availableTags &&
+    prev.onPause === next.onPause &&
+    prev.onResume === next.onResume &&
+    prev.onCancel === next.onCancel &&
+    prev.onConnect === next.onConnect &&
+    prev.onNavigate === next.onNavigate &&
+    prev.formatPhone === next.formatPhone &&
+    prev.onTagClick === next.onTagClick &&
+    prev.onRemoveFromFolder === next.onRemoveFromFolder
+  );
 });
 
 DeviceCard.displayName = "DeviceCard";
@@ -1057,6 +1072,18 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(deviceId);
   }, []);
 
+  const handleNavigate = useCallback((path: string) => {
+    navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path);
+  }, [navigate, activeFolderId]);
+
+  const handleTagClick = useCallback((deviceId: string) => {
+    setDeviceTagTarget(deviceId);
+  }, []);
+
+  const handleRemoveFromFolderClick = useCallback((deviceId: string) => {
+    setRemoveFromFolderTarget(deviceId);
+  }, []);
+
   const renderDeviceCard = useCallback((device: any) => (
     <DeviceCard
       key={device.id}
@@ -1066,16 +1093,15 @@ const WarmupInstances = () => {
       onResume={handleResume}
       onCancel={onCancelClick}
       onConnect={openConnect}
-      onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
+      onNavigate={handleNavigate}
       formatPhone={formatPhone}
       deviceTags={activeFolder?.device_tags?.get(device.id)}
       availableTags={activeFolder?.tags}
-      onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
-      onRemoveFromFolder={activeFolder ? (deviceId) => {
-        setRemoveFromFolderTarget(deviceId);
-      } : undefined}
+      onTagClick={activeFolder ? handleTagClick : undefined}
+      onRemoveFromFolder={activeFolder ? handleRemoveFromFolderClick : undefined}
     />
-  ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder, activeFolderId]);
+  ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, handleNavigate, activeFolder, handleTagClick, handleRemoveFromFolderClick]);
+  
 
   return (
     <div className="space-y-5">
