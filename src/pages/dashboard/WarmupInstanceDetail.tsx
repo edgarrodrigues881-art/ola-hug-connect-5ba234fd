@@ -1801,12 +1801,37 @@ const WarmupInstanceDetail = () => {
                     return wasSkipped ? "pulado" : "concluído";
                   };
 
-                  return (
+                   return (
                     <div className="md:max-h-[500px] md:overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
-                      {Array.from({ length: totalDays }, (_, i) => i + 1).filter((day) => {
-                        const s = getDayStatus(day);
-                        return s === "concluído" || s === "ativo" || s === "pulado";
-                      }).map((day) => {
+                      {/* Current day summary - always visible */}
+                      {!showAllDays && (
+                        <button
+                          onClick={() => setShowAllDays(true)}
+                          className="w-full px-6 py-4 flex items-center gap-3 hover:bg-muted/15 transition-all bg-primary/5 border-l-2 border-l-primary"
+                        >
+                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1 text-left min-w-0">
+                            <span className="text-sm font-extrabold text-primary">Dia {currentWarmupDay}</span>
+                            <span className="text-[11px] text-muted-foreground/50 ml-2.5 font-medium">{getDayPhaseLabel(currentWarmupDay)}</span>
+                          </div>
+                          <Badge className="text-[10px] h-5 px-2 bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12 font-bold shadow-[0_0_8px_-2px_hsl(var(--primary)/0.3)]">em andamento</Badge>
+                        </button>
+                      )}
+
+                      {/* Full day list - shown after clicking current day */}
+                      {showAllDays && (
+                        <>
+                          <button
+                            onClick={() => setShowAllDays(false)}
+                            className="w-full px-6 py-2.5 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-medium hover:bg-muted/10 transition-colors border-b border-border/8"
+                          >
+                            <ChevronDown className="w-3 h-3 rotate-180" />
+                            Recolher dias
+                          </button>
+                          {Array.from({ length: totalDays }, (_, i) => i + 1).filter((day) => {
+                            const s = getDayStatus(day);
+                            return s === "concluído" || s === "ativo" || s === "pulado";
+                          }).map((day) => {
                         const dayItems = dayItemsMap[day] || [];
                         const isExpanded = expandedDays.has(day);
                         const status = getDayStatus(day);
