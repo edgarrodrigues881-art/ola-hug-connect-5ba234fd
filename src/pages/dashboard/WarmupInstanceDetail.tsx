@@ -1500,6 +1500,21 @@ const WarmupInstanceDetail = () => {
                   );
                 })()}
 
+                {/* Auto Save info card */}
+                {!isPre24h && (() => {
+                  const asInfo = getAutosaveInfoForDay(cycle!.day_index, cycle!.chip_state || "new");
+                  if (asInfo.contacts === 0) return null;
+                  return (
+                    <div className="px-6 pb-2 flex items-center gap-3 text-[10px]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/5 border border-sky-500/10">
+                        <UserPlus className="w-3 h-3 text-sky-400" />
+                        <span className="text-muted-foreground">Auto Save:</span>
+                        <span className="font-bold text-foreground">{asInfo.contacts} contatos × {asInfo.msgsPerContact} msgs = {asInfo.totalMsgs}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Today's activity */}
                 <div className="px-6 py-4">
                   {isPre24h ? (
