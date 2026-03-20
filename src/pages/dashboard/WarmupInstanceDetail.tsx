@@ -129,12 +129,11 @@ const chipStateLabels: Record<string, string> = {
 
 /* ── Helper: autosave / community start day based on chip_state ── */
 function getAutosaveStartDay(chipState: string): number {
-  // Estável (new/recovered) = dia 5, Banido (unstable) = dia 7
-  const groupsEnd = chipState === "unstable" ? 6 : 4;
+  const groupsEnd = chipState === "unstable" ? 6 : chipState === "recovered" ? 5 : 4;
   return groupsEnd + 1;
 }
 function getCommunityStartDay(chipState: string): number {
-  const groupsEnd = chipState === "unstable" ? 6 : 4;
+  const groupsEnd = chipState === "unstable" ? 6 : chipState === "recovered" ? 5 : 4;
   return groupsEnd + 2;
 }
 
