@@ -564,7 +564,7 @@ Deno.serve(async (req) => {
 
     // ── Flush DB updates ──
     if (dbUpdates.length > 0) {
-      await runPool(dbUpdates, 50, async (u) => {
+      await runPool(dbUpdates, 10, async (u) => {
         await svc.from("devices").update(u.patch).eq("id", u.id);
       });
     }

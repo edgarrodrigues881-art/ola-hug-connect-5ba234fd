@@ -36,7 +36,7 @@ export function resumeKeepAlive() {
  * - Scales to 10k+ instances via sharding (splits sync across parallel calls).
  * - Pauses sync when tab is hidden.
  */
-export function useAutoSyncDevices(intervalMs = 10_000) {
+export function useAutoSyncDevices(intervalMs = 30_000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
