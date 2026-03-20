@@ -57,7 +57,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 // groupsEnd: new/recovered = 4, unstable = 7
 
 function getGroupsEndDay(chipState: string): number {
-  if (chipState === "unstable") return 7;
+  if (chipState === "unstable") return 6;
   if (chipState === "recovered") return 5;
   return 4; // new
 }

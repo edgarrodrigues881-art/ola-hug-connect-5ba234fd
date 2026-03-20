@@ -93,7 +93,7 @@ function getExpectedDailyVolume(dayIndex: number, chipState: string): { min: num
 
 /* ── Auto Save contacts helper (mirrors server logic) ── */
 function getAutosaveInfoForDay(dayIndex: number, chipState: string): { contacts: number; msgsPerContact: number; totalMsgs: number } {
-  const autosaveStartDay = (chipState === "unstable" ? 7 : chipState === "recovered" ? 5 : 4) + 1;
+  const autosaveStartDay = (chipState === "unstable" ? 6 : chipState === "recovered" ? 5 : 4) + 1;
   if (dayIndex < autosaveStartDay) return { contacts: 0, msgsPerContact: 0, totalMsgs: 0 };
 
   let contacts: number;
