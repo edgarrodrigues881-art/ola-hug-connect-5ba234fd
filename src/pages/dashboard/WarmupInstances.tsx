@@ -1881,7 +1881,7 @@ const WarmupInstances = () => {
                   />
                 </div>
 
-                <div className="max-h-[240px] overflow-y-auto space-y-1 rounded-2xl border-2 border-border/10 bg-card/15 p-2 scrollbar-thin">
+                <div className="max-h-[380px] overflow-y-auto space-y-1 rounded-2xl border-2 border-border/10 bg-card/15 p-2 scrollbar-thin">
                   {(() => {
                     const src = (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status));
                     const q = bulkInstanceSearch.trim().toLowerCase();
