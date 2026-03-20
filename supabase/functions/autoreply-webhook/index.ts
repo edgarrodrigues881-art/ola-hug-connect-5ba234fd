@@ -466,6 +466,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Anti-loop: skip messages from OTHER devices owned by the same user (warmup/chip-conversation) ──
+    {
+      const { data: userDevices } = await supabase
+        .from("devices")
+        .select("number")
+        .eq("user_id", userId)
+        .neq("id", deviceId);
+
+      if (userDevices && userDevices.length > 0) {
+        const senderIsOwnDevice = userDevices.some((d) => {
+          if (!d.number) return false;
+          const dn = d.number.replace(/\D/g, "");
+          return dn && fromPhone && (fromPhone === dn || fromPhone.endsWith(dn) || dn.endsWith(fromPhone));
+        });
+        if (senderIsOwnDevice) {
+          console.log(`[autoreply] Skipping: fromPhone ${fromPhone} matches another device of same user (warmup/internal)`);
+          return json({ ok: true, skipped: true, reason: "internal_device_message" });
+        }
+      }
+    }
+
     // ── Anti-loop cooldown: prevent processing same contact/message more than once per 30 seconds ──
     const { data: recentSession } = await supabase
       .from("autoreply_sessions")
