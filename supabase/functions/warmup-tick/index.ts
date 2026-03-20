@@ -57,7 +57,8 @@ function getPhaseForDay(day: number, chipState: string): string {
 }
 
 // ══════════════════════════════════════════════════════════
-// VOLUME CONFIG — 50 to 120 messages/day total (must match engine)
+// VOLUME CONFIG — 120 to 200 messages/day total (progressive 30-day)
+// Must match warmup-engine exactly
 // ══════════════════════════════════════════════════════════
 
 interface DayVolumes {
@@ -68,15 +69,38 @@ interface DayVolumes {
   communityMsgsPerPeer: number;
 }
 
-function getDailyBudget(): number {
-  return randInt(30, 70);
+function getProgressiveDailyBudget(dayIndex: number, chipState: string): number {
+  const day = Math.max(1, Math.min(dayIndex, 30));
+
+  if (chipState === "recovered") {
+    if (day <= 7)  return randInt(130, 150);
+    if (day <= 15) return randInt(150, 175);
+    if (day <= 23) return randInt(175, 195);
+    return randInt(190, 200);
+  }
+
+  if (chipState === "unstable") {
+    if (day <= 7)  return randInt(120, 130);
+    if (day <= 15) return randInt(130, 155);
+    if (day <= 23) return randInt(155, 180);
+    return randInt(175, 195);
+  }
+
+  // "new"
+  if (day <= 7)  return randInt(120, 135);
+  if (day <= 15) return randInt(135, 160);
+  if (day <= 23) return randInt(160, 185);
+  return randInt(185, 200);
+}
+
+function getDailyBudget(dayIndex: number = 1, chipState: string = "new"): number {
+  return getProgressiveDailyBudget(dayIndex, chipState);
 }
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // Mais pares para conversas mais naturais — unstable=2, outros até 5
   if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
   return Math.min(5, daysSinceCommunity + 2);
 }
@@ -85,7 +109,6 @@ function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number 
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
   if (daysSinceCommunity < 0) return 0;
-  // 4-8 bursts por par por dia — conversas mais longas e naturais
   if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
   return Math.min(8, daysSinceCommunity + 3);
 }
@@ -97,19 +120,23 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
   };
   if (["pre_24h", "completed", "paused", "error"].includes(phase)) return v;
 
-  // Grupos: orçamento reduzido para evitar flood (30-70)
-  v.groupMsgs = getDailyBudget();
+  const totalBudget = getProgressiveDailyBudget(dayIndex, chipState);
 
-  // Autosave: 5 contatos × 3 msgs = 15 msgs/dia (máximo 3 msgs por contato)
-  if (["autosave_enabled", "community_enabled"].includes(phase)) {
+  if (phase === "groups_only") {
+    v.groupMsgs = totalBudget;
+  } else if (phase === "autosave_enabled") {
     v.autosaveContacts = 5;
-    v.autosaveRounds = 3; // Max 3 msgs por contato
-  }
-
-  // Community: 2-4 bursts por par para garantir conversas completas
-  if (phase === "community_enabled") {
-    v.communityPeers = getCommunityPeers(dayIndex, chipState);
-    v.communityMsgsPerPeer = getCommunityBurstsPerPeer(dayIndex, chipState);
+    v.autosaveRounds = 3;
+    v.groupMsgs = Math.max(totalBudget - 15, 30);
+  } else if (phase === "community_enabled") {
+    v.autosaveContacts = 5;
+    v.autosaveRounds = 3;
+    const peers = getCommunityPeers(dayIndex, chipState);
+    const burstsPerPeer = getCommunityBurstsPerPeer(dayIndex, chipState);
+    const communityMsgs = peers * burstsPerPeer;
+    v.communityPeers = peers;
+    v.communityMsgsPerPeer = burstsPerPeer;
+    v.groupMsgs = Math.max(totalBudget - 15 - communityMsgs, 30);
   }
 
   return v;
