@@ -978,33 +978,33 @@ const WarmupInstanceDetail = () => {
         <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full blur-[80px] opacity-10 pointer-events-none bg-primary" />
 
         <div className="relative z-10">
-          {/* top bar */}
-          <div className="flex items-center justify-between px-6 pt-5">
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate(fromFolder ? `/dashboard/warmup-v2?folder=${fromFolder}` : "/dashboard/warmup-v2")}>
+          {/* Navigation + Status badges */}
+          <div className="flex items-center justify-between px-5 pt-4 pb-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30" onClick={() => navigate(fromFolder ? `/dashboard/warmup-v2?folder=${fromFolder}` : "/dashboard/warmup-v2")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div className="flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-2">
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-[10px] font-extrabold uppercase tracking-[0.15em] px-4 py-1.5 gap-2 rounded-full border backdrop-blur-sm",
+                  "text-[9px] font-extrabold uppercase tracking-[0.15em] px-3 py-1 gap-1.5 rounded-full border backdrop-blur-sm",
                   isConnected
-                    ? "text-primary border-primary/30 bg-primary/10 shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]"
-                    : "text-muted-foreground border-border bg-muted/10"
+                    ? "text-primary border-primary/25 bg-primary/8"
+                    : "text-muted-foreground border-border/50 bg-muted/10"
                 )}
               >
-                <span className={cn("w-2 h-2 rounded-full inline-block", isConnected ? "bg-primary animate-pulse shadow-[0_0_6px_hsl(var(--primary)/0.6)]" : "bg-muted-foreground")} />
-                {isConnected ? "CONECTADO" : "DESCONECTADO"}
+                <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isConnected ? "bg-primary animate-pulse" : "bg-muted-foreground")} />
+                {isConnected ? "Online" : "Offline"}
               </Badge>
               {cycle && (() => {
-                const chipLabel = cycle.chip_state === "new" ? "Chip Novo" : cycle.chip_state === "recovered" ? "Chip Recuperado" : "Chip Fraco";
+                const chipLabel = cycle.chip_state === "new" ? "Novo" : cycle.chip_state === "recovered" ? "Recuperado" : "Fraco";
                 const chipColor = cycle.chip_state === "new"
-                  ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                  ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/8"
                   : cycle.chip_state === "recovered"
-                  ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
-                  : "text-red-400 border-red-500/30 bg-red-500/10";
+                  ? "text-amber-400 border-amber-500/20 bg-amber-500/8"
+                  : "text-red-400 border-red-500/20 bg-red-500/8";
                 return (
-                  <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full border backdrop-blur-sm", chipColor)}>
+                  <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-[0.1em] px-3 py-1 rounded-full border backdrop-blur-sm", chipColor)}>
                     {chipLabel}
                   </Badge>
                 );
@@ -1012,105 +1012,112 @@ const WarmupInstanceDetail = () => {
             </div>
           </div>
 
-          {/* instance identity */}
-          <div className="px-6 pt-5 pb-6 flex items-center gap-5">
-            <div className={cn(
-              "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ring-2 ring-offset-2 ring-offset-transparent",
-              isConnected ? "bg-primary/12 ring-primary/40 shadow-[0_0_20px_-4px_hsl(var(--primary)/0.3)]" : "bg-muted/20 ring-border/20"
-            )}>
-              {device.profile_picture ? (
-                <img src={device.profile_picture} className="w-16 h-16 rounded-2xl object-cover" alt="" />
-              ) : (
-                <Flame className={cn("w-7 h-7", isConnected ? "text-primary" : "text-muted-foreground")} />
-              )}
+          {/* Identity card */}
+          <div className="px-5 pb-4">
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border",
+                isConnected ? "bg-primary/10 border-primary/20" : "bg-muted/15 border-border/20"
+              )}>
+                {device.profile_picture ? (
+                  <img src={device.profile_picture} className="w-14 h-14 rounded-2xl object-cover" alt="" />
+                ) : (
+                  <Flame className={cn("w-6 h-6", isConnected ? "text-primary" : "text-muted-foreground")} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-extrabold text-foreground truncate leading-tight tracking-tight">
+                  {device.profile_name || device.name}
+                </h1>
+                {device.number && (
+                  <p className="text-xs font-mono text-muted-foreground/50 mt-0.5">{device.number}</p>
+                )}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-extrabold text-foreground truncate leading-tight tracking-tight">
-                {device.profile_name || device.name}
-              </h1>
-              {device.number && (
-                <p className="text-sm font-mono text-muted-foreground/60 mt-1">{device.number}</p>
-              )}
-              {cycle && pc && (
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className={cn("text-xs font-bold", pc.color)}>{pc.label}</span>
-                  <span className="text-muted-foreground/20">•</span>
-                  <span className="text-xs text-muted-foreground font-medium">Dia {cycle.day_index}/{cycle.days_total}</span>
+
+            {/* Cycle progress inline */}
+            {cycle && pc && (
+              <div className="mt-4 rounded-xl bg-muted/8 border border-border/10 p-3.5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <pc.icon className={cn("w-3.5 h-3.5", pc.color)} />
+                    <span className={cn("text-[11px] font-bold", pc.color)}>{pc.label}</span>
+                  </div>
+                  <span className="text-[11px] font-extrabold text-foreground tabular-nums">
+                    Dia {cycle.day_index}<span className="text-muted-foreground font-medium">/{cycle.days_total}</span>
+                  </span>
                 </div>
-              )}
-            </div>
+                <div className="h-1.5 bg-muted/15 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400 transition-all duration-700"
+                    style={{ width: `${Math.round((cycle.day_index / cycle.days_total) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* action row */}
+          {/* Actions */}
           {cycle && !isTerminalCycle && (
-            <div className="px-6 pb-6 space-y-2">
-              {/* Primary action */}
+            <div className="px-5 pb-5">
+              {/* Primary toggle */}
               {cycle.is_running ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-muted/50 text-muted-foreground border border-border/50 hover:bg-muted hover:text-foreground text-xs font-medium transition-colors"
+                  className="w-full gap-2 h-9 rounded-xl bg-muted/30 text-muted-foreground border border-border/30 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 text-[11px] font-medium transition-all"
                   variant="ghost"
                   onClick={handlePause}
                 >
-                  <Pause className="w-3.5 h-3.5" /> Pausar aquecimento
+                  <Pause className="w-3.5 h-3.5" /> Pausar
                 </Button>
               ) : cycle.phase === "paused" ? (
                 <Button
-                  className="w-full gap-2 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-xs font-medium transition-colors"
+                  className="w-full gap-2 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-[11px] font-medium transition-all"
                   variant="ghost"
                   onClick={handleResume}
                 >
-                  <Play className="w-3.5 h-3.5" /> Retomar aquecimento
+                  <Play className="w-3.5 h-3.5" /> Retomar
                 </Button>
               ) : null}
 
-              {/* Action grid */}
+              {/* Quick actions */}
               {cycle.is_running && (
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 h-9 rounded-lg text-[11px] text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 font-medium transition-colors"
+                <div className="grid grid-cols-4 gap-1 mt-2">
+                  <button
+                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/8 transition-all disabled:opacity-40"
                     onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating}
                   >
-                    {accelerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <FastForward className="w-3 h-3" />}
-                    Força Tarefa
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 h-9 rounded-lg text-[11px] text-purple-400/80 hover:text-purple-300 hover:bg-purple-500/10 font-medium transition-colors"
+                    {accelerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FastForward className="w-4 h-4" />}
+                    <span className="text-[9px] font-semibold leading-none">Forçar</span>
+                  </button>
+                  <button
+                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-purple-400/70 hover:text-purple-300 hover:bg-purple-500/8 transition-all disabled:opacity-40"
                     onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || cycle.phase === "completed"}
                   >
-                    {advancingPhase ? <Loader2 className="w-3 h-3 animate-spin" /> : <SkipForward className="w-3 h-3" />}
-                    Pular Dia
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 h-9 rounded-lg text-[11px] text-emerald-400/80 hover:text-emerald-300 hover:bg-emerald-500/10 font-medium transition-colors"
+                    {advancingPhase ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4" />}
+                    <span className="text-[9px] font-semibold leading-none">Pular</span>
+                  </button>
+                  <button
+                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-sky-400/70 hover:text-sky-300 hover:bg-sky-500/8 transition-all disabled:opacity-40"
                     onClick={handleTestAutosave}
                     disabled={testingAutosave}
                   >
-                    {testingAutosave ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                    Auto Save
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 h-9 rounded-lg text-[11px] text-violet-400/80 hover:text-violet-300 hover:bg-violet-500/10 font-medium transition-colors"
+                    {testingAutosave ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span className="text-[9px] font-semibold leading-none">Auto Save</span>
+                  </button>
+                  <button
+                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-violet-400/70 hover:text-violet-300 hover:bg-violet-500/8 transition-all disabled:opacity-40"
                     onClick={handleTestCommunity}
                     disabled={testingCommunity}
                   >
-                    {testingCommunity ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                    Comunitário
-                  </Button>
+                    {testingCommunity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span className="text-[9px] font-semibold leading-none">Comunidade</span>
+                  </button>
                 </div>
               )}
             </div>
           )}
-        </div>
       </div>
 
       {/* ═══════════ WIZARD (no cycle) ═══════════ */}
