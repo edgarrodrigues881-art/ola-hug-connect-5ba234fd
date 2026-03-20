@@ -505,16 +505,29 @@ const DeviceTagAssignDialog = memo(({ open, onOpenChange, availableTags, current
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[320px] bg-card/95 backdrop-blur-2xl border-border/10 p-5 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-sm font-bold flex items-center gap-2">
-            <Tag className="w-4 h-4 text-primary" />
-            Tags — {deviceName}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 pt-2">
+      <DialogContent className="sm:max-w-[380px] bg-background/95 backdrop-blur-3xl border-border/10 p-0 overflow-hidden rounded-3xl shadow-[0_32px_80px_-12px_rgba(0,0,0,0.7)]">
+        {/* Header */}
+        <div className="relative px-6 pt-6 pb-4">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent pointer-events-none" />
+          <DialogHeader>
+            <DialogTitle className="text-base font-black flex items-center gap-3 relative">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shadow-lg shadow-primary/10">
+                <Tag className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-foreground">Tags</span>
+                <span className="text-muted-foreground/50 font-medium ml-2 text-sm">— {deviceName}</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+        </div>
+
+        <div className="px-6 pb-3 space-y-2">
           {availableTags.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground/50 text-center py-4">Crie tags na pasta primeiro</p>
+            <div className="flex flex-col items-center py-8 gap-2">
+              <Tag className="w-6 h-6 text-muted-foreground/15" />
+              <p className="text-xs text-muted-foreground/40 font-medium">Crie tags na pasta primeiro</p>
+            </div>
           ) : (
             availableTags.map((tag) => {
               const isSelected = selected.has(tag.label);
@@ -523,17 +536,22 @@ const DeviceTagAssignDialog = memo(({ open, onOpenChange, availableTags, current
                   key={tag.label}
                   onClick={() => toggle(tag)}
                   className={cn(
-                    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-colors",
-                    isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/20 border border-transparent"
+                    "flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200",
+                    isSelected
+                      ? "bg-primary/[0.08] border-2 border-primary/25 shadow-sm"
+                      : "hover:bg-muted/15 border-2 border-transparent"
                   )}
                 >
                   <div className={cn(
-                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all",
-                    isSelected ? "bg-primary border-primary" : "border-border/40"
+                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "bg-primary border-primary shadow-[0_0_8px_hsl(var(--primary)/0.3)]" : "border-border/30"
                   )}>
-                    {isSelected && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />}
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: tag.color }}>
+                  <span
+                    className="inline-flex items-center px-3 py-1 rounded-lg text-[11px] font-bold text-white shadow-sm"
+                    style={{ backgroundColor: tag.color, boxShadow: `0 4px 12px -2px ${tag.color}40` }}
+                  >
                     {tag.label}
                   </span>
                 </button>
@@ -541,9 +559,18 @@ const DeviceTagAssignDialog = memo(({ open, onOpenChange, availableTags, current
             })
           )}
         </div>
-        <div className="flex gap-2 pt-3 border-t border-border/10">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-9">Cancelar</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 h-9">
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-5 border-t border-border/10">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 h-11 rounded-xl text-xs font-bold border-border/20">
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 h-11 rounded-xl text-xs font-black shadow-lg shadow-primary/20"
+          >
             {saving ? "..." : "Salvar"}
           </Button>
         </div>
