@@ -3141,7 +3141,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           chipState,
         });
 
-        await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
+        await db.from("warmup_cycles").update({ phase: getPhaseForDay(cycle.day_index, chipState) }).eq("id", cycle.id);
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_enabled",
