@@ -168,6 +168,18 @@ const WarmupInstanceDetail = () => {
 
   const { data: instanceGroups = [] } = useInstanceGroups(deviceId!);
   const { data: autosaveContacts = [] } = useAutosaveContacts();
+
+  // Autosave contact rotation stats
+  const autosaveStats = useMemo(() => {
+    const total = autosaveContacts.length;
+    const valid = autosaveContacts.filter((c: any) => c.is_active && c.contact_status !== "invalid" && c.contact_status !== "discarded").length;
+    const newContacts = autosaveContacts.filter((c: any) => c.is_active && (c.contact_status === "new" || !c.contact_status)).length;
+    const used = autosaveContacts.filter((c: any) => c.is_active && c.contact_status === "used").length;
+    const invalid = autosaveContacts.filter((c: any) => c.contact_status === "invalid").length;
+    const discarded = autosaveContacts.filter((c: any) => c.contact_status === "discarded").length;
+    const exhausted = valid > 0 && newContacts === 0;
+    return { total, valid, newContacts, used, invalid, discarded, exhausted };
+  }, [autosaveContacts]);
   const { data: community } = useCommunityMembership(deviceId!);
   const { data: auditLogs = [] } = useWarmupAuditLogs(cycle?.id);
   const { data: plans = [] } = useWarmupPlans();
@@ -1516,12 +1528,39 @@ const WarmupInstanceDetail = () => {
                   const asInfo = getAutosaveInfoForDay(cycle!.day_index, cycle!.chip_state || "new");
                   if (asInfo.contacts === 0) return null;
                   return (
-                    <div className="px-6 pb-2 flex items-center gap-3 text-[10px]">
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/5 border border-sky-500/10">
-                        <UserPlus className="w-3 h-3 text-sky-400" />
-                        <span className="text-muted-foreground">Auto Save:</span>
-                        <span className="font-bold text-foreground">{asInfo.contacts} contatos × {asInfo.msgsPerContact} msgs = {asInfo.totalMsgs}</span>
+                    <div className="px-6 pb-2 space-y-1.5">
+                      <div className="flex items-center gap-3 text-[10px]">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/5 border border-sky-500/10">
+                          <UserPlus className="w-3 h-3 text-sky-400" />
+                          <span className="text-muted-foreground">Auto Save:</span>
+                          <span className="font-bold text-foreground">{asInfo.contacts} contatos × {asInfo.msgsPerContact} msgs = {asInfo.totalMsgs}</span>
+                        </div>
                       </div>
+                      {autosaveStats.total > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 text-[9px]">
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-semibold">
+                            🆕 {autosaveStats.newContacts} novos
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 font-semibold">
+                            ✅ {autosaveStats.used} usados
+                          </span>
+                          {autosaveStats.invalid > 0 && (
+                            <span className="px-2 py-0.5 rounded-md bg-destructive/10 text-destructive font-semibold">
+                              ❌ {autosaveStats.invalid} inválidos
+                            </span>
+                          )}
+                          {autosaveStats.discarded > 0 && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-semibold">
+                              🚫 {autosaveStats.discarded} descartados
+                            </span>
+                          )}
+                          {autosaveStats.exhausted && (
+                            <span className="px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-400 font-semibold">
+                              🔄 Lista esgotada
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

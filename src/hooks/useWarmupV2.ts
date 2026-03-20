@@ -70,6 +70,9 @@ export interface WarmupAutosaveContact {
   tags: string;
   is_active: boolean;
   created_at: string;
+  last_used_at: string | null;
+  use_count: number;
+  contact_status: string;
 }
 
 export interface WarmupCommunityMembership {
@@ -235,7 +238,7 @@ export function useAutosaveContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warmup_autosave_contacts" as any)
-        .select("id, contact_name, phone_e164, tags, is_active, created_at")
+        .select("id, contact_name, phone_e164, tags, is_active, created_at, last_used_at, use_count, contact_status")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as WarmupAutosaveContact[];

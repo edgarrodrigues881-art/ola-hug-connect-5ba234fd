@@ -1821,8 +1821,11 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
     batchLoad<any>("profiles", "id, status", "id", uniqueUserIds),
     batchLoad<any>("devices", "id, status, uazapi_token, uazapi_base_url, number", "id", uniqueDeviceIds),
     batchLoad<any>("warmup_messages", "content, user_id", "user_id", uniqueUserIds),
-    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id, created_at, updated_at", "user_id", uniqueUserIds, q =>
+    batchLoad<any>("warmup_autosave_contacts", "id, phone_e164, contact_name, user_id, created_at, updated_at, last_used_at, use_count, contact_status", "user_id", uniqueUserIds, q =>
       q.eq("is_active", true)
+        .neq("contact_status", "discarded")
+        .neq("contact_status", "invalid")
+        .order("use_count", { ascending: true })
         .order("created_at", { ascending: true })
         .order("id", { ascending: true })
     ),
@@ -1851,10 +1854,18 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
     if (!autosaveMap[c.user_id]) autosaveMap[c.user_id] = [];
     autosaveMap[c.user_id].push(c);
   });
-  // Sort by created_at ASC for stable rotation — newest contacts are at the END
-  // so dayOffset rotation naturally picks different contacts each day
+  // Smart rotation: prioritize "new" contacts first, then lowest use_count
   Object.values(autosaveMap).forEach((contacts: any[]) => {
     contacts.sort((a, b) => {
+      // Priority 1: "new" contacts first
+      const aNew = (a.contact_status || "new") === "new" ? 0 : 1;
+      const bNew = (b.contact_status || "new") === "new" ? 0 : 1;
+      if (aNew !== bNew) return aNew - bNew;
+      // Priority 2: lowest use_count
+      const aUse = a.use_count || 0;
+      const bUse = b.use_count || 0;
+      if (aUse !== bUse) return aUse - bUse;
+      // Priority 3: oldest first
       const aCreated = new Date(a.created_at || 0).getTime();
       const bCreated = new Date(b.created_at || 0).getTime();
       if (aCreated !== bCreated) return aCreated - bCreated;
@@ -2485,25 +2496,21 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         const rIdx = Number(job.payload?.recipient_index ?? 0);
         const mIdx = Number(job.payload?.msg_index ?? 0);
         const contacts = autosaveMap[job.user_id] || [];
+        const maxRounds = getAutosaveRoundsPerContact(chipState);
 
-        if (mIdx >= 3) {
+        if (mIdx >= maxRounds) {
           await db.from("warmup_jobs")
-            .update({ status: "cancelled", last_error: "Auto Save limitado a 3 mensagens por contato" })
+            .update({ status: "cancelled", last_error: `Auto Save limitado a ${maxRounds} mensagens por contato` })
             .eq("id", job.id);
           bufferAudit({
-            user_id: job.user_id,
-            device_id: job.device_id,
-            cycle_id: job.cycle_id,
-            level: "warn",
-            event_type: "autosave_job_cancelled",
-            message: `Job Auto Save excedente cancelado (recipient_index=${rIdx}, msg_index=${mIdx})`,
+            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+            level: "warn", event_type: "autosave_job_cancelled",
+            message: `Job Auto Save excedente cancelado (recipient_index=${rIdx}, msg_index=${mIdx}, max=${maxRounds})`,
           });
           return false;
         }
 
-        const autosaveStartDay = getGroupsEndDay(chipState) + 1;
-        const autosaveDayIndex = Math.max(0, (cycle.day_index || autosaveStartDay) - autosaveStartDay);
-        const dayOffset = autosaveDayIndex * 5;
+        // Smart rotation: contacts are already sorted by contact_status='new' first, then use_count ASC
         const autosavePool = contacts
           .map((c: any) => ({ ...c, _phone: String(c.phone_e164 || "").replace(/\D/g, "") }))
           .filter((c: any) => c._phone.length >= 10);
@@ -2513,15 +2520,20 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           break;
         }
 
-        // Prioriza contatos mais novos/atualizados e rotaciona 5 por dia a partir do 1º dia de Auto Save
-        const rotatedPool: typeof autosavePool = [];
-        for (let i = 0; i < Math.min(5, autosavePool.length); i++) {
-          const idx = (dayOffset + i) % autosavePool.length;
-          rotatedPool.push(autosavePool[idx]);
+        // Check if all contacts have been used — if so, reset for new cycle
+        const newContacts = autosavePool.filter((c: any) => (c.contact_status || "new") === "new");
+        const contactsForDay = getAutosaveContactsForDay(cycle.day_index || 1, chipState);
+
+        // Smart selection: pick from pool sequentially (already sorted by priority)
+        // The pool is pre-sorted: new contacts first, then lowest use_count
+        const rotatedPool = autosavePool.slice(0, contactsForDay);
+
+        // If we've exhausted all new contacts but still need more, allow reuse
+        if (rotatedPool.length === 0) {
+          bufferAudit({ user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id, level: "warn", event_type: "autosave_no_contacts", message: "Todos os contatos já utilizados, sem novos disponíveis" });
+          break;
         }
 
-        // FIX: Use absolute index — never wrap around. If index is out of bounds, skip the job.
-        // Modular wrapping caused the SAME contact to receive 3-6 msgs while others got 0.
         if (rIdx >= rotatedPool.length) {
           bufferAudit({
             user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
@@ -2541,7 +2553,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           if (!phoneExists) {
             // Phone confirmed invalid — disable and cancel all jobs immediately
             await db.from("warmup_autosave_contacts")
-              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .update({ is_active: false, contact_status: "invalid", updated_at: new Date().toISOString() })
               .eq("phone_e164", target.phone_e164)
               .eq("user_id", job.user_id);
 
@@ -2581,7 +2593,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           // The first message IS the validation — if it fails, don't waste 4 more attempts
           if (mIdx === 0) {
             await db.from("warmup_autosave_contacts")
-              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .update({ is_active: false, contact_status: "discarded", updated_at: new Date().toISOString() })
               .eq("phone_e164", target.phone_e164)
               .eq("user_id", job.user_id);
 
@@ -2626,6 +2638,47 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
 
         const sentPhone = target._phone;
 
+        // Mark contact as used after successful send (on last msg_index)
+        if (mIdx === maxRounds - 1 || mIdx === 0) {
+          await db.from("warmup_autosave_contacts")
+            .update({
+              contact_status: "used",
+              last_used_at: new Date().toISOString(),
+              use_count: (target.use_count || 0) + (mIdx === 0 ? 1 : 0),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", target.id);
+
+          // Update in-memory cache
+          target.contact_status = "used";
+          if (mIdx === 0) target.use_count = (target.use_count || 0) + 1;
+          target.last_used_at = new Date().toISOString();
+
+          // Check if all valid contacts are now "used" — if so, reset for new rotation cycle
+          const allContacts = autosaveMap[job.user_id] || [];
+          const remainingNew = allContacts.filter((c: any) => (c.contact_status || "new") === "new");
+          if (remainingNew.length === 0 && allContacts.length > 0) {
+            // All used — reset all to "new" for next rotation cycle
+            await db.from("warmup_autosave_contacts")
+              .update({ contact_status: "new" })
+              .eq("user_id", job.user_id)
+              .eq("is_active", true)
+              .eq("contact_status", "used");
+
+            // Reset in-memory cache
+            allContacts.forEach((c: any) => {
+              if (c.contact_status === "used") c.contact_status = "new";
+            });
+
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "autosave_rotation_reset",
+              message: `Auto Save: lista esgotada (${allContacts.length} contatos usados). Novo ciclo de rotação iniciado.`,
+              meta: { total_contacts: allContacts.length },
+            });
+          }
+        }
+
         try {
           await db.from("warmup_unique_recipients").insert({
             cycle_id: cycle.id, user_id: job.user_id,
@@ -2646,8 +2699,8 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/3 para ${target.contact_name || sentPhone}`,
-          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name },
+          message: `Auto Save: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/${maxRounds} para ${target.contact_name || sentPhone} [${(target.contact_status || "new") === "new" ? "NOVO" : `uso #${target.use_count || 1}`}]`,
+          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name, contact_status: target.contact_status, use_count: target.use_count },
         });
         break;
       }
