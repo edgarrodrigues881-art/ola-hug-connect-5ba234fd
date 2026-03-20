@@ -140,7 +140,7 @@ function getAutosaveContactsForDay(dayIndex: number, chipState: string): number 
     return 5;
   }
   if (chipState === "unstable") {
-    const autosaveStart = getGroupsEndDay("unstable") + 1; // day 8
+    const autosaveStart = getGroupsEndDay("unstable") + 1; // day 7
     const daysSince = dayIndex - autosaveStart;
     if (daysSince < 0) return 0;
     if (daysSince === 0) return 1;
