@@ -91,6 +91,24 @@ function getExpectedDailyVolume(dayIndex: number, chipState: string): { min: num
   return { min, max, phase };
 }
 
+/* ── Auto Save contacts helper (mirrors server logic) ── */
+function getAutosaveInfoForDay(dayIndex: number, chipState: string): { contacts: number; msgsPerContact: number; totalMsgs: number } {
+  const autosaveStartDay = (chipState === "unstable" ? 7 : chipState === "recovered" ? 5 : 4) + 1;
+  if (dayIndex < autosaveStartDay) return { contacts: 0, msgsPerContact: 0, totalMsgs: 0 };
+
+  let contacts: number;
+  if (chipState === "new") {
+    const daysSince = dayIndex - autosaveStartDay;
+    if (daysSince === 0) contacts = 3;
+    else if (daysSince === 1) contacts = 4;
+    else contacts = 5;
+  } else {
+    contacts = 5;
+  }
+  const msgsPerContact = 3;
+  return { contacts, msgsPerContact, totalMsgs: contacts * msgsPerContact };
+}
+
 const chipStateLabels: Record<string, string> = {
   new: "Chip Novo",
   recovered: "Chip Recuperado",
@@ -1477,6 +1495,21 @@ const WarmupInstanceDetail = () => {
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/10 border border-border/15">
                         <CalendarDays className="w-3 h-3 text-muted-foreground" />
                         <span className="text-muted-foreground">{vol.phase}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Auto Save info card */}
+                {!isPre24h && (() => {
+                  const asInfo = getAutosaveInfoForDay(cycle!.day_index, cycle!.chip_state || "new");
+                  if (asInfo.contacts === 0) return null;
+                  return (
+                    <div className="px-6 pb-2 flex items-center gap-3 text-[10px]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/5 border border-sky-500/10">
+                        <UserPlus className="w-3 h-3 text-sky-400" />
+                        <span className="text-muted-foreground">Auto Save:</span>
+                        <span className="font-bold text-foreground">{asInfo.contacts} contatos × {asInfo.msgsPerContact} msgs = {asInfo.totalMsgs}</span>
                       </div>
                     </div>
                   );

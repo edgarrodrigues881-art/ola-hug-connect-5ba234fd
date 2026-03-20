@@ -121,6 +121,22 @@ function getDailyBudget(dayIndex: number = 1, chipState: string = "new"): number
   return getProgressiveDailyBudget(dayIndex, chipState);
 }
 
+function getAutosaveContactsForDay(dayIndex: number, chipState: string): number {
+  if (chipState === "new") {
+    const autosaveStart = getGroupsEndDay("new") + 1; // day 5
+    const daysSince = dayIndex - autosaveStart;
+    if (daysSince < 0) return 0;
+    if (daysSince === 0) return 3; // day 5: 3 contacts
+    if (daysSince === 1) return 4; // day 6: 4 contacts
+    return 5; // day 7+: 5 contacts
+  }
+  return 5;
+}
+
+function getAutosaveRoundsPerContact(): number {
+  return 3;
+}
+
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
   const daysSinceCommunity = dayIndex - communityStartDay;
@@ -142,30 +158,31 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     groupMsgs: 0, autosaveContacts: 0, autosaveRounds: 0,
     communityPeers: 0, communityMsgsPerPeer: 0,
   };
-
   if (["pre_24h", "completed", "paused", "error"].includes(phase)) return v;
 
   const totalBudget = getProgressiveDailyBudget(dayIndex, chipState);
 
   if (phase === "groups_only") {
-    // 100% goes to groups
     v.groupMsgs = totalBudget;
   } else if (phase === "autosave_enabled") {
-    // Groups + autosave (15 msgs reserved for autosave)
-    v.autosaveContacts = 5;
-    v.autosaveRounds = 3;
-    v.groupMsgs = Math.max(totalBudget - 15, 30);
+    const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
+    const asRounds = getAutosaveRoundsPerContact();
+    const asTotal = asContacts * asRounds;
+    v.autosaveContacts = asContacts;
+    v.autosaveRounds = asRounds;
+    v.groupMsgs = Math.max(totalBudget - asTotal, 30);
   } else if (phase === "community_enabled") {
-    // Groups + autosave + community
-    v.autosaveContacts = 5;
-    v.autosaveRounds = 3;
+    const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
+    const asRounds = getAutosaveRoundsPerContact();
+    const asTotal = asContacts * asRounds;
+    v.autosaveContacts = asContacts;
+    v.autosaveRounds = asRounds;
     const peers = getCommunityPeers(dayIndex, chipState);
     const burstsPerPeer = getCommunityBurstsPerPeer(dayIndex, chipState);
     const communityMsgs = peers * burstsPerPeer;
     v.communityPeers = peers;
     v.communityMsgsPerPeer = burstsPerPeer;
-    // Groups get the remainder after autosave (15) and community
-    v.groupMsgs = Math.max(totalBudget - 15 - communityMsgs, 30);
+    v.groupMsgs = Math.max(totalBudget - asTotal - communityMsgs, 30);
   }
 
   return v;
