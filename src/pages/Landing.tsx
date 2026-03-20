@@ -281,13 +281,15 @@ const Plans = () => {
           Recomendado
         </span>
       )}
-      <h3 className="text-base font-extrabold text-white mb-0.5">{p.name}</h3>
-      <p className="text-[11px] text-white/40 font-medium mb-1">
-        {p.name === "Custom" ? "200+ instâncias" : `até ${p.instances} instâncias`}
-      </p>
-      <p className="text-[10px] text-white/25 leading-relaxed mb-1 min-h-[1.5rem]">{p.subtitle}</p>
-      {p.extraCopy && <p className={`text-[10px] font-semibold mb-1.5 ${p.popular ? "text-amber-400/80" : "text-emerald-400/70"}`}>{p.extraCopy}</p>}
-      {!p.extraCopy && <div className="mb-1.5" />}
+      {/* Fixed-height header block to align prices */}
+      <div className="min-h-[5.5rem]">
+        <h3 className="text-base font-extrabold text-white mb-0.5">{p.name}</h3>
+        <p className="text-[11px] text-white/40 font-medium mb-1">
+          {p.name === "Custom" ? "200+ instâncias" : `até ${p.instances} instâncias`}
+        </p>
+        <p className="text-[10px] text-white/25 leading-relaxed mb-1">{p.subtitle}</p>
+        {p.extraCopy && <p className={`text-[10px] font-semibold ${p.popular ? "text-amber-400/80" : "text-emerald-400/70"}`}>{p.extraCopy}</p>}
+      </div>
 
       <div className="flex items-baseline gap-0.5 mb-3">
         {p.price ? (
@@ -319,13 +321,13 @@ const Plans = () => {
           navigate("/auth?mode=signup");
         }
       }}
-        className={`w-full text-[11px] font-semibold h-8 mt-auto ${
+        className={`w-full text-[11px] font-bold h-10 mt-auto ${
           p.popular
             ? "bg-amber-500 hover:bg-amber-400 text-black shadow-md"
             : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
         }`}
       >
-        {p.cta} <ArrowRight className="w-3 h-3 ml-1" />
+        {p.cta} <ArrowRight className="w-3.5 h-3.5 ml-1" />
       </Button>
     </motion.div>
   );
