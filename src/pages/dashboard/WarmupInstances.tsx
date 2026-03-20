@@ -560,6 +560,7 @@ const WarmupInstances = () => {
   const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [deviceTagTarget, setDeviceTagTarget] = useState<string | null>(null);
+  const [removeFromFolderTarget, setRemoveFromFolderTarget] = useState<string | null>(null);
   
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -1040,9 +1041,7 @@ const WarmupInstances = () => {
       availableTags={activeFolder?.tags}
       onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
       onRemoveFromFolder={activeFolder ? (deviceId) => {
-        removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId }).then(() => {
-          toast({ title: "Instância removida da pasta" });
-        });
+        setRemoveFromFolderTarget(deviceId);
       } : undefined}
     />
   ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder, activeFolderId]);
@@ -1651,6 +1650,39 @@ const WarmupInstances = () => {
             </Button>
             <Button variant="destructive" size="sm" onClick={() => cancelConfirmDevice && handleCancel(cancelConfirmDevice)}>
               Sim, cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Remove from folder confirmation */}
+      <Dialog open={!!removeFromFolderTarget} onOpenChange={(open) => { if (!open) setRemoveFromFolderTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Remover da pasta?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A instância <strong>{removeFromFolderTarget ? (displayed.find(d => d.id === removeFromFolderTarget)?.name || "") : ""}</strong> será removida desta pasta. Ela continuará disponível na lista geral.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setRemoveFromFolderTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => {
+                if (removeFromFolderTarget && activeFolder) {
+                  removeDevice.mutateAsync({ folderId: activeFolder.id, deviceId: removeFromFolderTarget }).then(() => {
+                    toast({ title: "Instância removida da pasta" });
+                    setRemoveFromFolderTarget(null);
+                  });
+                }
+              }}
+            >
+              Sim, remover
             </Button>
           </DialogFooter>
         </DialogContent>
