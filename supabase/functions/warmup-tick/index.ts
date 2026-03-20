@@ -1535,10 +1535,17 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: accept x-internal-secret OR valid Authorization Bearer (for cron jobs)
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
+  const authHeader = req.headers.get("authorization") || "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-  if (!expectedSecret || secret !== expectedSecret) {
+  const secretOk = expectedSecret && secret === expectedSecret;
+  const bearerOk = anonKey && authHeader === `Bearer ${anonKey}`;
+
+  if (!secretOk && !bearerOk) {
+    console.error("[warmup-tick] AUTH FAILED: no valid x-internal-secret or Bearer token");
     return json({ error: "Unauthorized" }, 401);
   }
 
