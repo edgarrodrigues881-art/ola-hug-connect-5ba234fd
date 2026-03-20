@@ -272,44 +272,44 @@ const Plans = () => {
 
   const renderCard = (p: typeof allPlans[0]) => (
     <motion.div key={p.name} variants={fadeUp}
-      className={`relative rounded-2xl border transition-all duration-300 flex flex-col h-full ${
+      className={`relative rounded-2xl border transition-all duration-300 flex flex-col h-full min-w-0 ${
         p.popular
-          ? "border-amber-500/40 bg-amber-500/[0.04] p-6 shadow-[0_0_40px_-8px_rgba(245,158,11,0.2)] z-10"
-          : "border-white/[0.08] bg-white/[0.03] p-6 hover:border-white/[0.14]"
+          ? "border-amber-500/40 bg-amber-500/[0.04] p-5 shadow-[0_0_40px_-8px_rgba(245,158,11,0.2)] z-10"
+          : "border-white/[0.08] bg-white/[0.03] p-5 hover:border-white/[0.14]"
       }`}
     >
       {p.popular && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-black px-4 py-1.5 rounded-full">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-black px-3 py-1 rounded-full whitespace-nowrap">
           Recomendado
         </span>
       )}
-      <h3 className="text-lg font-extrabold text-white mb-0.5">{p.name}</h3>
-      <p className="text-[12px] text-white/40 font-medium mb-1.5">
+      <h3 className="text-base font-extrabold text-white mb-0.5">{p.name}</h3>
+      <p className="text-[11px] text-white/40 font-medium mb-1">
         {p.name === "Custom" ? "200+ instâncias" : `até ${p.instances} instâncias`}
       </p>
-      <p className="text-[11px] text-white/25 leading-relaxed mb-1.5 min-h-[2rem]">{p.subtitle}</p>
-      {p.extraCopy && <p className={`text-[11px] font-semibold mb-2 ${p.popular ? "text-amber-400/80" : "text-emerald-400/70"}`}>{p.extraCopy}</p>}
-      {!p.extraCopy && <div className="mb-2" />}
+      <p className="text-[10px] text-white/25 leading-relaxed mb-1 min-h-[1.5rem]">{p.subtitle}</p>
+      {p.extraCopy && <p className={`text-[10px] font-semibold mb-1.5 ${p.popular ? "text-amber-400/80" : "text-emerald-400/70"}`}>{p.extraCopy}</p>}
+      {!p.extraCopy && <div className="mb-1.5" />}
 
-      <div className="flex items-baseline gap-1 mb-4">
+      <div className="flex items-baseline gap-0.5 mb-3">
         {p.price ? (
           <>
             <span className="text-xs font-medium text-white/30">R$</span>
-            <span className="text-2xl font-extrabold text-white italic">{p.price.split(",")[0]}</span>
-            <span className="text-sm font-bold text-white/35 italic">,{p.price.split(",")[1]}</span>
-            <span className="text-xs font-medium text-white/25">/ mês</span>
+            <span className="text-2xl font-extrabold tracking-tighter leading-none text-white">{p.price.split(",")[0]}</span>
+            <span className="text-sm font-bold text-white/40">,{p.price.split(",")[1]}</span>
+            <span className="text-[10px] font-medium text-white/25 ml-0.5">/ mês</span>
           </>
         ) : (
-          <span className="text-2xl font-extrabold text-white italic">Sob consulta</span>
+          <span className="text-2xl font-extrabold tracking-tighter leading-none text-white">Sob consulta</span>
         )}
       </div>
 
-      <div className="h-px bg-white/[0.05] mb-4" />
+      <div className="h-px bg-white/[0.05] mb-3" />
 
-      <ul className="space-y-2 mb-5 flex-1">
+      <ul className="space-y-1.5 mb-4 flex-1">
         {p.features.map((item) => (
-          <li key={item} className="flex items-start gap-2 text-[12px] text-white/50 font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5 text-white/30 flex-shrink-0 mt-0.5" />{item}
+          <li key={item} className="flex items-start gap-1.5 text-[11px] text-white/50 font-medium">
+            <CheckCircle2 className="w-3 h-3 text-white/30 flex-shrink-0 mt-0.5" />{item}
           </li>
         ))}
       </ul>
@@ -321,13 +321,13 @@ const Plans = () => {
           navigate("/auth?mode=signup");
         }
       }}
-        className={`w-full text-[12px] font-semibold h-9 mt-auto ${
+        className={`w-full text-[11px] font-semibold h-8 mt-auto ${
           p.popular
             ? "bg-amber-500 hover:bg-amber-400 text-black shadow-md"
             : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
         }`}
       >
-        {p.cta} <ArrowRight className="w-3.5 h-3.5 ml-1" />
+        {p.cta} <ArrowRight className="w-3 h-3 ml-1" />
       </Button>
     </motion.div>
   );
@@ -339,11 +339,8 @@ const Plans = () => {
         <SectionTitle>Planos sob medida para cada operação</SectionTitle>
         <SectionSub>Acesso completo em todos os planos. O que muda é a quantidade de instâncias e nível de suporte.</SectionSub>
       </div>
-      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch max-w-5xl mx-auto mb-4">
-        {topRow.map(renderCard)}
-      </motion.div>
-      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch max-w-5xl mx-auto">
-        {bottomRow.map(renderCard)}
+      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-stretch mx-auto">
+        {allPlans.map(renderCard)}
       </motion.div>
     </Section>
   );
