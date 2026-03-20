@@ -1366,7 +1366,7 @@ async function reconcileCommunityPairs(
       const candidateDeviceMap = Object.fromEntries((candidateDevicesRes.data || []).map((row: any) => [row.id, row]));
       const candidateCycleMap = Object.fromEntries((candidateCyclesRes.data || []).map((row: any) => [row.device_id, row]));
       const phaseRank = (phase?: string) => {
-        if (phase === "community_enabled") return 0;
+        if (phase === "community_ramp_up" || phase === "community_stable") return 0;
         if (phase === "autosave_enabled") return 1;
         if (phase === "groups_only") return 2;
         return 3;
