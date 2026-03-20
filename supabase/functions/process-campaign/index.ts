@@ -174,8 +174,8 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
       });
       // Small delay to ensure image arrives before buttons
       await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
-      // Send buttons separately (short prompt since text already sent with image)
-      const payload: any = { number: phone, type: "button", text: "⬇️ Escolha uma opção:", choices };
+      // Send buttons with the full copy text
+      const payload: any = { number: phone, type: "button", text: body || "Escolha uma opção:", choices };
       await uazapiRequest(baseUrl, token, "/send/menu", payload);
     } else {
       // No image — send menu normally (this works fine)
