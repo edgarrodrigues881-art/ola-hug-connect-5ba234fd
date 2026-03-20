@@ -82,7 +82,7 @@ const VirtualizedDeviceGrid = memo(({ items, renderItem, cardHeight = CARD_HEIGH
   }, [dimensions.width, columnCount, gap]);
 
   // Small lists: no virtualization
-  if (items.length < 50) {
+  if (items.length < 16) {
     return (
       <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
         {items.map((item, i) => (
