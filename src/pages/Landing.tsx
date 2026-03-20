@@ -236,7 +236,7 @@ const allPlans = [
   {
     name: "Start", instances: 10, price: "159,90", popular: false, whatsappReports: false,
     subtitle: "Para quem já validou a operação e quer expandir.",
-    extraCopy: "Melhor custo-benefício inicial", cta: "Começar agora",
+    extraCopy: "Melhor custo-benefício inicial", cta: "Começar",
     features: ["Aquecimento automatizado", "Disparo interativo", "Painel centralizado", "Monitoramento em tempo real", "Organização de instâncias", "Relatórios via WhatsApp (add-on)", "Módulos extras disponíveis"],
   },
   {
