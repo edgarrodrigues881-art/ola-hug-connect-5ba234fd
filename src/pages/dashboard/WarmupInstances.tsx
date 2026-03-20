@@ -1654,364 +1654,389 @@ const WarmupInstances = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Bulk warmup dialog */}
-      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-w-[520px] p-0 overflow-hidden rounded-3xl border-border/15 shadow-2xl backdrop-blur-2xl">
-          {/* ── Header with gradient accent ── */}
-          <div className="relative px-7 pt-7 pb-5 border-b border-border/10">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.08] via-primary/[0.03] to-transparent pointer-events-none" />
-            <div className="absolute top-4 right-16 w-24 h-24 rounded-full bg-amber-500/[0.04] blur-2xl pointer-events-none" />
-            <div className="relative flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
-                <Flame className="w-6 h-6 text-amber-500" />
+      {/* Bulk warmup dialog — Wizard redesign */}
+      <Dialog open={bulkOpen} onOpenChange={(v) => { setBulkOpen(v); if (!v) setBulkStep(1); }}>
+        <DialogContent className="max-w-[540px] p-0 overflow-hidden rounded-3xl border-border/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.7)] backdrop-blur-3xl bg-background/95">
+          {/* ── Stepper header ── */}
+          <div className="relative px-7 pt-7 pb-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.06] via-transparent to-primary/[0.03] pointer-events-none" />
+            <div className="relative flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shrink-0 shadow-xl shadow-amber-500/30">
+                <Flame className="w-7 h-7 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-black tracking-tight">Aquecer em massa</DialogTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">Configure o perfil e selecione as instâncias</p>
+                <DialogTitle className="text-xl font-black tracking-tight">Aquecer em massa</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                  {bulkStep === 1 ? "Passo 1 — Perfil do chip" : bulkStep === 2 ? "Passo 2 — Grupos e dias" : "Passo 3 — Selecione as instâncias"}
+                </p>
               </div>
+            </div>
+            {/* Step indicator */}
+            <div className="relative flex items-center gap-1">
+              {[1, 2, 3].map(s => (
+                <div key={s} className="flex-1 relative">
+                  <div className={cn(
+                    "h-1.5 rounded-full transition-all duration-500",
+                    s <= bulkStep
+                      ? "bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                      : "bg-border/20"
+                  )} />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="px-7 py-6 space-y-6 max-h-[65vh] overflow-y-auto scrollbar-thin">
-            {/* ── Chip state selector ── */}
-            <div className="space-y-3">
-              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Estado do chip</p>
-              <div className="grid grid-cols-3 gap-2.5">
-                {([
-                  { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", color: "from-emerald-500/20 to-emerald-600/5", borderActive: "border-emerald-500/50 shadow-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_8px_hsl(142_72%_36%/0.6)]" },
-                  { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso, já sofreu ban", color: "from-amber-500/20 to-amber-600/5", borderActive: "border-amber-400/50 shadow-amber-500/15", dot: "bg-amber-500 shadow-[0_0_8px_hsl(38_92%_50%/0.6)]" },
-                  { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição facilmente", color: "from-red-500/20 to-red-600/5", borderActive: "border-red-400/50 shadow-red-500/15", dot: "bg-red-500 shadow-[0_0_8px_hsl(0_84%_50%/0.6)]" },
-                ] as const).map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setBulkChipState(opt.value)}
-                    className={cn(
-                      "relative text-left p-4 rounded-2xl border-2 transition-all duration-300 group overflow-hidden",
-                      bulkChipState === opt.value
-                        ? `${opt.borderActive} shadow-lg`
-                        : "border-border/20 hover:border-border/40 bg-card/40 hover:bg-card/60"
-                    )}
-                  >
-                    {bulkChipState === opt.value && (
-                      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-60 pointer-events-none", opt.color)} />
-                    )}
-                    <div className="relative">
-                      <div className={cn("w-3.5 h-3.5 rounded-full transition-all", opt.dot, bulkChipState !== opt.value && "opacity-40 shadow-none")} />
-                      <p className="text-[13px] font-black text-foreground mt-2.5 leading-tight">{opt.label}</p>
-                      <p className="text-[9px] text-muted-foreground mt-1 leading-snug font-medium">{opt.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Day range selector ── */}
-            <div className="space-y-2.5">
-              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Intervalo de dias</p>
-              <p className="text-[10px] text-muted-foreground font-medium -mt-1">Escolha o dia inicial e o dia final do ciclo</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Dia inicial</label>
-                  <Select value={bulkStartDay} onValueChange={(v) => {
-                    setBulkStartDay(v);
-                    if (Number(v) > Number(bulkDaysTotal)) setBulkDaysTotal(v);
-                  }}>
-                    <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
-                        <SelectItem key={d} value={String(d)}>
-                          <span className="font-semibold">Dia {d}</span>
-                          {d === 1 && <span className="text-[10px] text-primary ml-2 font-bold">Início</span>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Dia final</label>
-                  <Select value={safeBulkDaysTotal} onValueChange={setBulkDaysTotal}>
-                    <SelectTrigger className="rounded-xl h-12 bg-card/40 backdrop-blur-sm border-border/20 hover:border-border/40 text-sm font-semibold transition-colors">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 30 }, (_, i) => i + 1).filter(d => d >= Number(bulkStartDay)).map(d => (
-                        <SelectItem key={d} value={String(d)}>
-                          <span className="font-semibold">Dia {d}</span>
-                          {d === 30 && <span className="text-[10px] text-primary ml-2 font-bold">Máximo</span>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {isAdvancedStart && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 mt-2 space-y-2">
-                  <p className="text-[10px] text-amber-400 font-bold">⚡ Início avançado — Dia {bulkStartDay}</p>
-                  <p className="text-[9px] text-muted-foreground mt-1">O ciclo vai pular as fases anteriores e iniciar direto na fase correspondente ao dia {bulkStartDay}. Os grupos serão marcados como já ingressados.</p>
-                  <div className="flex items-start gap-2 mt-2 p-2.5 rounded-lg bg-amber-500/[0.08] border border-amber-500/15">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-amber-300 font-bold">Pré-requisito importante</p>
-                      <p className="text-[9px] text-muted-foreground">As instâncias selecionadas devem <strong>já ter entrado nos grupos</strong> (via "Entrar em grupo" ou manualmente) antes de iniciar o aquecimento avançado. O sistema vai detectar os grupos reais do dispositivo automaticamente.</p>
-                    </div>
-                  </div>
-                  {bulkSelected.size > 0 && devicesWithoutGroups.length > 0 && (
-                    <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 space-y-1.5">
-                      <p className="text-[10px] text-destructive font-bold flex items-center gap-1.5">
-                        <XCircle className="w-3.5 h-3.5" />
-                        {devicesWithoutGroups.length} instância(s) sem grupos detectados
-                      </p>
-                      <p className="text-[9px] text-muted-foreground">
-                        Estas instâncias não possuem histórico de grupos no sistema. O aquecimento poderá funcionar se elas já estiverem em grupos no WhatsApp (detecção automática), mas recomendamos entrar nos grupos antes.
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {devicesWithoutGroups.slice(0, 5).map(id => {
-                          const dev = (activeFolder ? displayed : filteredDevices).find((d: any) => d.id === id);
-                          return dev ? (
-                            <span key={id} className="text-[9px] px-2 py-0.5 rounded-md bg-destructive/10 text-destructive font-medium">{dev.name}</span>
-                          ) : null;
-                        })}
-                        {devicesWithoutGroups.length > 5 && (
-                          <span className="text-[9px] px-2 py-0.5 rounded-md bg-muted/20 text-muted-foreground font-medium">+{devicesWithoutGroups.length - 5} mais</span>
-                        )}
+          <div className="px-7 pb-2 max-h-[55vh] overflow-y-auto scrollbar-thin">
+            {/* ═══════ STEP 1: Chip State ═══════ */}
+            {bulkStep === 1 && (
+              <div className="space-y-5 py-2">
+                <p className="text-[11px] font-extrabold text-foreground uppercase tracking-[0.18em]">Estado do chip</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { value: "new" as const, label: "Chip Novo", desc: "Progressão conservadora", emoji: "🟢", gradient: "from-emerald-500/25 to-emerald-700/10", border: "border-emerald-500/60 ring-2 ring-emerald-500/20", dot: "bg-emerald-500 shadow-[0_0_10px_hsl(142_72%_36%/0.7)]" },
+                    { value: "recovered" as const, label: "Recuperado", desc: "Extra cauteloso, já sofreu ban", emoji: "🟡", gradient: "from-amber-500/25 to-amber-700/10", border: "border-amber-400/60 ring-2 ring-amber-500/20", dot: "bg-amber-500 shadow-[0_0_10px_hsl(38_92%_50%/0.7)]" },
+                    { value: "unstable" as const, label: "Chip Fraco", desc: "Sofre restrição facilmente", emoji: "🔴", gradient: "from-red-500/25 to-red-700/10", border: "border-red-400/60 ring-2 ring-red-500/20", dot: "bg-red-500 shadow-[0_0_10px_hsl(0_84%_50%/0.7)]" },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setBulkChipState(opt.value)}
+                      className={cn(
+                        "relative text-left p-5 rounded-2xl border-2 transition-all duration-300 group overflow-hidden hover:scale-[1.02]",
+                        bulkChipState === opt.value
+                          ? `${opt.border} shadow-xl`
+                          : "border-border/15 hover:border-border/30 bg-card/30"
+                      )}
+                    >
+                      {bulkChipState === opt.value && (
+                        <div className={cn("absolute inset-0 bg-gradient-to-br opacity-80 pointer-events-none", opt.gradient)} />
+                      )}
+                      <div className="relative">
+                        <div className={cn("w-4 h-4 rounded-full transition-all", opt.dot, bulkChipState !== opt.value && "opacity-30 shadow-none")} />
+                        <p className="text-sm font-black text-foreground mt-3 leading-tight">{opt.label}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1.5 leading-snug font-medium">{opt.desc}</p>
                       </div>
-                    </div>
-                  )}
-                  {bulkSelected.size > 0 && devicesWithoutGroups.length === 0 && selectedDeviceIds.length > 0 && (
-                    <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
-                      <p className="text-[10px] text-primary font-bold flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Todas as instâncias possuem grupos registrados ✓
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* ── Seus grupos ── */}
-            <div className="space-y-3">
-              <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Seus grupos de aquecimento</p>
-              <p className="text-[9px] text-muted-foreground -mt-1">O aquecimento usará os grupos que você cadastrar abaixo.</p>
-
-              {userCustomGroups.length > 0 ? (
-                <div className="rounded-xl border border-border/15 bg-card/20 p-2.5 max-h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin">
-                  {userCustomGroups.map((g: any) => (
-                    <div key={g.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors">
-                      <Users className="w-3.5 h-3.5 text-primary/50 shrink-0" />
-                      <span className="text-[12px] font-semibold text-foreground truncate flex-1">{g.name}</span>
-                      <button onClick={() => removeCustomGroup(g.id)} className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    </button>
                   ))}
                 </div>
-              ) : (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
-                  <p className="text-[10px] text-amber-400 font-bold">⚠️ Nenhum grupo cadastrado</p>
-                  <p className="text-[9px] text-muted-foreground mt-1">Cadastre pelo menos um grupo para iniciar o aquecimento.</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Link do grupo (chat.whatsapp.com/...)"
-                    value={newGroupLink}
-                    onChange={(e) => setNewGroupLink(e.target.value)}
-                    className="h-9 text-xs rounded-lg bg-card/40 border-border/20 flex-1"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-9 px-3 rounded-lg shrink-0"
-                    disabled={!newGroupLink.trim()}
-                    onClick={addCustomGroup}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
               </div>
-            </div>
+            )}
 
-            {/* ── Instance selector ── */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Instâncias</p>
-                <button
-                  className="text-[10px] text-primary hover:text-primary/80 font-bold transition-colors"
-                  onClick={() => {
-                    const sourceDevices = activeFolder ? displayed : filteredDevices;
-                    const eligible = sourceDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
-                    setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
-                  }}
-                >
-                  {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
-                </button>
-              </div>
-
-              {/* Search bar */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 pointer-events-none" />
-                <Input
-                  value={bulkInstanceSearch}
-                  onChange={(e) => setBulkInstanceSearch(e.target.value)}
-                  placeholder="Buscar instância por nome ou número..."
-                  className="h-9 pl-9 text-xs bg-card/30 backdrop-blur-sm border-border/20 focus-visible:border-primary/40 rounded-xl"
-                />
-              </div>
-
-               <div className="max-h-[220px] overflow-y-auto space-y-1.5 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm p-2.5 scrollbar-thin">
-                {(() => {
-                  const src = (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status));
-                  const q = bulkInstanceSearch.trim().toLowerCase();
-                  const list = q ? src.filter(d => d.name.toLowerCase().includes(q) || (d.number || "").includes(q)) : src;
-                  return list.length === 0 ? (
-                  <div className="flex flex-col items-center py-8 gap-2">
-                    <Smartphone className="w-6 h-6 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground/60 font-medium">{q ? "Nenhum resultado" : "Nenhuma instância disponível"}</p>
+            {/* ═══════ STEP 2: Groups + Days ═══════ */}
+            {bulkStep === 2 && (
+              <div className="space-y-6 py-2">
+                {/* Day range */}
+                <div className="space-y-3">
+                  <p className="text-[11px] font-extrabold text-foreground uppercase tracking-[0.18em]">Intervalo de dias</p>
+                  <p className="text-[10px] text-muted-foreground font-medium -mt-1">Escolha o dia inicial e o dia final do ciclo</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Dia inicial</label>
+                      <Select value={bulkStartDay} onValueChange={(v) => {
+                        setBulkStartDay(v);
+                        if (Number(v) > Number(bulkDaysTotal)) setBulkDaysTotal(v);
+                      }}>
+                        <SelectTrigger className="rounded-xl h-12 bg-card/50 border-2 border-border/20 hover:border-primary/30 text-sm font-bold transition-all">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
+                            <SelectItem key={d} value={String(d)}>
+                              <span className="font-semibold">Dia {d}</span>
+                              {d === 1 && <span className="text-[10px] text-primary ml-2 font-bold">Início</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Dia final</label>
+                      <Select value={safeBulkDaysTotal} onValueChange={setBulkDaysTotal}>
+                        <SelectTrigger className="rounded-xl h-12 bg-card/50 border-2 border-border/20 hover:border-primary/30 text-sm font-bold transition-all">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 30 }, (_, i) => i + 1).filter(d => d >= Number(bulkStartDay)).map(d => (
+                            <SelectItem key={d} value={String(d)}>
+                              <span className="font-semibold">Dia {d}</span>
+                              {d === 30 && <span className="text-[10px] text-primary ml-2 font-bold">Máximo</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                ) : (
-                  list.map(d => {
-                    const isWarming = cycleByDeviceId.has(d.id);
-                    return (
-                    <div
-                      key={d.id}
-                      className={cn(
-                        "flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200",
-                        isWarming
-                          ? "opacity-50 cursor-not-allowed"
-                          : "cursor-pointer",
-                        !isWarming && bulkSelected.has(d.id)
-                          ? "bg-primary/[0.08] border border-primary/25 shadow-sm shadow-primary/5"
-                          : "hover:bg-muted/20 border border-transparent"
-                      )}
-                      onClick={() => {
-                        if (isWarming) return;
-                        setBulkSelected(prev => {
-                          const next = new Set(prev);
-                          next.has(d.id) ? next.delete(d.id) : next.add(d.id);
-                          return next;
-                        });
-                      }}
-                    >
-                      <div className={cn(
-                        "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
-                        isWarming
-                          ? "border-border/20 bg-transparent"
-                          : bulkSelected.has(d.id) ? "bg-primary border-primary" : "border-border/40 bg-transparent"
-                      )}>
-                        {!isWarming && bulkSelected.has(d.id) && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold text-foreground truncate">{d.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {d.number && <p className="text-[10px] text-muted-foreground/60 font-mono tracking-wide">{formatPhone(d.number)}</p>}
-                          {bulkSelected.has(d.id) && (
-                            <span className={cn(
-                              "text-[9px] font-semibold px-1.5 py-0.5 rounded",
-                              userHasGroups
-                                ? "bg-primary/10 text-primary"
-                                : "bg-destructive/10 text-destructive"
-                            )}>
-                              {userHasGroups ? "✓ Grupos ok" : "Sem grupos"}
-                            </span>
-                          )}
+                  {isAdvancedStart && (
+                    <div className="rounded-xl border-2 border-amber-500/25 bg-amber-500/[0.06] px-4 py-3.5 mt-2 space-y-2">
+                      <p className="text-[11px] text-amber-400 font-extrabold">⚡ Início avançado — Dia {bulkStartDay}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">O ciclo vai pular as fases anteriores e iniciar direto na fase correspondente ao dia {bulkStartDay}.</p>
+                      <div className="flex items-start gap-2 mt-2 p-3 rounded-lg bg-amber-500/[0.08] border border-amber-500/15">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-amber-300 font-bold">Pré-requisito</p>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">As instâncias devem <strong>já ter entrado nos grupos</strong> antes de iniciar o aquecimento avançado.</p>
                         </div>
                       </div>
-                      {isWarming ? (
-                        <Flame className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
-                      ) : (
-                        <div className={cn(
-                          "w-2 h-2 rounded-full shrink-0",
-                          "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]"
-                        )} />
+                      {bulkSelected.size > 0 && devicesWithoutGroups.length > 0 && (
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 space-y-1.5">
+                          <p className="text-[10px] text-destructive font-bold flex items-center gap-1.5">
+                            <XCircle className="w-3.5 h-3.5" />
+                            {devicesWithoutGroups.length} instância(s) sem grupos
+                          </p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {devicesWithoutGroups.slice(0, 5).map(id => {
+                              const dev = (activeFolder ? displayed : filteredDevices).find((d: any) => d.id === id);
+                              return dev ? (
+                                <span key={id} className="text-[9px] px-2 py-0.5 rounded-md bg-destructive/10 text-destructive font-medium">{dev.name}</span>
+                              ) : null;
+                            })}
+                            {devicesWithoutGroups.length > 5 && (
+                              <span className="text-[9px] px-2 py-0.5 rounded-md bg-muted/20 text-muted-foreground font-medium">+{devicesWithoutGroups.length - 5}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {bulkSelected.size > 0 && devicesWithoutGroups.length === 0 && selectedDeviceIds.length > 0 && (
+                        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                          <p className="text-[10px] text-primary font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Todas instâncias com grupos ✓
+                          </p>
+                        </div>
                       )}
                     </div>
-                    );
-                  })
-                )})()}
-
-              </div>
-               <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
-                {bulkSelected.size} de {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
-              </p>
-            </div>
-
-            {/* ── Protections ── */}
-            <div className="rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 space-y-3">
-              <p className="text-xs font-black text-foreground flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Shield className="w-3.5 h-3.5 text-primary" />
+                  )}
                 </div>
-                Proteções automáticas
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: Target, text: "Limites diários automáticos" },
-                  { icon: Timer, text: "Delays aleatórios entre ações" },
-                  { icon: Zap, text: "Evolução progressiva de fases" },
-                  { icon: Shield, text: "Proteção contínua do chip" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
-                    <item.icon className="w-3 h-3 text-primary/50 shrink-0" />
-                    {item.text}
+
+                {/* Groups */}
+                <div className="space-y-3">
+                  <p className="text-[11px] font-extrabold text-foreground uppercase tracking-[0.18em]">Grupos de aquecimento</p>
+                  <p className="text-[10px] text-muted-foreground -mt-1.5 font-medium">O aquecimento usará os grupos cadastrados abaixo.</p>
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Link do grupo (chat.whatsapp.com/...)"
+                      value={newGroupLink}
+                      onChange={(e) => setNewGroupLink(e.target.value)}
+                      className="h-11 text-xs rounded-xl bg-card/50 border-2 border-border/20 focus-visible:border-primary/40 flex-1 font-medium"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-11 w-11 rounded-xl shrink-0 bg-primary hover:bg-primary/90"
+                      disabled={!newGroupLink.trim()}
+                      onClick={addCustomGroup}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
-                ))}
+
+                  {userCustomGroups.length > 0 ? (
+                    <div className="rounded-xl border-2 border-border/10 bg-card/20 p-2 max-h-[150px] overflow-y-auto space-y-1 scrollbar-thin">
+                      {userCustomGroups.map((g: any) => (
+                        <div key={g.id} className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors group">
+                          <Users className="w-4 h-4 text-primary/60 shrink-0" />
+                          <span className="text-xs font-bold text-foreground truncate flex-1">{g.name}</span>
+                          <button onClick={() => removeCustomGroup(g.id)} className="text-muted-foreground/30 hover:text-destructive transition-colors shrink-0 opacity-0 group-hover:opacity-100">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border-2 border-dashed border-amber-500/25 bg-amber-500/[0.04] px-4 py-4 text-center">
+                      <Users className="w-5 h-5 text-amber-500/50 mx-auto mb-2" />
+                      <p className="text-[11px] text-amber-400 font-bold">Nenhum grupo cadastrado</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Cole o link de um grupo acima para começar.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* ═══════ STEP 3: Instances ═══════ */}
+            {bulkStep === 3 && (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-extrabold text-foreground uppercase tracking-[0.18em]">Instâncias</p>
+                  <button
+                    className="text-[11px] text-primary hover:text-primary/80 font-bold transition-colors"
+                    onClick={() => {
+                      const sourceDevices = activeFolder ? displayed : filteredDevices;
+                      const eligible = sourceDevices.filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id));
+                      setBulkSelected(prev => prev.size === eligible.length ? new Set() : new Set(eligible.map(d => d.id)));
+                    }}
+                  >
+                    {bulkSelected.size > 0 ? "Desmarcar todos" : "Selecionar todos"}
+                  </button>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 pointer-events-none" />
+                  <Input
+                    value={bulkInstanceSearch}
+                    onChange={(e) => setBulkInstanceSearch(e.target.value)}
+                    placeholder="Buscar por nome ou número..."
+                    className="h-11 pl-10 text-xs bg-card/50 border-2 border-border/20 focus-visible:border-primary/40 rounded-xl font-medium"
+                  />
+                </div>
+
+                <div className="max-h-[240px] overflow-y-auto space-y-1 rounded-2xl border-2 border-border/10 bg-card/15 p-2 scrollbar-thin">
+                  {(() => {
+                    const src = (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status));
+                    const q = bulkInstanceSearch.trim().toLowerCase();
+                    const list = q ? src.filter(d => d.name.toLowerCase().includes(q) || (d.number || "").includes(q)) : src;
+                    return list.length === 0 ? (
+                      <div className="flex flex-col items-center py-10 gap-2">
+                        <Smartphone className="w-7 h-7 text-muted-foreground/20" />
+                        <p className="text-xs text-muted-foreground/50 font-medium">{q ? "Nenhum resultado" : "Nenhuma instância disponível"}</p>
+                      </div>
+                    ) : (
+                      list.map(d => {
+                        const isWarming = cycleByDeviceId.has(d.id);
+                        return (
+                          <div
+                            key={d.id}
+                            className={cn(
+                              "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                              isWarming
+                                ? "opacity-40 cursor-not-allowed"
+                                : "cursor-pointer",
+                              !isWarming && bulkSelected.has(d.id)
+                                ? "bg-primary/[0.1] border-2 border-primary/30 shadow-sm shadow-primary/5"
+                                : "hover:bg-muted/15 border-2 border-transparent"
+                            )}
+                            onClick={() => {
+                              if (isWarming) return;
+                              setBulkSelected(prev => {
+                                const next = new Set(prev);
+                                next.has(d.id) ? next.delete(d.id) : next.add(d.id);
+                                return next;
+                              });
+                            }}
+                          >
+                            <div className={cn(
+                              "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
+                              isWarming
+                                ? "border-border/15 bg-transparent"
+                                : bulkSelected.has(d.id) ? "bg-primary border-primary shadow-[0_0_8px_hsl(var(--primary)/0.3)]" : "border-border/30 bg-transparent"
+                            )}>
+                              {!isWarming && bulkSelected.has(d.id) && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-foreground truncate">{d.name}</p>
+                              {d.number && <p className="text-[10px] text-muted-foreground/50 font-mono tracking-wider mt-0.5">{formatPhone(d.number)}</p>}
+                            </div>
+                            {isWarming ? (
+                              <Flame className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
+                            ) : bulkSelected.has(d.id) ? (
+                              <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
+                            ) : null}
+                          </div>
+                        );
+                      })
+                    );
+                  })()}
+                </div>
+                <p className="text-[10px] text-muted-foreground/50 text-right tabular-nums font-semibold">
+                  {bulkSelected.size} de {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
+                </p>
+
+                {/* Protections */}
+                <div className="rounded-2xl border-2 border-primary/15 bg-gradient-to-br from-primary/[0.06] to-transparent p-5">
+                  <p className="text-xs font-extrabold text-foreground flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
+                      <Shield className="w-4 h-4 text-primary" />
+                    </div>
+                    Proteções automáticas
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { icon: Target, text: "Limites diários automáticos" },
+                      { icon: Timer, text: "Delays aleatórios entre ações" },
+                      { icon: Zap, text: "Evolução progressiva de fases" },
+                      { icon: Shield, text: "Proteção contínua do chip" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-semibold">
+                        <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <item.icon className="w-3 h-3 text-primary/70" />
+                        </div>
+                        {item.text}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* ── Footer ── */}
-          <div className="px-7 pb-7 pt-3 border-t border-border/10">
-            {userCustomGroups.length === 0 && (
-              <div className="flex items-center gap-2 p-3 mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
-                <span>⚠️</span>
-                <span>Cadastre pelo menos 1 grupo na página <strong>Grupos</strong> para iniciar o aquecimento.</span>
+          {/* ── Footer with navigation ── */}
+          <div className="px-7 pb-7 pt-4 border-t border-border/10">
+            {bulkStep === 3 && userCustomGroups.length === 0 && (
+              <div className="flex items-center gap-2 p-3.5 mb-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/20 text-amber-400 text-xs font-bold">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Cadastre pelo menos 1 grupo no passo anterior.</span>
               </div>
             )}
             <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-border/20" onClick={() => setBulkOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                disabled={bulkSelected.size === 0 || bulkLoading || userCustomGroups.length === 0}
-                className={cn(
-                  "flex-1 gap-2.5 h-12 rounded-xl font-black text-sm transition-all duration-300",
-                  "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white",
-                  "shadow-[0_8px_32px_-6px_hsl(38_92%_50%/0.5)] hover:shadow-[0_12px_40px_-4px_hsl(38_92%_50%/0.6)]",
-                  "disabled:from-muted disabled:to-muted disabled:shadow-none"
-                )}
-                onClick={async () => {
-                  setBulkLoading(true);
-                  const ids = Array.from(bulkSelected);
-                  // Fire all in parallel batches of 5 for speed
-                  let ok = 0;
-                  let fail = 0;
-                  const BATCH = 5;
-                  for (let i = 0; i < ids.length; i += BATCH) {
-                    const batch = ids.slice(i, i + BATCH);
-                    const results = await Promise.allSettled(
-                      batch.map(deviceId =>
-                        engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal), start_day: Number(bulkStartDay) > 1 ? Number(bulkStartDay) : undefined })
-                      )
-                    );
-                    results.forEach(r => r.status === "fulfilled" ? ok++ : fail++);
-                  }
-                  setBulkLoading(false);
-                  setBulkOpen(false);
-                  qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
-                  toast({
-                    title: `🔥 Aquecimento iniciado em ${ok} instância(s)`,
-                    description: fail > 0 ? `${fail} falharam` : undefined,
-                    variant: fail > 0 ? "destructive" : undefined,
-                  });
-                }}
-              >
-                {bulkLoading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Flame className="w-4.5 h-4.5" />}
-                Iniciar {bulkSelected.size > 0 ? `(${bulkSelected.size})` : "aquecimento"}
-              </Button>
+              {bulkStep === 1 ? (
+                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-border/20 text-sm" onClick={() => setBulkOpen(false)}>
+                  Cancelar
+                </Button>
+              ) : (
+                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-border/20 text-sm gap-2" onClick={() => setBulkStep(s => Math.max(1, s - 1) as 1 | 2 | 3)}>
+                  <ArrowLeft className="w-4 h-4" /> Voltar
+                </Button>
+              )}
+              {bulkStep < 3 ? (
+                <Button
+                  className={cn(
+                    "flex-1 gap-2 h-12 rounded-xl font-black text-sm transition-all duration-300",
+                    "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white",
+                    "shadow-[0_8px_24px_-6px_hsl(38_92%_50%/0.4)]"
+                  )}
+                  onClick={() => setBulkStep(s => Math.min(3, s + 1) as 1 | 2 | 3)}
+                >
+                  Próximo <ArrowRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  disabled={bulkSelected.size === 0 || bulkLoading || userCustomGroups.length === 0}
+                  className={cn(
+                    "flex-1 gap-2.5 h-12 rounded-xl font-black text-sm transition-all duration-300",
+                    "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white",
+                    "shadow-[0_8px_32px_-6px_hsl(38_92%_50%/0.5)] hover:shadow-[0_12px_40px_-4px_hsl(38_92%_50%/0.6)]",
+                    "disabled:from-muted disabled:to-muted disabled:shadow-none"
+                  )}
+                  onClick={async () => {
+                    setBulkLoading(true);
+                    const ids = Array.from(bulkSelected);
+                    let ok = 0;
+                    let fail = 0;
+                    const BATCH = 5;
+                    for (let i = 0; i < ids.length; i += BATCH) {
+                      const batch = ids.slice(i, i + BATCH);
+                      const results = await Promise.allSettled(
+                        batch.map(deviceId =>
+                          engine.mutateAsync({ action: "start", device_id: deviceId, chip_state: bulkChipState, days_total: Number(bulkDaysTotal), start_day: Number(bulkStartDay) > 1 ? Number(bulkStartDay) : undefined })
+                        )
+                      );
+                      results.forEach(r => r.status === "fulfilled" ? ok++ : fail++);
+                    }
+                    setBulkLoading(false);
+                    setBulkOpen(false);
+                    setBulkStep(1);
+                    qc.invalidateQueries({ queryKey: ["warmup_cycles"] });
+                    toast({
+                      title: `🔥 Aquecimento iniciado em ${ok} instância(s)`,
+                      description: fail > 0 ? `${fail} falharam` : undefined,
+                      variant: fail > 0 ? "destructive" : undefined,
+                    });
+                  }}
+                >
+                  {bulkLoading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Flame className="w-4.5 h-4.5" />}
+                  Iniciar {bulkSelected.size > 0 ? `(${bulkSelected.size})` : "aquecimento"}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
