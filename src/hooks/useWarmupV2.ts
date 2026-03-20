@@ -70,6 +70,9 @@ export interface WarmupAutosaveContact {
   tags: string;
   is_active: boolean;
   created_at: string;
+  last_used_at: string | null;
+  use_count: number;
+  contact_status: string;
 }
 
 export interface WarmupCommunityMembership {
