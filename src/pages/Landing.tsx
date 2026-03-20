@@ -267,8 +267,6 @@ const allPlans = [
 
 const Plans = () => {
   const navigate = useNavigate();
-  const topRow = allPlans.slice(0, 3);
-  const bottomRow = allPlans.slice(3);
 
   const renderCard = (p: typeof allPlans[0]) => (
     <motion.div key={p.name} variants={fadeUp}
