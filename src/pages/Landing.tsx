@@ -230,7 +230,7 @@ const allPlans = [
   {
     name: "Essencial", instances: 5, price: "89,90", popular: false, whatsappReports: false,
     subtitle: "Para quem está começando a aquecer chips com segurança e estrutura profissional.",
-    extraCopy: null, cta: "Começar agora",
+    extraCopy: null, cta: "Começar",
     features: ["Aquecimento automatizado", "Disparo interativo", "Monitoramento em tempo real limitado", "Suporte padrão", "Relatórios via WhatsApp (add-on)", "Módulos extras disponíveis"],
   },
   {
