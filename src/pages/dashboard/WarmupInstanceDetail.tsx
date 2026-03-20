@@ -1942,10 +1942,10 @@ const WarmupInstanceDetail = () => {
                                 ))}
                               </div>
                             )}
-                            {isExpanded && dayItems.length === 0 && (
+                            {isExpanded && dayItems.length === 0 && !isFuture && (
                               <div className="px-5 pb-3">
                                 <p className="text-[10px] text-muted-foreground/50 italic">
-                                  {isFuture ? getDayPhaseLabel(day) : "Sem atividades registradas"}
+                                  Nenhum log detalhado para este dia
                                 </p>
                               </div>
                             )}
