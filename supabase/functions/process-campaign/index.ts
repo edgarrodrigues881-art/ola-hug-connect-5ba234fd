@@ -199,29 +199,33 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     const mediaType = mediaUrl ? detectMediaType(mediaUrl) : null;
     const isAudioMedia = mediaType === "audio";
     const hasVisualMedia = !!mediaUrl && !isAudioMedia;
+    const hasActionButtons = (buttons || []).some((button) => button.type === "url" || button.type === "phone");
 
     if (hasVisualMedia && mediaUrl && mediaType) {
-      try {
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text: text || "Escolha uma opção:",
-          choices,
-          imageButton: mediaUrl,
-        });
-        return;
-      } catch (error) {
-        console.warn(`Unified menu send failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
-        await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType, text);
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text: text || "Escolha uma opção:",
-          choices,
-        });
-        return;
+      if (!hasActionButtons) {
+        try {
+          await uazapiRequest(baseUrl, token, "/send/menu", {
+            number: phone,
+            type: "button",
+            text: text || "Escolha uma opção:",
+            choices,
+            imageButton: mediaUrl,
+          });
+          return;
+        } catch (error) {
+          console.warn(`Unified menu send failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
+        }
       }
+
+      await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType, text);
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
+      await uazapiRequest(baseUrl, token, "/send/menu", {
+        number: phone,
+        type: "button",
+        text: hasActionButtons ? "⬇️ Escolha uma opção:" : text || "Escolha uma opção:",
+        choices,
+      });
+      return;
     }
 
     await uazapiRequest(baseUrl, token, "/send/menu", {
