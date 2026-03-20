@@ -313,36 +313,6 @@ const CustomModule = () => {
           </Card>
         </AccordionItem>
 
-        {/* ───── 5. Plano de Aquecimento Dia a Dia ───── */}
-        <AccordionItem value="warmup-plan" className="border-0">
-          <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
-            <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
-              <span className="flex items-center gap-3 text-base font-semibold text-foreground">
-                <Calendar className="w-5 h-5 text-emerald-500 shrink-0" />
-                Plano de Aquecimento — Dia a Dia
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="px-5 pb-5">
-              <Tabs defaultValue="novo" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                  <TabsTrigger value="novo" className="text-xs">🟢 Chip Novo</TabsTrigger>
-                  <TabsTrigger value="banido" className="text-xs">🟡 Recuperado</TabsTrigger>
-                  <TabsTrigger value="ruim" className="text-xs">🔴 Fraco</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="novo">
-                  <WarmupPlanTable plan={PLAN_NOVO} />
-                </TabsContent>
-                <TabsContent value="banido">
-                  <WarmupPlanTable plan={PLAN_BANIDO} />
-                </TabsContent>
-                <TabsContent value="ruim">
-                  <WarmupPlanTable plan={PLAN_RUIM} />
-                </TabsContent>
-              </Tabs>
-            </AccordionContent>
-          </Card>
-        </AccordionItem>
       </Accordion>
 
       {/* ───── Checklist ───── */}
