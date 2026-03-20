@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
     const syncable = devices.filter(d => d.uazapi_token && d.uazapi_base_url);
     const skipped = devices.length - syncable.length;
 
-    const deadline = Date.now() + 50_000;
+    const deadline = Date.now() + 25_000;
 
     // ── Collect results per device ──
     interface SyncResult {
@@ -255,7 +255,8 @@ Deno.serve(async (req) => {
     const results: SyncResult[] = [];
 
     // ── Phase 1: Fetch ALL statuses + profile data (no DB writes yet) ──
-    await runPool(syncable, 60, async (device) => {
+    // Reduced concurrency from 60→15 to prevent DB overload
+    await runPool(syncable, 15, async (device) => {
       if (Date.now() > deadline) { results.push({ device, httpStatus: null }); return; }
       const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
       const headers = { token: device.uazapi_token, Accept: "application/json" };
