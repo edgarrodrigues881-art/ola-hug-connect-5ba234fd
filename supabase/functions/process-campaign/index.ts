@@ -160,11 +160,18 @@ function detectMediaType(url: string): string {
 async function sendCaptionedMedia(baseUrl: string, token: string, phone: string, mediaUrl: string, mediaType: string, caption: string) {
   const normalizedCaption = typeof caption === "string" ? caption.trim() : "";
 
-  // Primary: use both file + media keys (proven format for UaZapi GO with caption)
+  if (mediaType === "image") {
+    return await uazapiRequest(baseUrl, token, "/send/image", {
+      number: phone,
+      image: mediaUrl,
+      caption: normalizedCaption,
+      viewOnce: false,
+    });
+  }
+
   const payload: any = {
     number: phone,
     file: mediaUrl,
-    media: mediaUrl,
     type: mediaType,
     caption: normalizedCaption,
   };
@@ -173,19 +180,12 @@ async function sendCaptionedMedia(baseUrl: string, token: string, phone: string,
     return await uazapiRequest(baseUrl, token, "/send/media", payload);
   } catch (error) {
     console.warn(`Primary /send/media failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
-  // Fallback: file-only payload
-  try {
     return await uazapiRequest(baseUrl, token, "/send/media", {
       number: phone,
-      file: mediaUrl,
+      media: mediaUrl,
       type: mediaType,
       caption: normalizedCaption,
     });
-  } catch (error) {
-    console.warn(`Fallback /send/media failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
-    throw error;
   }
 }
 
