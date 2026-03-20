@@ -49,12 +49,14 @@ function shuffleArray<T>(arr: T[]): T[] {
 // PHASE RULES — Single Source of Truth
 // ══════════════════════════════════════════════════════════
 //
-// Dia 1: pre_24h (proteção, entrada nos grupos após 4-6h)
-// Dia 2 → groupsEnd: groups_only (mensagens nos grupos)
-// Dia groupsEnd+1: autosave_enabled (grupos + autosave)
-// Dia groupsEnd+2+: community_enabled (grupos + autosave + comunidade)
+// Dia 1: pre_24h
+// Dia 2 → groupsEnd: groups_only
+// groupsEnd+1: autosave_enabled
+// groupsEnd+2 → rampEnd: community_ramp_up
+// rampEnd+1 → 30: community_stable
 //
-// groupsEnd: new/recovered = 4, unstable = 7
+// groupsEnd:  new=4, recovered=5, unstable=6
+// rampEnd:    new=9, recovered=10, unstable=10
 
 function getGroupsEndDay(chipState: string): number {
   if (chipState === "unstable") return 6;
@@ -62,12 +64,24 @@ function getGroupsEndDay(chipState: string): number {
   return 4; // new
 }
 
+function getCommunityRampEnd(chipState: string): number {
+  if (chipState === "unstable") return 10;
+  if (chipState === "recovered") return 10;
+  return 9; // new
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (day <= 1) return "pre_24h";
   const groupsEnd = getGroupsEndDay(chipState);
   if (day <= groupsEnd) return "groups_only";
   if (day === groupsEnd + 1) return "autosave_enabled";
-  return "community_enabled";
+  const rampEnd = getCommunityRampEnd(chipState);
+  if (day <= rampEnd) return "community_ramp_up";
+  return "community_stable";
+}
+
+function isCommunityPhase(phase: string): boolean {
+  return phase === "community_ramp_up" || phase === "community_stable";
 }
 
 // ══════════════════════════════════════════════════════════
