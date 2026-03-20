@@ -260,7 +260,7 @@ const allPlans = [
   {
     name: "Custom", instances: 200, price: null, popular: false, whatsappReports: true,
     subtitle: "Soluções personalizadas para operações de grande escala com necessidades específicas.",
-    extraCopy: null, cta: "Falar com suporte",
+    extraCopy: null, cta: "Consultar",
     features: ["Instâncias sob medida", "Aquecimento automatizado em escala", "Estrutura personalizada", "Infraestrutura dedicada", "Suporte VIP", "Ajustes personalizados", "Relatórios via WhatsApp incluso", "Configuração sob consulta"],
   },
 ];
