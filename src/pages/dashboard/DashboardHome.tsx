@@ -88,12 +88,7 @@ const DashboardHome = () => {
 
 
       {/* Gráfico + Desempenho */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <ActivityChart data={stats?.warmupEvolution || []} />
-        </div>
-        
-      </div>
+      <ActivityChart data={stats?.warmupEvolution || []} />
     </div>
   );
 };
