@@ -1426,7 +1426,7 @@ const WarmupInstanceDetail = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-3">
                         <span className="text-[10px] text-muted-foreground font-medium">Tarefas do dia</span>
                         <div className="flex items-center gap-2">
                           {nextPendingJob && (
@@ -1437,11 +1437,42 @@ const WarmupInstanceDetail = () => {
                           <span className="text-xs font-bold text-foreground tabular-nums">{doneToday}/{totalDisplay}</span>
                         </div>
                       </div>
-                      <div className="h-2 bg-muted/20 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500 transition-all shadow-[0_0_10px_hsl(142_71%_45%/0.4)]" style={{ width: `${todayPercent}%` }} />
+
+                      {/* Category breakdown */}
+                      <div className="space-y-2">
+                        {(() => {
+                          const groupDone = typeSummary["group_interaction"]?.done ?? 0;
+                          const groupTotal = typeSummary["group_interaction"]?.total ?? 0;
+                          const autosaveDone = typeSummary["autosave_interaction"]?.done ?? 0;
+                          const autosaveTotal = typeSummary["autosave_interaction"]?.total ?? 0;
+                          const communityDone = typeSummary["community_interaction"]?.done ?? 0;
+                          const communityTotal = typeSummary["community_interaction"]?.total ?? 0;
+
+                          const categories = [
+                            { label: "Grupos", done: groupDone, total: groupTotal, color: "bg-emerald-500", shadow: "shadow-[0_0_8px_hsl(142_71%_45%/0.3)]" },
+                            { label: "Auto Save", done: autosaveDone, total: autosaveTotal, color: "bg-sky-500", shadow: "shadow-[0_0_8px_hsl(199_89%_48%/0.3)]" },
+                            { label: "Comunitário", done: communityDone, total: communityTotal, color: "bg-violet-500", shadow: "shadow-[0_0_8px_hsl(263_70%_50%/0.3)]" },
+                          ].filter(c => c.total > 0);
+
+                          return categories.map((cat) => {
+                            const pct = cat.total > 0 ? Math.min(100, Math.round((cat.done / cat.total) * 100)) : 0;
+                            return (
+                              <div key={cat.label}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[10px] text-muted-foreground font-medium">{cat.label}</span>
+                                  <span className="text-[11px] font-bold text-foreground tabular-nums">{cat.done}/{cat.total}</span>
+                                </div>
+                                <div className="h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                                  <div className={cn("h-full rounded-full transition-all", cat.color, cat.shadow)} style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
+
                       {failedToday > 0 && (
-                        <p className="text-[10px] text-destructive font-medium mt-1.5">{failedToday} tarefa(s) com falha</p>
+                        <p className="text-[10px] text-destructive font-medium mt-2">{failedToday} tarefa(s) com falha</p>
                       )}
                     </>
                   )}
