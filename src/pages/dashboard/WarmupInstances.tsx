@@ -581,7 +581,7 @@ const WarmupInstances = () => {
     setBulkInstanceSearch("");
     setBulkChipState("new");
     setBulkStartDay("1");
-    setBulkDaysTotal("14");
+    setBulkDaysTotal("30");
     // group_source is always "custom" now
     setBulkOpen(true);
   }, []);
