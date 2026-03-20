@@ -3265,7 +3265,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         });
 
         // Rotate community pairs on daily reset
-        if (newPhase === "community_enabled") {
+        if (isCommunityPhase(newPhase)) {
           const pairStats = await reconcileCommunityPairs(db, {
             deviceId: job.device_id,
             userId: job.user_id,
