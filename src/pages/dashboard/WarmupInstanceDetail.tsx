@@ -65,6 +65,38 @@ const phaseConfig: Record<string, { label: string; color: string; icon: typeof C
 
 const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "completed"] as const;
 
+/* ── Progressive volume helper (mirrors server logic) ── */
+function getExpectedDailyVolume(dayIndex: number, chipState: string): { min: number; max: number; phase: string } {
+  const day = Math.max(1, Math.min(dayIndex, 30));
+  let min: number, max: number, phase: string;
+
+  if (chipState === "recovered") {
+    if (day <= 7)       { min = 130; max = 150; phase = "Fase 1 — Conservadora"; }
+    else if (day <= 15) { min = 150; max = 175; phase = "Fase 2 — Intermediária"; }
+    else if (day <= 23) { min = 175; max = 195; phase = "Fase 3 — Forte"; }
+    else                { min = 190; max = 200; phase = "Fase 4 — Estabilizada"; }
+  } else if (chipState === "unstable") {
+    if (day <= 7)       { min = 120; max = 130; phase = "Fase 1 — Reativação"; }
+    else if (day <= 15) { min = 130; max = 155; phase = "Fase 2 — Crescimento"; }
+    else if (day <= 23) { min = 155; max = 180; phase = "Fase 3 — Consolidação"; }
+    else                { min = 175; max = 195; phase = "Fase 4 — Estabilidade"; }
+  } else {
+    // "new"
+    if (day <= 7)       { min = 120; max = 135; phase = "Fase 1 — Cautelosa"; }
+    else if (day <= 15) { min = 135; max = 160; phase = "Fase 2 — Gradual"; }
+    else if (day <= 23) { min = 160; max = 185; phase = "Fase 3 — Acelerada"; }
+    else                { min = 185; max = 200; phase = "Fase 4 — Máxima"; }
+  }
+
+  return { min, max, phase };
+}
+
+const chipStateLabels: Record<string, string> = {
+  new: "Chip Novo",
+  recovered: "Chip Recuperado",
+  unstable: "Chip Fraco",
+};
+
 /* ── Helper: autosave / community start day based on chip_state ── */
 function getAutosaveStartDay(chipState: string): number {
   // Estável (new/recovered) = dia 5, Banido (unstable) = dia 7
@@ -1417,11 +1449,38 @@ const WarmupInstanceDetail = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12">
-                    {pc?.label}
-                  </Badge>
+                {/* Volume and mode info */}
+                {(() => {
+                  const vol = getExpectedDailyVolume(cycle!.day_index, cycle!.chip_state || "new");
+                  const modeLabel = chipStateLabels[cycle!.chip_state || "new"] || "Chip Novo";
+                  return (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Badge className="text-[10px] h-6 rounded-lg font-extrabold bg-primary/12 text-primary border border-primary/20 hover:bg-primary/12">
+                        {pc?.label}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">{modeLabel}</span>
+                    </div>
+                  );
+                })()}
                 </div>
 
+                {/* Volume progression info */}
+                {!isPre24h && (() => {
+                  const vol = getExpectedDailyVolume(cycle!.day_index, cycle!.chip_state || "new");
+                  return (
+                    <div className="px-6 pb-2 flex items-center gap-3 text-[10px]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/5 border border-primary/10">
+                        <Target className="w-3 h-3 text-primary" />
+                        <span className="text-muted-foreground">Volume:</span>
+                        <span className="font-bold text-foreground">{vol.min}–{vol.max} msgs</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/10 border border-border/15">
+                        <CalendarDays className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">{vol.phase}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Today's activity */}
                 <div className="px-6 py-4">
