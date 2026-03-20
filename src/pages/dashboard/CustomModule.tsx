@@ -7,8 +7,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
 import {
   Smartphone,
   Wifi,
@@ -26,10 +26,6 @@ import {
   Zap,
   HeartPulse,
   CircleDot,
-  Calendar,
-  MessageSquare,
-  Users,
-  Send,
 } from "lucide-react";
 
 const CustomModule = () => {
@@ -317,36 +313,6 @@ const CustomModule = () => {
           </Card>
         </AccordionItem>
 
-        {/* ───── 5. Plano de Aquecimento Dia a Dia ───── */}
-        <AccordionItem value="warmup-plan" className="border-0">
-          <Card className="border-border/60 bg-card overflow-hidden rounded-xl shadow-sm">
-            <AccordionTrigger className="px-5 py-4 hover:no-underline gap-3 [&>svg]:text-emerald-500">
-              <span className="flex items-center gap-3 text-base font-semibold text-foreground">
-                <Calendar className="w-5 h-5 text-emerald-500 shrink-0" />
-                Plano de Aquecimento — Dia a Dia
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="px-5 pb-5">
-              <Tabs defaultValue="novo" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                  <TabsTrigger value="novo" className="text-xs">🟢 Chip Novo</TabsTrigger>
-                  <TabsTrigger value="banido" className="text-xs">🟡 Recuperado</TabsTrigger>
-                  <TabsTrigger value="ruim" className="text-xs">🔴 Fraco</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="novo">
-                  <WarmupPlanTable plan={PLAN_NOVO} />
-                </TabsContent>
-                <TabsContent value="banido">
-                  <WarmupPlanTable plan={PLAN_BANIDO} />
-                </TabsContent>
-                <TabsContent value="ruim">
-                  <WarmupPlanTable plan={PLAN_RUIM} />
-                </TabsContent>
-              </Tabs>
-            </AccordionContent>
-          </Card>
-        </AccordionItem>
       </Accordion>
 
       {/* ───── Checklist ───── */}
@@ -461,171 +427,5 @@ function MiniCheck({ label }: { label: string }) {
 
 
 /* ─── Warmup Plan Data & Component ─── */
-
-interface DayPlanEntry {
-  day: number | string;
-  phase: string;
-  grupos: string;
-  autosave: string;
-  comunitario: string;
-  totalEstimado: string;
-  nota?: string;
-}
-
-const phaseColors: Record<string, string> = {
-  "Silêncio": "bg-muted/60 text-muted-foreground",
-  "Grupos": "bg-blue-500/15 text-blue-400",
-  "AutoSave": "bg-amber-500/15 text-amber-400",
-  "Comunidade Leve": "bg-emerald-500/15 text-emerald-400",
-  "Comunidade": "bg-emerald-500/20 text-emerald-300",
-  "Consolidação": "bg-primary/15 text-primary",
-};
-
-// ═══════════════════════════════════════════════
-// CHIP NOVO — groupsEnd=4, autosave=5, community=6
-// ═══════════════════════════════════════════════
-const PLAN_NOVO: DayPlanEntry[] = [
-  { day: 1, phase: "Silêncio", grupos: "—", autosave: "—", comunitario: "—", totalEstimado: "0-5", nota: "Conectar QR, aguardar 5-8h, entrar nos 8 grupos" },
-  { day: 2, phase: "Grupos", grupos: "50-120", autosave: "—", comunitario: "—", totalEstimado: "50-120", nota: "Primeiras mensagens nos grupos" },
-  { day: 3, phase: "Grupos", grupos: "50-120", autosave: "—", comunitario: "—", totalEstimado: "50-120" },
-  { day: 4, phase: "Grupos", grupos: "50-120", autosave: "—", comunitario: "—", totalEstimado: "50-120" },
-  { day: 5, phase: "AutoSave", grupos: "50-120", autosave: "25", comunitario: "—", totalEstimado: "75-145", nota: "Auto Save ativado: 5 contatos × 5 msgs" },
-  { day: 6, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 4b", totalEstimado: "99-201", nota: "2 pares, 4 bursts cada" },
-  { day: 7, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 4b", totalEstimado: "99-201", nota: "1ª semana ✅" },
-  ...Array.from({ length: 4 }, (_, i) => ({
-    day: i + 8, phase: "Comunidade", grupos: "50-120", autosave: "25", comunitario: "3p × 5b",
-    totalEstimado: "120-250",
-  })),
-  ...Array.from({ length: 5 }, (_, i) => ({
-    day: i + 12, phase: "Comunidade", grupos: "50-120", autosave: "25", comunitario: "4p × 5b",
-    totalEstimado: "135-285", nota: i + 12 === 14 ? "2 semanas ✅" : undefined,
-  })),
-  ...Array.from({ length: 5 }, (_, i) => ({
-    day: i + 17, phase: "Comunidade", grupos: "50-120", autosave: "25", comunitario: "5p × 6b",
-    totalEstimado: "165-355", nota: i + 17 === 21 ? "3 semanas 🔥" : undefined,
-  })),
-  ...Array.from({ length: 4 }, (_, i) => ({
-    day: i + 22, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "6p × 6b",
-    totalEstimado: "183-397",
-  })),
-  ...Array.from({ length: 5 }, (_, i) => ({
-    day: i + 26, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "7p × 7b",
-    totalEstimado: "222-488", nota: i + 26 === 30 ? "🎉 Chip aquecido!" : undefined,
-  })),
-];
-
-// ═══════════════════════════════════════════════
-// CHIP RECUPERADO — groupsEnd=5, autosave=6, community=7
-// ═══════════════════════════════════════════════
-const PLAN_BANIDO: DayPlanEntry[] = [
-  { day: 1, phase: "Silêncio", grupos: "—", autosave: "—", comunitario: "—", totalEstimado: "0-5", nota: "⚠️ Cautela máxima! Entrar nos grupos gradualmente" },
-  { day: 2, phase: "Grupos", grupos: "50-100", autosave: "—", comunitario: "—", totalEstimado: "50-100", nota: "Volume conservador" },
-  { day: 3, phase: "Grupos", grupos: "50-100", autosave: "—", comunitario: "—", totalEstimado: "50-100" },
-  { day: 4, phase: "Grupos", grupos: "50-100", autosave: "—", comunitario: "—", totalEstimado: "50-100" },
-  { day: 5, phase: "Grupos", grupos: "50-100", autosave: "—", comunitario: "—", totalEstimado: "50-100" },
-  { day: 6, phase: "AutoSave", grupos: "50-120", autosave: "25", comunitario: "—", totalEstimado: "75-145", nota: "AutoSave ativado com cautela" },
-  { day: 7, phase: "AutoSave", grupos: "50-120", autosave: "25", comunitario: "—", totalEstimado: "75-145", nota: "1ª semana ✅" },
-  { day: 8, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 3b", totalEstimado: "93-187", nota: "Comunidade inicia com 2 pares" },
-  { day: 9, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 3b", totalEstimado: "93-187" },
-  ...Array.from({ length: 4 }, (_, i) => ({
-    day: i + 10, phase: "Comunidade", grupos: "50-120", autosave: "25", comunitario: "3p × 4b",
-    totalEstimado: "111-249", nota: i + 10 === 14 ? "2 semanas ✅" : undefined,
-  })),
-  ...Array.from({ length: 6 }, (_, i) => ({
-    day: i + 14, phase: "Comunidade", grupos: "50-120", autosave: "25", comunitario: "4p × 4b",
-    totalEstimado: "123-277", nota: i + 14 === 21 ? "3 semanas 🛡️" : undefined,
-  })),
-  ...Array.from({ length: 11 }, (_, i) => ({
-    day: i + 20, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "5p × 5b",
-    totalEstimado: "150-320", nota: i + 20 === 25 ? "Consolidação" : (i + 20 === 30 ? "🛡️ Recuperação completa!" : undefined),
-  })),
-];
-
-// ═══════════════════════════════════════════════
-// CHIP FRACO — groupsEnd=7, autosave=8, community=11
-// ═══════════════════════════════════════════════
-const PLAN_RUIM: DayPlanEntry[] = [
-  { day: 1, phase: "Silêncio", grupos: "—", autosave: "—", comunitario: "—", totalEstimado: "0-5", nota: "🔴 Ultra-conservador! Apenas entrar nos grupos" },
-  ...Array.from({ length: 6 }, (_, i) => ({
-    day: i + 2, phase: "Grupos", grupos: "50-100", autosave: "—", comunitario: "—",
-    totalEstimado: "50-100", nota: i + 2 === 7 ? "1ª semana ✅" : undefined,
-  })),
-  { day: 8, phase: "AutoSave", grupos: "50-120", autosave: "25", comunitario: "—", totalEstimado: "75-145", nota: "AutoSave ativado com volume mínimo" },
-  { day: 9, phase: "AutoSave", grupos: "50-120", autosave: "25", comunitario: "—", totalEstimado: "75-145" },
-  { day: 10, phase: "AutoSave", grupos: "50-120", autosave: "25", comunitario: "—", totalEstimado: "75-145" },
-  { day: 11, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "1p × 3b", totalEstimado: "84-166", nota: "Comunidade com apenas 1 par" },
-  { day: 12, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "1p × 3b", totalEstimado: "84-166" },
-  { day: 13, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "1p × 3b", totalEstimado: "84-166" },
-  { day: 14, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 3b", totalEstimado: "93-187", nota: "2 semanas ✅" },
-  ...Array.from({ length: 4 }, (_, i) => ({
-    day: i + 15, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 3b",
-    totalEstimado: "93-187",
-  })),
-  ...Array.from({ length: 5 }, (_, i) => ({
-    day: i + 19, phase: "Comunidade Leve", grupos: "50-120", autosave: "25", comunitario: "2p × 4b",
-    totalEstimado: "99-201", nota: i + 19 === 21 ? "3 semanas 🛡️" : undefined,
-  })),
-  ...Array.from({ length: 7 }, (_, i) => ({
-    day: i + 24, phase: "Consolidação", grupos: "50-120", autosave: "25", comunitario: "3p × 4b",
-    totalEstimado: "111-249", nota: i + 24 === 25 ? "Consolidação" : (i + 24 === 30 ? "🛡️ Chip estabilizado!" : undefined),
-  })),
-];
-
-function WarmupPlanTable({ plan }: { plan: DayPlanEntry[] }) {
-  return (
-    <div className="space-y-3">
-      <div className="text-xs text-muted-foreground mb-2">
-        <span className="font-medium">Legenda:</span> p = pares comunitários, b = bursts por par (cada burst = 3-7 msgs)
-      </div>
-      <div className="overflow-x-auto rounded-lg border border-border/60">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border/60 bg-muted/30">
-              <th className="px-3 py-2.5 text-left font-semibold text-foreground">Dia</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-foreground">Fase</th>
-              <th className="px-3 py-2.5 text-center font-semibold text-foreground">
-                <span className="flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Grupos</span>
-              </th>
-              <th className="px-3 py-2.5 text-center font-semibold text-foreground">
-                <span className="flex items-center justify-center gap-1"><Send className="w-3 h-3" /> AutoSave</span>
-              </th>
-              <th className="px-3 py-2.5 text-center font-semibold text-foreground">
-                <span className="flex items-center justify-center gap-1"><MessageSquare className="w-3 h-3" /> Comunitário</span>
-              </th>
-              <th className="px-3 py-2.5 text-center font-semibold text-foreground">Total</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-foreground hidden sm:table-cell">Nota</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plan.map((entry, idx) => {
-              const phaseStyle = phaseColors[entry.phase] || "text-muted-foreground";
-              const isCheckpoint = typeof entry.nota === "string" && (entry.nota.includes("✅") || entry.nota.includes("🎉") || entry.nota.includes("🔥") || entry.nota.includes("🛡️"));
-              return (
-                <tr key={idx} className={`border-b border-border/30 ${isCheckpoint ? "bg-primary/5" : idx % 2 === 0 ? "bg-transparent" : "bg-muted/10"}`}>
-                  <td className="px-3 py-2 font-mono font-bold text-foreground">{entry.day}</td>
-                  <td className="px-3 py-2">
-                    <Badge variant="outline" className={`text-[10px] border-0 ${phaseStyle}`}>
-                      {entry.phase}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-2 text-center text-muted-foreground">{entry.grupos}</td>
-                  <td className="px-3 py-2 text-center text-muted-foreground">{entry.autosave}</td>
-                  <td className="px-3 py-2 text-center text-muted-foreground">{entry.comunitario}</td>
-                  <td className="px-3 py-2 text-center font-semibold text-foreground">{entry.totalEstimado}</td>
-                  <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell max-w-[200px] truncate">{entry.nota || "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex flex-wrap gap-2 mt-3">
-        {Object.entries(phaseColors).map(([phase, style]) => (
-          <Badge key={phase} variant="outline" className={`text-[10px] border-0 ${style}`}>{phase}</Badge>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default CustomModule;
