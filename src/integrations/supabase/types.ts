@@ -2353,32 +2353,41 @@ export type Database = {
       warmup_autosave_contacts: {
         Row: {
           contact_name: string
+          contact_status: string
           created_at: string
           id: string
           is_active: boolean
+          last_used_at: string | null
           phone_e164: string
           tags: string | null
           updated_at: string
+          use_count: number
           user_id: string
         }
         Insert: {
           contact_name?: string
+          contact_status?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          last_used_at?: string | null
           phone_e164: string
           tags?: string | null
           updated_at?: string
+          use_count?: number
           user_id: string
         }
         Update: {
           contact_name?: string
+          contact_status?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          last_used_at?: string | null
           phone_e164?: string
           tags?: string | null
           updated_at?: string
+          use_count?: number
           user_id?: string
         }
         Relationships: []
