@@ -16,7 +16,7 @@ interface Props {
 
 export const ActivityChart = React.memo(function ActivityChart({ data }: Props) {
   return (
-    <Card className="border-border/50 bg-card">
+    <Card className="border-border/50 bg-card w-full col-span-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-muted-foreground" />
