@@ -1,38 +1,36 @@
 import { useNavigate } from "react-router-dom";
-import { Check, ArrowRight, Lock, Activity, TrendingUp } from "lucide-react";
+import { Check } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import AnimateOnView from "@/components/AnimateOnView";
 
 const plans = [
   {
-    name: "Essencial", instances: 5, price: "89,90", perInstance: "17,98",
-    subtitle: "Ideal para quem está iniciando com estrutura profissional.",
-    extraCopy: null, cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Monitoramento em tempo real limitado", "Suporte padrão"],
-  },
-  {
-    name: "Start", instances: 10, price: "159,90", perInstance: "15,99",
+    name: "Start", instances: 10, price: "149,90", perInstance: "14,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
-    extraCopy: null, cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Painel centralizado", "Monitoramento em tempo real", "Suporte padrão"],
+    extraCopy: null, cta: "Começar agora", popular: false,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"],
+    addon: "Relatórios WhatsApp + R$ 18,90/mês",
   },
   {
     name: "Pro", instances: 30, price: "349,90", perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
-    extraCopy: "Plano mais escolhido por operadores ativos.", cta: "Contratar Plano", popular: true,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada de instâncias", "Monitoramento completo", "Suporte prioritário"],
+    extraCopy: null, cta: "Começar agora", popular: true,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"],
+    addon: "Relatórios WhatsApp + R$ 18,90/mês",
   },
   {
     name: "Scale", instances: 50, price: "549,90", perInstance: "10,99",
     subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
-    extraCopy: null, cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada", "Monitoramento em tempo real", "Suporte prioritário"],
+    extraCopy: null, cta: "Começar agora", popular: false,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário", "Relatórios WhatsApp incluso"],
+    addon: null,
   },
   {
-    name: "Elite", instances: 100, price: "999,90", perInstance: "9,99",
+    name: "Elite", instances: 100, price: "899,90", perInstance: "8,99",
     subtitle: "Máxima capacidade operacional.",
-    extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.", cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão completa de instâncias", "Monitoramento avançado", "Atendimento prioritário dedicado"],
+    extraCopy: null, cta: "Começar agora", popular: false,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário", "Relatórios WhatsApp incluso"],
+    addon: null,
   },
 ];
 
@@ -59,13 +57,13 @@ const PlansSection = () => {
           </p>
         </AnimateOnView>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {plans.map((plan, i) => (
             <AnimateOnView key={plan.name} animation="slide-up" delay={Math.min(i + 1, 4)}>
               <div
                 className={`relative flex flex-col rounded-2xl card-hover-lift ${
                   plan.popular
-                    ? "border border-amber-500/30"
+                    ? "border border-emerald-500/40"
                     : "border border-white/[0.06]"
                 }`}
               >
@@ -75,45 +73,54 @@ const PlansSection = () => {
                 }`}
               >
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-bold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap shadow-[0_0_20px_-4px_rgba(245,158,11,0.5)]">
-                    ⭐ Mais Escolhido
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest px-5 py-1.5 rounded-full whitespace-nowrap">
+                    Mais Escolhido
                   </span>
                 )}
 
-                <h3 className="text-xl font-semibold mt-1 text-white/90">{plan.name}</h3>
-                <p className="text-sm text-white/30 mb-1">{plan.instances} instâncias</p>
-                <p className="text-xs text-white/20 mb-1 leading-relaxed">{plan.subtitle}</p>
-                {plan.extraCopy && (
-                  <p className="text-xs text-amber-400/60 mb-4 leading-relaxed">{plan.extraCopy}</p>
-                )}
-                {!plan.extraCopy && <div className="mb-3" />}
-
-                <div className="mb-2">
-                  <span className="text-4xl font-bold text-white/90">R$ {plan.price}</span>
-                  <span className="text-white/20 text-base"> / mês</span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white/90">{plan.name}</h3>
+                    <p className="text-sm text-white/30">até {plan.instances} instâncias</p>
+                  </div>
+                  <div className="flex items-center gap-1 bg-orange-500/10 text-orange-400 text-xs font-semibold px-2.5 py-1 rounded-full">
+                    🔥 {plan.name === "Start" ? "65%" : plan.name === "Pro" ? "87%" : plan.name === "Scale" ? "94%" : "99%"}
+                  </div>
                 </div>
 
-                <div className="h-px bg-white/[0.05] mb-7" />
+                <div className="mb-2 mt-5">
+                  <span className="text-sm text-white/30">R$ </span>
+                  <span className="text-4xl font-bold text-white/90">{plan.price.split(',')[0]}</span>
+                  <span className="text-lg font-semibold text-white/90">,{plan.price.split(',')[1]}</span>
+                  <span className="text-white/30 text-sm"> /mês</span>
+                </div>
 
-                <div className="space-y-3.5 mb-8 flex-1">
+                <div className="h-px bg-white/[0.05] my-5" />
+
+                <div className="space-y-3.5 mb-4 flex-1">
                   {plan.features.map((f, fi) => (
-                    <div key={fi} className="flex items-center gap-3 text-sm text-white/40">
-                      <Check className="w-4 h-4 min-w-[16px] min-h-[16px] text-white/20 shrink-0" />
+                    <div key={fi} className="flex items-center gap-3 text-sm text-white/50">
+                      <Check className="w-4 h-4 min-w-[16px] min-h-[16px] text-emerald-500/60 shrink-0" />
                       {f}
                     </div>
                   ))}
+                  {plan.addon && (
+                    <div className="flex items-center gap-3 text-sm text-white/30 italic">
+                      <Check className="w-4 h-4 min-w-[16px] min-h-[16px] text-white/10 shrink-0" />
+                      {plan.addon}
+                    </div>
+                  )}
                 </div>
 
                 <button
                   onClick={() => handleContratarPlano(plan)}
                   className={`w-full py-3.5 rounded-lg font-medium text-base flex items-center justify-center gap-2 btn-press ${
                     plan.popular
-                      ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold hover:from-amber-400 hover:to-yellow-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.4)]"
+                      ? "bg-emerald-500 text-white font-bold hover:bg-emerald-400"
                       : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] border border-white/[0.06]"
                   }`}
                 >
                   {plan.cta}
-                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
                 </button>
               </div>
             </div>
@@ -136,20 +143,6 @@ const PlansSection = () => {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-10 text-sm text-white/20">
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 flex-shrink-0" />
-            Infraestrutura segura
-          </div>
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 flex-shrink-0" />
-            Operação estável
-          </div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 flex-shrink-0" />
-            Monitoramento contínuo
-          </div>
-        </div>
       </div>
     </section>
   );
