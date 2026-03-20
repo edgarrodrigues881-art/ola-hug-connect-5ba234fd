@@ -1426,20 +1426,31 @@ const WarmupInstanceDetail = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[10px] text-muted-foreground font-medium">Tarefas do dia</span>
+                      {/* Header row */}
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.12em]">Progresso do dia</span>
                         <div className="flex items-center gap-2">
                           {nextPendingJob && (
                             <span className="text-[10px] text-muted-foreground">
                               Próxima às <span className="font-mono font-bold text-foreground">{formatBrtTime(new Date(nextPendingJob.run_at))}</span>
                             </span>
                           )}
-                          <span className="text-xs font-bold text-foreground tabular-nums">{doneToday}/{totalDisplay}</span>
                         </div>
                       </div>
 
-                      {/* Category breakdown */}
-                      <div className="space-y-2">
+                      {/* Combined progress bar */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] font-semibold text-foreground">Total</span>
+                          <span className="text-sm font-extrabold text-foreground tabular-nums">{doneToday}<span className="text-muted-foreground font-medium">/{totalDisplay}</span></span>
+                        </div>
+                        <div className="h-2.5 bg-muted/15 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-primary to-emerald-400 transition-all duration-500 shadow-[0_0_12px_hsl(142_71%_45%/0.35)]" style={{ width: `${todayPercent}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Category breakdown cards */}
+                      <div className="grid grid-cols-3 gap-2">
                         {(() => {
                           const groupDone = typeSummary["group_interaction"]?.done ?? 0;
                           const groupTotal = typeSummary["group_interaction"]?.total ?? 0;
@@ -1449,21 +1460,20 @@ const WarmupInstanceDetail = () => {
                           const communityTotal = typeSummary["community_interaction"]?.total ?? 0;
 
                           const categories = [
-                            { label: "Grupos", done: groupDone, total: groupTotal, color: "bg-emerald-500", shadow: "shadow-[0_0_8px_hsl(142_71%_45%/0.3)]" },
-                            { label: "Auto Save", done: autosaveDone, total: autosaveTotal, color: "bg-sky-500", shadow: "shadow-[0_0_8px_hsl(199_89%_48%/0.3)]" },
-                            { label: "Comunitário", done: communityDone, total: communityTotal, color: "bg-violet-500", shadow: "shadow-[0_0_8px_hsl(263_70%_50%/0.3)]" },
+                            { label: "Grupos", icon: "👥", done: groupDone, total: groupTotal, barColor: "bg-emerald-500", dotColor: "bg-emerald-400", bgTint: "bg-emerald-500/5 border-emerald-500/10" },
+                            { label: "Auto Save", icon: "💾", done: autosaveDone, total: autosaveTotal, barColor: "bg-sky-500", dotColor: "bg-sky-400", bgTint: "bg-sky-500/5 border-sky-500/10" },
+                            { label: "Comunitário", icon: "🤝", done: communityDone, total: communityTotal, barColor: "bg-violet-500", dotColor: "bg-violet-400", bgTint: "bg-violet-500/5 border-violet-500/10" },
                           ];
 
                           return categories.map((cat) => {
                             const pct = cat.total > 0 ? Math.min(100, Math.round((cat.done / cat.total) * 100)) : 0;
                             return (
-                              <div key={cat.label}>
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-[10px] text-muted-foreground font-medium">{cat.label}</span>
-                                  <span className="text-[11px] font-bold text-foreground tabular-nums">{cat.done}/{cat.total}</span>
-                                </div>
-                                <div className="h-1.5 bg-muted/20 rounded-full overflow-hidden">
-                                  <div className={cn("h-full rounded-full transition-all", cat.color, cat.shadow)} style={{ width: `${pct}%` }} />
+                              <div key={cat.label} className={cn("rounded-xl border p-3 flex flex-col items-center gap-1.5 transition-colors", cat.bgTint)}>
+                                <span className="text-base leading-none">{cat.icon}</span>
+                                <span className="text-[10px] text-muted-foreground font-medium leading-none">{cat.label}</span>
+                                <span className="text-sm font-extrabold text-foreground tabular-nums leading-none">{cat.done}<span className="text-muted-foreground font-normal text-[10px]">/{cat.total}</span></span>
+                                <div className="w-full h-1 bg-muted/15 rounded-full overflow-hidden mt-0.5">
+                                  <div className={cn("h-full rounded-full transition-all duration-500", cat.barColor)} style={{ width: `${pct}%` }} />
                                 </div>
                               </div>
                             );
@@ -1472,7 +1482,10 @@ const WarmupInstanceDetail = () => {
                       </div>
 
                       {failedToday > 0 && (
-                        <p className="text-[10px] text-destructive font-medium mt-2">{failedToday} tarefa(s) com falha</p>
+                        <div className="mt-3 flex items-center gap-1.5 text-[10px] text-destructive font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                          {failedToday} tarefa(s) com falha
+                        </div>
                       )}
                     </>
                   )}
