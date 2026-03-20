@@ -1881,7 +1881,7 @@ const WarmupInstances = () => {
                   />
                 </div>
 
-                <div className="max-h-[240px] overflow-y-auto space-y-1 rounded-2xl border-2 border-border/10 bg-card/15 p-2 scrollbar-thin">
+                <div className="max-h-[380px] overflow-y-auto space-y-1 rounded-2xl border-2 border-border/10 bg-card/15 p-2 scrollbar-thin">
                   {(() => {
                     const src = (activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status));
                     const q = bulkInstanceSearch.trim().toLowerCase();
@@ -1942,30 +1942,6 @@ const WarmupInstances = () => {
                   {bulkSelected.size} de {(activeFolder ? displayed : filteredDevices).filter(d => CONNECTED_STATUSES.includes(d.status) && !cycleByDeviceId.has(d.id)).length} disponível · <Flame className="w-3 h-3 text-orange-400 inline" /> = já aquecendo
                 </p>
 
-                {/* Protections */}
-                <div className="rounded-2xl border-2 border-primary/15 bg-gradient-to-br from-primary/[0.06] to-transparent p-5">
-                  <p className="text-xs font-extrabold text-foreground flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
-                      <Shield className="w-4 h-4 text-primary" />
-                    </div>
-                    Proteções automáticas
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {[
-                      { icon: Target, text: "Limites diários automáticos" },
-                      { icon: Timer, text: "Delays aleatórios entre ações" },
-                      { icon: Zap, text: "Evolução progressiva de fases" },
-                      { icon: Shield, text: "Proteção contínua do chip" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-2.5 text-[10px] text-muted-foreground font-semibold">
-                        <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                          <item.icon className="w-3 h-3 text-primary/70" />
-                        </div>
-                        {item.text}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
