@@ -1714,7 +1714,6 @@ const WarmupInstanceDetail = () => {
                     // Skip join_group jobs — already shown in "Ciclo iniciado" detail
                     if (job.job_type === "join_group") continue;
                     if (job.status === "cancelled") continue;
-                    if (job.status === "succeeded") continue;
 
                     // Skip jobs scheduled for future warmup days
                     const jobWarmupDay = getWarmupDayBrt(new Date(job.run_at));
@@ -1726,13 +1725,15 @@ const WarmupInstanceDetail = () => {
                     items.push({
                       id: `job-${job.id}`,
                       time: new Date(job.run_at),
-                      type: job.status === "running" ? "running"
+                      type: job.status === "succeeded" ? "done"
+                        : job.status === "running" ? "running"
                         : job.status === "failed" ? "failed"
                         : "pending",
                       label: jobLabelMap[job.job_type] || job.job_type,
                       detail: groupName ? `Grupo: ${groupName}` : undefined,
-                      icon: jobIconMap[job.job_type] || "⏳",
-                      color: job.status === "failed" ? "text-destructive"
+                      icon: job.status === "succeeded" ? "✅" : (jobIconMap[job.job_type] || "⏳"),
+                      color: job.status === "succeeded" ? "text-emerald-400"
+                        : job.status === "failed" ? "text-destructive"
                         : job.status === "running" ? "text-primary"
                         : "text-muted-foreground",
                     });
