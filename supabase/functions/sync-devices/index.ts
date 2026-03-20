@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
     const syncable = devices.filter(d => d.uazapi_token && d.uazapi_base_url);
     const skipped = devices.length - syncable.length;
 
-    const deadline = Date.now() + 50_000;
+    const deadline = Date.now() + 25_000;
 
     // ── Collect results per device ──
     interface SyncResult {
@@ -255,7 +255,8 @@ Deno.serve(async (req) => {
     const results: SyncResult[] = [];
 
     // ── Phase 1: Fetch ALL statuses + profile data (no DB writes yet) ──
-    await runPool(syncable, 60, async (device) => {
+    // Reduced concurrency from 60→15 to prevent DB overload
+    await runPool(syncable, 15, async (device) => {
       if (Date.now() > deadline) { results.push({ device, httpStatus: null }); return; }
       const baseUrl = device.uazapi_base_url.replace(/\/+$/, "");
       const headers = { token: device.uazapi_token, Accept: "application/json" };
@@ -314,7 +315,7 @@ Deno.serve(async (req) => {
 
     // Limit expensive deep profile checks per run to protect high-concurrency scenarios
     let deepProfileChecks = 0;
-    const MAX_DEEP_PROFILE_CHECKS = Math.min(120, Math.max(30, Math.ceil(syncable.length * 0.5)));
+    const MAX_DEEP_PROFILE_CHECKS = Math.min(10, Math.max(5, Math.ceil(syncable.length * 0.1)));
 
     if (circuitOpen) {
       // Log the provider outage but DON'T disconnect anything
@@ -563,7 +564,7 @@ Deno.serve(async (req) => {
 
     // ── Flush DB updates ──
     if (dbUpdates.length > 0) {
-      await runPool(dbUpdates, 50, async (u) => {
+      await runPool(dbUpdates, 10, async (u) => {
         await svc.from("devices").update(u.patch).eq("id", u.id);
       });
     }
