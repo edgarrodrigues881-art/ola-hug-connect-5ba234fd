@@ -68,7 +68,6 @@ const menuGroups = [
       { title: "Instâncias", url: "/dashboard/devices", icon: Smartphone },
       { title: "Enviar Mensagem", url: "/dashboard/campaigns", icon: Send },
       { title: "Campanhas", url: "/dashboard/campaign-list", icon: Megaphone, badgeKey: "activeCampaigns" as const },
-      { title: "Entrada em Grupos", url: "/dashboard/group-join", icon: LogIn },
       { title: "Template", url: "/dashboard/templates", icon: FileText },
       { title: "Meus Contatos", url: "/dashboard/contacts", icon: BookUser },
     ],
@@ -76,6 +75,7 @@ const menuGroups = [
 ];
 
 const developmentItems = [
+  { title: "Entrada em Grupos", url: "/dashboard/group-join", icon: LogIn, locked: true },
   { title: "Aquecimento Comunitário", url: "/dashboard/community-warmup", icon: Heart, locked: true },
   { title: "Conversa entre Chips", url: "/dashboard/chip-conversation", icon: ArrowRightLeft, locked: true },
   { title: "Interação de Grupos", url: "/dashboard/group-interaction", icon: UsersRound, locked: true },
