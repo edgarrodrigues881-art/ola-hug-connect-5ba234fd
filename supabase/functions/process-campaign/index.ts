@@ -204,32 +204,68 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
   const hasButtons = buttons && buttons.length > 0;
   const choices = hasButtons ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice)) : [];
 
+  console.log(JSON.stringify({
+    event: "payload_built",
+    origin: "campaign",
+    messageType: messageType || null,
+    hasMedia: Boolean(mediaUrl),
+    hasButtons,
+    buttonCount: choices.length,
+    textLength: text.length,
+  }));
+
   if (choices.length > 0) {
     const mediaType = mediaUrl ? detectMediaType(mediaUrl) : null;
     const isAudioMedia = mediaType === "audio";
     const hasVisualMedia = !!mediaUrl && !isAudioMedia;
 
-    if (hasVisualMedia && mediaUrl) {
-      // NEVER use imageButton — it creates interactive format incompatible with older WhatsApp versions
-      // Step 1: Send image with full caption text (works on ALL WhatsApp versions)
-      await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType || "image", text);
-      // Step 2: Brief delay
-      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
-      // Step 3: Send buttons separately (text-only, no image)
-      await uazapiRequest(baseUrl, token, "/send/menu", {
-        number: phone,
-        type: "button",
-        text: "⬇️ Escolha uma opção:",
-        choices,
-      });
-      return;
+    if (!text) {
+      console.log(JSON.stringify({ event: "fallback_text_applied", prevented: true, reason: "missing_primary_text_with_buttons" }));
+      throw new Error("Mensagens com botão exigem copy/texto principal. O sistema não envia mais 'Escolha uma opção' automaticamente.");
     }
 
-    // Text-only buttons (no image)
+    if (hasVisualMedia && mediaUrl) {
+      const unifiedPayload = {
+        number: phone,
+        type: "button",
+        text,
+        imageButton: mediaUrl,
+        choices,
+      };
+
+      console.log(JSON.stringify({
+        event: "template_import_normalized",
+        origin: "campaign",
+        strategy: "unified_image_button",
+        buttonCount: choices.length,
+        hasMedia: true,
+      }));
+
+      try {
+        return await uazapiRequest(baseUrl, token, "/send/menu", unifiedPayload);
+      } catch (error) {
+        console.log(JSON.stringify({
+          event: "message_split_detected",
+          origin: "campaign",
+          reason: error instanceof Error ? error.message : String(error),
+          mobile_incompatible_risk: true,
+        }));
+        await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType || "image", text);
+        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
+        await uazapiRequest(baseUrl, token, "/send/menu", {
+          number: phone,
+          type: "button",
+          text,
+          choices,
+        });
+        return;
+      }
+    }
+
     await uazapiRequest(baseUrl, token, "/send/menu", {
       number: phone,
       type: "button",
-      text: text || "Escolha uma opção:",
+      text,
       choices,
     });
 

@@ -32,6 +32,11 @@ import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import {
+  normalizeComposerMessage,
+  serializeTemplateMedia,
+  validateNormalizedComposerMessage,
+} from "@/lib/campaign-message";
 // XLSX is dynamically imported when needed to reduce initial bundle
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { PlanGateDialog } from "@/components/PlanGateDialog";
@@ -515,25 +520,45 @@ const Campaigns = () => {
     if (isBlocked) { setPlanGateOpen(true); return; }
     if (!campaignName.trim()) { toast({ title: "Nome obrigatório", description: "Informe o nome da campanha.", variant: "destructive" }); return; }
     if (selectedDevices.length === 0) { toast({ title: "Instância obrigatória", description: "Selecione pelo menos uma instância.", variant: "destructive" }); return; }
-    // Validate selected devices still exist
+
+    const normalizedMessage = normalizeComposerMessage({
+      content: combinedMessage,
+      media_url: mediaUrl || null,
+      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      source: selectedTemplate === "nova" ? "manual" : "template_import",
+      templateId: selectedTemplate !== "nova" ? selectedTemplate : null,
+    });
+    const validationErrors = validateNormalizedComposerMessage(normalizedMessage);
+    if (!normalizedMessage.primaryText.trim() && !normalizedMessage.hasMedia) {
+      toast({ title: "Mensagem vazia", description: "Escreva pelo menos uma mensagem.", variant: "destructive" });
+      return;
+    }
+    if (validationErrors.length > 0) {
+      toast({ title: "Template inconsistente", description: validationErrors[0], variant: "destructive" });
+      return;
+    }
+
     const validDeviceIds = selectedDevices.filter(id => devices.some(d => d.id === id));
     if (validDeviceIds.length === 0) {
       setSelectedDevices([]);
       toast({ title: "Dispositivo não encontrado", description: "O dispositivo selecionado foi removido. Selecione outro na aba Configurações.", variant: "destructive" });
       return;
     }
-    // Check if selected device is online
+
     const selectedDev = devices.find(d => d.id === validDeviceIds[0]);
     if (selectedDev && selectedDev.status !== "Ready") {
       toast({ title: "Instância offline", description: `"${selectedDev.name}" está desconectada. Reconecte antes de disparar.`, variant: "destructive" });
       return;
     }
     if (validContacts.length === 0) { toast({ title: "Sem contatos", description: "Adicione pelo menos um contato.", variant: "destructive" }); return; }
-    if (!combinedMessage.trim()) { toast({ title: "Mensagem vazia", description: "Escreva pelo menos uma mensagem.", variant: "destructive" }); return; }
+
     createCampaign.mutate({
-      name: campaignName, message_type: computedMessageType, message_content: combinedMessage,
-      media_url: mediaUrl || undefined,
-      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      name: campaignName,
+      message_type: detectMessageType(normalizedMessage.mediaUrl, normalizedMessage.hasButtons),
+      message_content: normalizedMessage.combinedMessage,
+      media_url: normalizedMessage.mediaUrl || undefined,
+      template_id: normalizedMessage.templateId || undefined,
+      buttons: normalizedMessage.buttons.map(b => ({ type: b.type, text: b.text, value: b.value })),
       contacts: validContacts.map(c => ({ phone: c.numero, name: c.nome || undefined, var1: c.var1 || "", var2: c.var2 || "", var3: c.var3 || "", var4: c.var4 || "", var5: c.var5 || "", var6: c.var6 || "", var7: c.var7 || "", var8: c.var8 || "", var9: c.var9 || "", var10: c.var10 || "" })),
       scheduled_at: scheduleEnabled && scheduleDate ? new Date(scheduleDate).toISOString() : undefined,
       min_delay_seconds: minDelay,
@@ -591,16 +616,29 @@ const Campaigns = () => {
       toast({ title: "Nome obrigatório", description: "Informe um nome para o template.", variant: "destructive" });
       return;
     }
-    if (!combinedMessage.trim() && !mediaUrl) {
+
+    const normalizedMessage = normalizeComposerMessage({
+      content: combinedMessage,
+      media_url: mediaUrl || null,
+      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      source: "manual",
+    });
+    const validationErrors = validateNormalizedComposerMessage(normalizedMessage);
+    if (!normalizedMessage.primaryText.trim() && !normalizedMessage.hasMedia) {
       toast({ title: "Template vazio", description: "Escreva uma mensagem ou adicione mídia.", variant: "destructive" });
       return;
     }
+    if (validationErrors.length > 0) {
+      toast({ title: "Template inconsistente", description: validationErrors[0], variant: "destructive" });
+      return;
+    }
+
     createTemplate.mutate({
       name: saveTemplateName.trim(),
-      content: combinedMessage,
-      type: computedMessageType,
-      media_url: mediaUrl || undefined,
-      buttons: buttons.filter(b => b.text.trim()).map(b => ({ type: b.type, text: b.text, value: b.value })),
+      content: normalizedMessage.combinedMessage,
+      type: detectMessageType(normalizedMessage.mediaUrl, normalizedMessage.hasButtons),
+      media_url: serializeTemplateMedia(normalizedMessage.mediaUrl, mediaFileName) || undefined,
+      buttons: normalizedMessage.buttons.map(b => ({ type: b.type, text: b.text, value: b.value })),
     }, {
       onSuccess: () => {
         toast({ title: "Template salvo!", description: `"${saveTemplateName.trim()}" foi salvo e está disponível em Templates.` });
@@ -1362,31 +1400,38 @@ const Campaigns = () => {
                   if (val !== "nova") {
                     const tmpl = savedTemplates.find(t => t.id === val);
                     if (tmpl) {
-                      // Parse message variants into tabs
-                      const contentParts = tmpl.content.includes("|||") ? tmpl.content.split("|||") : tmpl.content.includes("|&&|") ? tmpl.content.split("|&&|") : [tmpl.content];
+                      const normalizedTemplate = normalizeComposerMessage({
+                        content: tmpl.content,
+                        media_url: tmpl.media_url,
+                        buttons: tmpl.buttons,
+                        source: "template_import",
+                        templateId: tmpl.id,
+                      });
                       const msgs = ["", "", "", "", ""];
-                      contentParts.forEach((p: string, i: number) => { if (i < 5) msgs[i] = p; });
+                      normalizedTemplate.messageVariants.forEach((part, i) => {
+                        if (i < 5) msgs[i] = part;
+                      });
                       setMessages(msgs);
                       setActiveMessageTab(0);
-                      if (tmpl.content.includes("|&&|")) setRotationMode("all");
-                      else if (tmpl.content.includes("|||")) setRotationMode("random");
-                      // Parse media_url — templates save as JSON array, extract first URL
-                      if (tmpl.media_url) {
-                        let extractedUrl = tmpl.media_url;
-                        try {
-                          const parsed = JSON.parse(tmpl.media_url);
-                          if (Array.isArray(parsed) && parsed.length > 0) {
-                            extractedUrl = parsed[0].url || tmpl.media_url;
-                            setMediaFileName(parsed[0].name || "Mídia");
-                          }
-                        } catch { /* plain URL, use as-is */ }
-                        setMediaUrl(extractedUrl);
-                      } else { setMediaUrl(""); }
-                      if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                        setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
-                      } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                      setRotationMode(normalizedTemplate.rotationMode);
+                      setMediaUrl(normalizedTemplate.mediaUrl);
+                      setMediaFileName(normalizedTemplate.mediaName);
+                      setButtons(
+                        normalizedTemplate.buttons.length > 0
+                          ? normalizedTemplate.buttons.map((b, i) => ({ id: Date.now() + i, type: b.type, text: b.text, value: b.value }))
+                          : [{ id: Date.now(), type: "reply", text: "", value: "" }]
+                      );
+                      setMessageType(detectMessageType(normalizedTemplate.mediaUrl, normalizedTemplate.hasButtons));
                     }
-                  } else { setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotationMode("random"); setMediaUrl(""); setMediaFileName(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                  } else {
+                    setMessages(["", "", "", "", ""]);
+                    setActiveMessageTab(0);
+                    setRotationMode("random");
+                    setMediaUrl("");
+                    setMediaFileName("");
+                    setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
+                    setMessageType("texto");
+                  }
                 }}>
                   <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/20 border-border/30 hover:border-primary/40 transition-colors">
                     <SelectValue placeholder="Campanha Padrão" />
