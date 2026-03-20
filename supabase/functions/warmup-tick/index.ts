@@ -2638,6 +2638,47 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
 
         const sentPhone = target._phone;
 
+        // Mark contact as used after successful send (on last msg_index)
+        if (mIdx === maxRounds - 1 || mIdx === 0) {
+          await db.from("warmup_autosave_contacts")
+            .update({
+              contact_status: "used",
+              last_used_at: new Date().toISOString(),
+              use_count: (target.use_count || 0) + (mIdx === 0 ? 1 : 0),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", target.id);
+
+          // Update in-memory cache
+          target.contact_status = "used";
+          if (mIdx === 0) target.use_count = (target.use_count || 0) + 1;
+          target.last_used_at = new Date().toISOString();
+
+          // Check if all valid contacts are now "used" — if so, reset for new rotation cycle
+          const allContacts = autosaveMap[job.user_id] || [];
+          const remainingNew = allContacts.filter((c: any) => (c.contact_status || "new") === "new");
+          if (remainingNew.length === 0 && allContacts.length > 0) {
+            // All used — reset all to "new" for next rotation cycle
+            await db.from("warmup_autosave_contacts")
+              .update({ contact_status: "new" })
+              .eq("user_id", job.user_id)
+              .eq("is_active", true)
+              .eq("contact_status", "used");
+
+            // Reset in-memory cache
+            allContacts.forEach((c: any) => {
+              if (c.contact_status === "used") c.contact_status = "new";
+            });
+
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "autosave_rotation_reset",
+              message: `Auto Save: lista esgotada (${allContacts.length} contatos usados). Novo ciclo de rotação iniciado.`,
+              meta: { total_contacts: allContacts.length },
+            });
+          }
+        }
+
         try {
           await db.from("warmup_unique_recipients").insert({
             cycle_id: cycle.id, user_id: job.user_id,
@@ -2658,8 +2699,8 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "autosave_msg_sent",
-          message: `Auto Save: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/3 para ${target.contact_name || sentPhone}`,
-          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name },
+          message: `Auto Save: contato ${selectedIndex + 1}/${rotatedPool.length}, msg ${mIdx + 1}/${maxRounds} para ${target.contact_name || sentPhone} [${(target.contact_status || "new") === "new" ? "NOVO" : `uso #${target.use_count || 1}`}]`,
+          meta: { recipient_index: selectedIndex, msg_index: mIdx, phone: sentPhone, contact_name: target.contact_name, contact_status: target.contact_status, use_count: target.use_count },
         });
         break;
       }
