@@ -1652,6 +1652,50 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
       for (const cycle of runningCycles) {
         const chipState = cycle.chip_state || "new";
 
+        // ── FIX A0: Recovery for pre_24h cycles past first_24h_ends_at ──
+        if (cycle.phase === "pre_24h" && cycle.first_24h_ends_at) {
+          const endsAtMs = new Date(cycle.first_24h_ends_at).getTime();
+          if (nowMs > endsAtMs + 60 * 60 * 1000) { // 1h grace period
+            const { data: dev } = await db.from("devices").select("status").eq("id", cycle.device_id).maybeSingle();
+            if (!dev || !CONNECTED_STATUSES.includes(dev.status)) continue;
+
+            const newDay = 2;
+            const newPhase = getPhaseForDay(newDay, chipState);
+
+            await db.from("warmup_jobs")
+              .update({ status: "cancelled", last_error: "Cancelado: pre_24h expirado" })
+              .eq("cycle_id", cycle.id).eq("status", "pending");
+
+            const resetAt = new Date().toISOString();
+            await db.from("warmup_cycles").update({
+              day_index: newDay, phase: newPhase,
+              last_daily_reset_at: resetAt,
+              daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+              daily_interaction_budget_target: 0,
+            }).eq("id", cycle.id);
+
+            await ensureJoinGroupJobs(db, cycle.id, cycle.user_id, cycle.device_id);
+            await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, newDay, newPhase, chipState, true);
+
+            const nextReset = new Date();
+            nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+            nextReset.setUTCHours(9, 50, 0, 0);
+            await db.from("warmup_jobs").insert({
+              user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+              job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
+            });
+
+            await db.from("warmup_audit_logs").insert({
+              user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+              level: "warning", event_type: "pre_24h_recovery",
+              message: `Ciclo preso em pre_24h — first_24h expirou há ${Math.round((nowMs - endsAtMs) / 3600000)}h. Avançado para dia ${newDay} (${newPhase})`,
+              meta: { first_24h_ends_at: cycle.first_24h_ends_at, new_day: newDay, new_phase: newPhase },
+            });
+            console.log(`[warmup-tick] PRE_24H RECOVERY: cycle ${cycle.id} stuck — advanced to day ${newDay} (${newPhase})`);
+            continue;
+          }
+        }
+
         // ── FIX A: Force daily reset for cycles stuck >26h without reset ──
         const lastResetMs = cycle.last_daily_reset_at ? new Date(cycle.last_daily_reset_at).getTime() : 0;
         const resetAge = nowMs - lastResetMs;
