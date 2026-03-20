@@ -242,7 +242,7 @@ const allPlans = [
   {
     name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false,
     subtitle: "Para operadores ativos que precisam escalar com consistência.",
-    extraCopy: "Recomendado para operações reais", cta: "Escalar operação",
+    extraCopy: "Recomendado para operações reais", cta: "Escalar",
     features: ["Aquecimento automatizado", "Disparo interativo", "Painel centralizado", "Gestão avançada de instâncias", "Monitoramento completo", "Suporte prioritário", "Relatórios via WhatsApp (add-on)", "Módulos extras disponíveis"],
   },
   {
