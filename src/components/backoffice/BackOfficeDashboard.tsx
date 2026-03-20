@@ -28,6 +28,7 @@ const AdminWarmupJobs = lazy(() => import("./AdminWarmupJobs"));
 const AdminInfra = lazy(() => import("./AdminInfra"));
 const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
 const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
+const AdminWarmupDiagnostic = lazy(() => import("./AdminWarmupDiagnostic"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
 const AdminConexao = lazy(() => import("./AdminConexao"));
 const AdminTokensGlobal = lazy(() => import("./AdminTokensGlobal"));
