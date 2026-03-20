@@ -108,10 +108,16 @@ function getAutosaveInfoForDay(dayIndex: number, chipState: string): { contacts:
     else if (daysSince === 1) contacts = 3;
     else if (daysSince === 2) contacts = 4;
     else contacts = 5;
+  } else if (chipState === "unstable") {
+    const daysSince = dayIndex - autosaveStartDay;
+    if (daysSince === 0) contacts = 1;
+    else if (daysSince === 1) contacts = 3;
+    else if (daysSince === 2) contacts = 4;
+    else contacts = 5;
   } else {
     contacts = 5;
   }
-  const msgsPerContact = 3;
+  const msgsPerContact = chipState === "unstable" ? 5 : 3;
   return { contacts, msgsPerContact, totalMsgs: contacts * msgsPerContact };
 }
 

@@ -139,10 +139,20 @@ function getAutosaveContactsForDay(dayIndex: number, chipState: string): number 
     if (daysSince === 2) return 4;
     return 5;
   }
+  if (chipState === "unstable") {
+    const autosaveStart = getGroupsEndDay("unstable") + 1; // day 8
+    const daysSince = dayIndex - autosaveStart;
+    if (daysSince < 0) return 0;
+    if (daysSince === 0) return 1;
+    if (daysSince === 1) return 3;
+    if (daysSince === 2) return 4;
+    return 5;
+  }
   return 5;
 }
 
-function getAutosaveRoundsPerContact(): number {
+function getAutosaveRoundsPerContact(chipState: string = "new"): number {
+  if (chipState === "unstable") return 5;
   return 3;
 }
 

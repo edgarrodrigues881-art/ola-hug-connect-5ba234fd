@@ -102,24 +102,33 @@ function getAutosaveContactsForDay(dayIndex: number, chipState: string): number 
     const autosaveStart = getGroupsEndDay("new") + 1; // day 5
     const daysSince = dayIndex - autosaveStart;
     if (daysSince < 0) return 0;
-    if (daysSince === 0) return 3; // day 5: 3 contacts
-    if (daysSince === 1) return 4; // day 6: 4 contacts
-    return 5; // day 7+: 5 contacts
+    if (daysSince === 0) return 3;
+    if (daysSince === 1) return 4;
+    return 5;
   }
   if (chipState === "recovered") {
     const autosaveStart = getGroupsEndDay("recovered") + 1; // day 6
     const daysSince = dayIndex - autosaveStart;
     if (daysSince < 0) return 0;
-    if (daysSince === 0) return 2; // day 6: 2 contacts
-    if (daysSince === 1) return 3; // day 7: 3 contacts
-    if (daysSince === 2) return 4; // day 8: 4 contacts
-    return 5; // day 9+: 5 contacts
+    if (daysSince === 0) return 2;
+    if (daysSince === 1) return 3;
+    if (daysSince === 2) return 4;
+    return 5;
   }
-  // unstable: keep 5 contacts
+  if (chipState === "unstable") {
+    const autosaveStart = getGroupsEndDay("unstable") + 1; // day 8
+    const daysSince = dayIndex - autosaveStart;
+    if (daysSince < 0) return 0;
+    if (daysSince === 0) return 1; // day 8: 1 contact
+    if (daysSince === 1) return 3; // day 9: 3 contacts
+    if (daysSince === 2) return 4; // day 10: 4 contacts
+    return 5; // day 11+: 5 contacts
+  }
   return 5;
 }
 
-function getAutosaveRoundsPerContact(): number {
+function getAutosaveRoundsPerContact(chipState: string = "new"): number {
+  if (chipState === "unstable") return 5; // max 5 messages per contact
   return 3; // max 3 messages per contact
 }
 
