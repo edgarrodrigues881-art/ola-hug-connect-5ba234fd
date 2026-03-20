@@ -361,7 +361,7 @@ const Templates = () => {
   };
 
   const buttonTypeLabel = (type: string) => {
-    const map: Record<string, string> = { reply: "Resposta Rápida", url: "Link (URL)", phone: "Ligar (Telefone)" };
+    const map: Record<string, string> = { reply: "Resposta Rápida", url: "Link (URL)" };
     return map[type] || type;
   };
 
