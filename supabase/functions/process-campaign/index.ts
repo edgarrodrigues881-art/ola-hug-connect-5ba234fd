@@ -157,6 +157,42 @@ function detectMediaType(url: string): string {
   return "image";
 }
 
+async function sendCaptionedMedia(baseUrl: string, token: string, phone: string, mediaUrl: string, mediaType: string, caption: string) {
+  const normalizedCaption = typeof caption === "string" ? caption.trim() : "";
+  const attempts = mediaType === "image"
+    ? [
+        { endpoint: "/send/image", payload: { number: phone, image: mediaUrl, caption: normalizedCaption } },
+        { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: "image", caption: normalizedCaption } },
+        { endpoint: "/send/media", payload: { number: phone, media: mediaUrl, type: "image", caption: normalizedCaption } },
+      ]
+    : mediaType === "video"
+      ? [
+          { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: "video", caption: normalizedCaption } },
+          { endpoint: "/send/media", payload: { number: phone, media: mediaUrl, type: "video", caption: normalizedCaption } },
+        ]
+      : mediaType === "document"
+        ? [
+            { endpoint: "/send/document", payload: { number: phone, file: mediaUrl, media: mediaUrl, caption: normalizedCaption } },
+            { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: "document", caption: normalizedCaption } },
+          ]
+        : [
+            { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: mediaType, caption: normalizedCaption } },
+          ];
+
+  let lastError: unknown = null;
+
+  for (const attempt of attempts) {
+    try {
+      return await uazapiRequest(baseUrl, token, attempt.endpoint, attempt.payload);
+    } catch (error) {
+      lastError = error;
+      console.warn(`Captioned media attempt failed (${attempt.endpoint}) for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Falha ao enviar mídia com legenda");
+}
+
 async function sendUazapiMessage(baseUrl: string, token: string, to: string, body: string, mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string) {
   const phone = to.replace(/\D/g, "");
   const text = typeof body === "string" ? body.trim() : "";
@@ -168,25 +204,13 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     const isAudioMedia = mediaType === "audio";
     const hasVisualMedia = !!mediaUrl && !isAudioMedia;
 
-    if (hasVisualMedia) {
-      // Send full-size image WITH caption (copy + image together)
-      await uazapiRequest(baseUrl, token, "/send/media", {
-        number: phone,
-        file: mediaUrl,
-        media: mediaUrl,
-        type: mediaType,
-        caption: text || "",
-        compress: false,
-      });
-
-      // Small delay to ensure image arrives before buttons
+    if (hasVisualMedia && mediaUrl && mediaType) {
+      await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType, text);
       await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
-
-      // Send buttons separately with copy
       await uazapiRequest(baseUrl, token, "/send/menu", {
         number: phone,
         type: "button",
-        text: text || "Escolha uma opção:",
+        text: "⬇️ Escolha uma opção:",
         choices,
       });
       return;
@@ -223,9 +247,8 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
         file: mediaUrl,
       });
     }
-    const payload: any = { number: phone, file: mediaUrl, media: mediaUrl, type: mediaType, compress: false };
-    if (text) payload.caption = text;
-    return await uazapiRequest(baseUrl, token, "/send/media", payload);
+
+    return await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType, text);
   }
 
   return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text });
