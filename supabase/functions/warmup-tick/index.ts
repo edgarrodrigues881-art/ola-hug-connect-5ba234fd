@@ -3134,13 +3134,31 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           return false;
         }
 
+        // ── Count recent offline events per peer for penalty scoring ──
+        const recentOfflineWindow = 6 * 60 * 60 * 1000; // 6 hours
+        const offlineWindowStart = new Date(Date.now() - recentOfflineWindow).toISOString();
+        const { data: recentOfflineLogs } = await db.from("warmup_audit_logs")
+          .select("meta")
+          .eq("device_id", job.device_id)
+          .eq("event_type", "community_peer_offline")
+          .gte("created_at", offlineWindowStart);
+        
+        const peerOfflineCounts: Record<string, number> = {};
+        for (const log of recentOfflineLogs || []) {
+          const peerId = log.meta?.peer_device;
+          if (peerId) peerOfflineCounts[peerId] = (peerOfflineCounts[peerId] || 0) + 1;
+        }
+        const CHRONIC_OFFLINE_THRESHOLD = 5; // 5+ offline in 6h = chronic
+
         // ── Classificar pares por prioridade ──
         // Prioridade 1: Par com conversa ativa esperando MINHA resposta
         // Prioridade 2: Par livre sem conversa ativa, mais tempo sem contato
         // Prioridade 3: Par stale (resetado agora) — deprioritizado para dar chance a outros
+        // Prioridade 4: Par cronicamente offline — deprioritizado fortemente
         // Pula: par esperando resposta do outro (< 10 min), par em cooldown
-        type ScoredPair = { pair: any; priority: number; lastContactMs: number };
+        type ScoredPair = { pair: any; priority: number; lastContactMs: number; rejectedReason?: string };
         const scored: ScoredPair[] = [];
+        const rejectedPeers: { peer_id: string; reason: string }[] = [];
 
         for (const pair of uniquePairs) {
           const meta = normalizeCommunityPairMeta(pair);
@@ -3153,12 +3171,16 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           const lastCompletedMs = meta.last_completed_at ? new Date(meta.last_completed_at).getTime() : 0;
           const lastContactMs = Math.max(lastTurnMs, lastCompletedMs) || 0;
 
+          const peerDeviceId = pair.instance_id_a === job.device_id ? pair.instance_id_b : pair.instance_id_a;
+          const peerOfflineCount = peerOfflineCounts[peerDeviceId] || 0;
+
           const STALE_MS = 10 * 60 * 1000;
           const isStale = otherSideTurn && lastTurnMs && (Date.now() - lastTurnMs) > STALE_MS;
 
           if (myTurnToReply) {
             scored.push({ pair, priority: 1, lastContactMs });
           } else if (otherSideTurn && !isStale) {
+            rejectedPeers.push({ peer_id: peerDeviceId, reason: "awaiting_other_reply" });
             continue; // Aguardando resposta do outro — pular
           } else if (isStale) {
             // Resetar conversa travada AGORA, mas dar prioridade baixa
@@ -3175,12 +3197,19 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
               message: `Par não respondeu em 10 min — resetado, priorizando outro par`,
               meta: { pair_id: pair.id, stale_peer: meta.expected_sender_device_id },
             });
-            // Prioridade 3: só usar se não houver nenhum par livre
             scored.push({ pair, priority: 3, lastContactMs: Date.now() });
           } else {
             const inCooldown = lastCompletedMs && (Date.now() - lastCompletedMs) < 5 * 60 * 1000;
-            if (inCooldown) continue;
-            scored.push({ pair, priority: 2, lastContactMs });
+            if (inCooldown) {
+              rejectedPeers.push({ peer_id: peerDeviceId, reason: "cooldown" });
+              continue;
+            }
+            // Chronic offline peers get deprioritized
+            if (peerOfflineCount >= CHRONIC_OFFLINE_THRESHOLD) {
+              scored.push({ pair, priority: 4, lastContactMs, rejectedReason: `chronic_offline(${peerOfflineCount}x)` });
+            } else {
+              scored.push({ pair, priority: 2, lastContactMs });
+            }
           }
         }
 
