@@ -459,6 +459,21 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
       </div>
     </div>
   );
+}, (prev, next) => {
+  return (
+    prev.device === next.device &&
+    prev.cycle === next.cycle &&
+    prev.deviceTags === next.deviceTags &&
+    prev.availableTags === next.availableTags &&
+    prev.onPause === next.onPause &&
+    prev.onResume === next.onResume &&
+    prev.onCancel === next.onCancel &&
+    prev.onConnect === next.onConnect &&
+    prev.onNavigate === next.onNavigate &&
+    prev.formatPhone === next.formatPhone &&
+    prev.onTagClick === next.onTagClick &&
+    prev.onRemoveFromFolder === next.onRemoveFromFolder
+  );
 });
 
 DeviceCard.displayName = "DeviceCard";
