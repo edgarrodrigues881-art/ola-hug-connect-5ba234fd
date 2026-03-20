@@ -3405,7 +3405,7 @@ async function handleDailyReset(db: any) {
     }
 
     // [BUG A FIX] Rotate/reconcile community pairs on daily reset (mirrors job-based daily_reset)
-    if (newPhase === "community_enabled") {
+    if (isCommunityPhase(newPhase)) {
       const pairStats = await reconcileCommunityPairs(db, {
         deviceId: cycle.device_id,
         userId: cycle.user_id,
