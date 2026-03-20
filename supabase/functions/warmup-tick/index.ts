@@ -43,7 +43,7 @@ function backoffMinutes(attempt: number): number {
 // ══════════════════════════════════════════════════════════
 
 function getGroupsEndDay(chipState: string): number {
-  if (chipState === "unstable") return 7;
+  if (chipState === "unstable") return 6;
   if (chipState === "recovered") return 5;
   return 4; // new
 }
