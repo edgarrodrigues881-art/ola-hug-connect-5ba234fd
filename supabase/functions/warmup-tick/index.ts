@@ -3240,7 +3240,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
 
         // [BUG 3 FIX] When transitioning to autosave_enabled or community_enabled,
         // ensure community membership is activated (was only done by enable_autosave job before)
-        if (newPhase !== oldPhase && ["autosave_enabled", "community_enabled"].includes(newPhase)) {
+        if (newPhase !== oldPhase && ["autosave_enabled", "community_ramp_up", "community_stable"].includes(newPhase)) {
           const { data: membership } = await db.from("warmup_community_membership")
             .select("id, is_enabled").eq("device_id", job.device_id).maybeSingle();
 
