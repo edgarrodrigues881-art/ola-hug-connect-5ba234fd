@@ -3202,10 +3202,18 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         });
 
         if (pickedResult !== "ok") {
-          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
-          await db.from("warmup_jobs")
-            .update({ status: "pending", run_at: retryAt, last_error: `Comunidade sem envio efetivo: ${pickedResult}` })
-            .eq("id", job.id);
+          const noSendAttempts = (job.attempts || 0) + 1;
+          const MAX_NO_SEND_RETRIES = 4;
+          if (noSendAttempts >= MAX_NO_SEND_RETRIES) {
+            await db.from("warmup_jobs")
+              .update({ status: "failed", last_error: `Comunidade sem envio efetivo após ${noSendAttempts} tentativas: ${pickedResult}`, attempts: noSendAttempts })
+              .eq("id", job.id);
+          } else {
+            const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+            await db.from("warmup_jobs")
+              .update({ status: "pending", run_at: retryAt, last_error: `Comunidade sem envio efetivo: ${pickedResult}`, attempts: noSendAttempts })
+              .eq("id", job.id);
+          }
           return false;
         }
 
