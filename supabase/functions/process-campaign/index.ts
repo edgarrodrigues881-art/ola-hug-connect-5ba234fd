@@ -159,33 +159,58 @@ function detectMediaType(url: string): string {
 
 async function sendUazapiMessage(baseUrl: string, token: string, to: string, body: string, mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string) {
   const phone = to.replace(/\D/g, "");
+  const text = typeof body === "string" ? body.trim() : "";
   const hasButtons = buttons && buttons.length > 0;
   const choices = hasButtons ? buttons.map((b, i) => buildMenuChoice(b, i)).filter((choice): choice is string => Boolean(choice)) : [];
-  if (choices.length > 0) {
-    const isAudioMedia = mediaUrl ? detectMediaType(mediaUrl) === "audio" : false;
-    const hasImageMedia = mediaUrl && !isAudioMedia;
 
-    // If there's an image + buttons: send image first, then buttons separately (avoids imageButton incompatibility)
-    if (hasImageMedia) {
-      // Send image WITH caption (copy + image together)
-      await uazapiRequest(baseUrl, token, "/send/media", {
-        number: phone, file: mediaUrl, media: mediaUrl, type: detectMediaType(mediaUrl),
-        caption: body || "", compress: false,
-      });
-      // Small delay to ensure image arrives before buttons
-      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
-      // Send buttons with the full copy text
-      const payload: any = { number: phone, type: "button", text: body || "Escolha uma opção:", choices };
-      await uazapiRequest(baseUrl, token, "/send/menu", payload);
-    } else {
-      // No image — send menu normally (this works fine)
-      const payload: any = { number: phone, type: "button", text: body, choices };
-      await uazapiRequest(baseUrl, token, "/send/menu", payload);
+  if (choices.length > 0) {
+    const mediaType = mediaUrl ? detectMediaType(mediaUrl) : null;
+    const isAudioMedia = mediaType === "audio";
+    const hasVisualMedia = !!mediaUrl && !isAudioMedia;
+
+    if (hasVisualMedia) {
+      try {
+        await uazapiRequest(baseUrl, token, "/send/menu", {
+          number: phone,
+          type: "button",
+          text: text || "Escolha uma opção:",
+          choices,
+          imageButton: mediaUrl,
+        });
+        return;
+      } catch (menuError) {
+        console.warn(`Unified image+button send failed for ${phone}, falling back: ${menuError instanceof Error ? menuError.message : String(menuError)}`);
+
+        await uazapiRequest(baseUrl, token, "/send/media", {
+          number: phone,
+          file: mediaUrl,
+          media: mediaUrl,
+          type: mediaType,
+          caption: text || "",
+          compress: false,
+        });
+
+        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
+
+        await uazapiRequest(baseUrl, token, "/send/menu", {
+          number: phone,
+          type: "button",
+          text: text || "Escolha uma opção:",
+          choices,
+        });
+        return;
+      }
     }
 
-    // If media is audio, send it as a voice note after the menu
-    if (mediaUrl && detectMediaType(mediaUrl) === "audio") {
-      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+    await uazapiRequest(baseUrl, token, "/send/menu", {
+      number: phone,
+      type: "button",
+      text: text || "Escolha uma opção:",
+      choices,
+    });
+
+    if (isAudioMedia && mediaUrl) {
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
       await uazapiRequest(baseUrl, token, "/send/media", {
         number: phone,
         type: "ptt",
@@ -194,12 +219,13 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     }
     return;
   }
+
   if (mediaUrl) {
     const mediaType = detectMediaType(mediaUrl);
     if (mediaType === "audio") {
-      if (body && body.trim()) {
-        await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
-        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+      if (text) {
+        await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text });
+        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
       }
       return await uazapiRequest(baseUrl, token, "/send/media", {
         number: phone,
@@ -208,10 +234,11 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
       });
     }
     const payload: any = { number: phone, file: mediaUrl, media: mediaUrl, type: mediaType, compress: false };
-    if (body) payload.caption = body;
+    if (text) payload.caption = text;
     return await uazapiRequest(baseUrl, token, "/send/media", payload);
   }
-  return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text: body });
+
+  return await uazapiRequest(baseUrl, token, "/send/text", { number: phone, text });
 }
 
 function isDisconnectError(msg: string): boolean {
