@@ -10,6 +10,8 @@ const corsHeaders = {
 const jsonRes = (data: any, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+const SYNC_DEVICES_DISABLED = true;
+
 async function fetchT(url: string, opts: RequestInit, ms: number): Promise<Response> {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), ms);
@@ -197,6 +199,11 @@ async function fetchFreshProfilePic(baseUrl: string, token: string, ownerRaw: st
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  if (SYNC_DEVICES_DISABLED) {
+    console.log("[sync-devices] temporarily disabled for stability diagnostics");
+    return jsonRes({ disabled: true, reason: "temporarily_disabled_for_stability" });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
