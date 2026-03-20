@@ -2553,7 +2553,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           if (!phoneExists) {
             // Phone confirmed invalid — disable and cancel all jobs immediately
             await db.from("warmup_autosave_contacts")
-              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .update({ is_active: false, contact_status: "invalid", updated_at: new Date().toISOString() })
               .eq("phone_e164", target.phone_e164)
               .eq("user_id", job.user_id);
 
