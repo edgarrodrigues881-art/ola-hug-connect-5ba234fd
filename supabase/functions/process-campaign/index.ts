@@ -159,38 +159,34 @@ function detectMediaType(url: string): string {
 
 async function sendCaptionedMedia(baseUrl: string, token: string, phone: string, mediaUrl: string, mediaType: string, caption: string) {
   const normalizedCaption = typeof caption === "string" ? caption.trim() : "";
-  const attempts = mediaType === "image"
-    ? [
-        { endpoint: "/send/image", payload: { number: phone, image: mediaUrl, caption: normalizedCaption } },
-        { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: "image", caption: normalizedCaption } },
-        { endpoint: "/send/media", payload: { number: phone, media: mediaUrl, type: "image", caption: normalizedCaption } },
-      ]
-    : mediaType === "video"
-      ? [
-          { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: "video", caption: normalizedCaption } },
-          { endpoint: "/send/media", payload: { number: phone, media: mediaUrl, type: "video", caption: normalizedCaption } },
-        ]
-      : mediaType === "document"
-        ? [
-            { endpoint: "/send/document", payload: { number: phone, file: mediaUrl, media: mediaUrl, caption: normalizedCaption } },
-            { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: "document", caption: normalizedCaption } },
-          ]
-        : [
-            { endpoint: "/send/media", payload: { number: phone, file: mediaUrl, type: mediaType, caption: normalizedCaption } },
-          ];
 
-  let lastError: unknown = null;
+  // Primary: use both file + media keys (proven format for UaZapi GO with caption)
+  const payload: any = {
+    number: phone,
+    file: mediaUrl,
+    media: mediaUrl,
+    type: mediaType,
+    caption: normalizedCaption,
+  };
 
-  for (const attempt of attempts) {
-    try {
-      return await uazapiRequest(baseUrl, token, attempt.endpoint, attempt.payload);
-    } catch (error) {
-      lastError = error;
-      console.warn(`Captioned media attempt failed (${attempt.endpoint}) for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
-    }
+  try {
+    return await uazapiRequest(baseUrl, token, "/send/media", payload);
+  } catch (error) {
+    console.warn(`Primary /send/media failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  throw lastError instanceof Error ? lastError : new Error("Falha ao enviar mídia com legenda");
+  // Fallback: file-only payload
+  try {
+    return await uazapiRequest(baseUrl, token, "/send/media", {
+      number: phone,
+      file: mediaUrl,
+      type: mediaType,
+      caption: normalizedCaption,
+    });
+  } catch (error) {
+    console.warn(`Fallback /send/media failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
 }
 
 async function sendUazapiMessage(baseUrl: string, token: string, to: string, body: string, mediaUrl?: string | null, buttons?: CampaignButton[], messageType?: string) {
