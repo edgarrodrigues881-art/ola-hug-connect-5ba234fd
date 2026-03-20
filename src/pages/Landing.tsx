@@ -254,7 +254,7 @@ const allPlans = [
   {
     name: "Elite", instances: 100, price: "999,90", popular: false, whatsappReports: true,
     subtitle: "Ideal para operações que exigem volume alto com performance e suporte dedicado.",
-    extraCopy: "Alta performance garantida", cta: "Ir para o Elite",
+    extraCopy: "Alta performance garantida", cta: "Contratar",
     features: ["Aquecimento automatizado em escala", "Disparo avançado", "Monitoramento avançado", "Suporte VIP", "Relatórios via WhatsApp incluso", "Módulos extras disponíveis"],
   },
   {
