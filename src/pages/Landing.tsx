@@ -321,13 +321,13 @@ const Plans = () => {
           navigate("/auth?mode=signup");
         }
       }}
-        className={`w-full text-[11px] font-bold h-10 mt-auto ${
+        className={`w-full text-[10px] font-bold h-10 mt-auto px-2 whitespace-nowrap overflow-hidden ${
           p.popular
             ? "bg-amber-500 hover:bg-amber-400 text-black shadow-md"
             : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
         }`}
       >
-        {p.cta} <ArrowRight className="w-3.5 h-3.5 ml-1" />
+        <span className="truncate">{p.cta}</span> <ArrowRight className="w-3 h-3 ml-0.5 flex-shrink-0" />
       </Button>
     </motion.div>
   );
