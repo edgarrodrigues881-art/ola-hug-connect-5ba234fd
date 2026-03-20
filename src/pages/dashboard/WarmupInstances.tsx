@@ -563,6 +563,7 @@ const WarmupInstances = () => {
   
   // Bulk warmup state
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkStep, setBulkStep] = useState<1 | 2 | 3>(1);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkInstanceSearch, setBulkInstanceSearch] = useState("");
   const [bulkChipState, setBulkChipState] = useState<"new" | "recovered" | "unstable">("new");
