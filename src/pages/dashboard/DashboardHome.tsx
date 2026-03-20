@@ -92,7 +92,7 @@ const DashboardHome = () => {
         <div className="lg:col-span-2">
           <ActivityChart data={stats?.warmupEvolution || []} />
         </div>
-        {stats?.performance && <PerformanceBlock performance={stats.performance} />}
+        
       </div>
     </div>
   );
