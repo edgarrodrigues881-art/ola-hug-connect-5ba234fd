@@ -1831,7 +1831,7 @@ const WarmupInstanceDetail = () => {
                           {Array.from({ length: totalDays }, (_, i) => i + 1).filter((day) => {
                             const s = getDayStatus(day);
                             return s === "concluído" || s === "ativo" || s === "pulado";
-                          }).map((day) => {
+                          }).reverse().map((day) => {
                         const dayItems = dayItemsMap[day] || [];
                         const isExpanded = expandedDays.has(day);
                         const status = getDayStatus(day);
