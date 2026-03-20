@@ -1118,6 +1118,7 @@ const WarmupInstanceDetail = () => {
               )}
             </div>
           )}
+        </div>
       </div>
 
       {/* ═══════════ WIZARD (no cycle) ═══════════ */}
