@@ -172,18 +172,41 @@ function getAutosaveRoundsPerContact(chipState: string = "new"): number {
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
-  return Math.min(5, daysSinceCommunity + 2);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    // Dia 8:1, Dia 9:2, Dia 10+:2
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 1;
+    return 2;
+  }
+  // new: 6→2, 7→3, 8→4, 9+→5 | recovered: 7→2, 8→3, 9→4, 10+→5
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 2;
+  if (d === 1) return 3;
+  if (d === 2) return 4;
+  return 5;
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
-  return Math.min(8, daysSinceCommunity + 3);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    // Dia 8:2, Dia 9:3, Dia 10+:4
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 2;
+    if (d === 1) return 3;
+    return 4;
+  }
+  // new: 6→3,7→4,8→5,9→6,10-12→7,13+→8 | recovered: 7→3,8→4,9→5,10→6,11-13→7,14+→8
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 3;
+  if (d === 1) return 4;
+  if (d === 2) return 5;
+  if (d === 3) return 6;
+  if (d <= 6) return 7;
+  return 8;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
