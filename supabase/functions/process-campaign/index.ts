@@ -169,37 +169,27 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     const hasVisualMedia = !!mediaUrl && !isAudioMedia;
 
     if (hasVisualMedia) {
-      try {
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text: text || "Escolha uma opção:",
-          choices,
-          imageButton: mediaUrl,
-        });
-        return;
-      } catch (menuError) {
-        console.warn(`Unified image+button send failed for ${phone}, falling back: ${menuError instanceof Error ? menuError.message : String(menuError)}`);
+      // Send full-size image WITH caption (copy + image together)
+      await uazapiRequest(baseUrl, token, "/send/media", {
+        number: phone,
+        file: mediaUrl,
+        media: mediaUrl,
+        type: mediaType,
+        caption: text || "",
+        compress: false,
+      });
 
-        await uazapiRequest(baseUrl, token, "/send/media", {
-          number: phone,
-          file: mediaUrl,
-          media: mediaUrl,
-          type: mediaType,
-          caption: text || "",
-          compress: false,
-        });
+      // Small delay to ensure image arrives before buttons
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
 
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
-
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text: text || "Escolha uma opção:",
-          choices,
-        });
-        return;
-      }
+      // Send buttons separately with copy
+      await uazapiRequest(baseUrl, token, "/send/menu", {
+        number: phone,
+        type: "button",
+        text: text || "Escolha uma opção:",
+        choices,
+      });
+      return;
     }
 
     await uazapiRequest(baseUrl, token, "/send/menu", {
