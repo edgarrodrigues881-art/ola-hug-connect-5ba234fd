@@ -212,6 +212,7 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     hasButtons,
     buttonCount: choices.length,
     textLength: text.length,
+    textPreview: text.substring(0, 80),
   }));
 
   if (choices.length > 0) {
@@ -224,44 +225,38 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
       throw new Error("Mensagens com botão exigem copy/texto principal. O sistema não envia mais 'Escolha uma opção' automaticamente.");
     }
 
+    // IMAGE + BUTTONS: Always send as two separate messages.
+    // Uazapi's /send/menu does NOT support imageButton — sending it creates
+    // messages that show as "incompatible" on WhatsApp mobile.
+    // Strategy: 1) image with caption (copy), 2) delay, 3) buttons with same text.
     if (hasVisualMedia && mediaUrl) {
-      const unifiedPayload = {
-        number: phone,
-        type: "button",
-        text,
-        imageButton: mediaUrl,
-        choices,
-      };
-
       console.log(JSON.stringify({
         event: "template_import_normalized",
         origin: "campaign",
-        strategy: "unified_image_button",
+        strategy: "split_media_then_buttons",
         buttonCount: choices.length,
         hasMedia: true,
+        captionLength: text.length,
       }));
 
-      try {
-        return await uazapiRequest(baseUrl, token, "/send/menu", unifiedPayload);
-      } catch (error) {
-        console.log(JSON.stringify({
-          event: "message_split_detected",
-          origin: "campaign",
-          reason: error instanceof Error ? error.message : String(error),
-          mobile_incompatible_risk: true,
-        }));
-        await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType || "image", text);
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
-        await uazapiRequest(baseUrl, token, "/send/menu", {
-          number: phone,
-          type: "button",
-          text,
-          choices,
-        });
-        return;
-      }
+      // Step 1: Send image WITH caption (the user's copy)
+      await sendCaptionedMedia(baseUrl, token, phone, mediaUrl, mediaType || "image", text);
+
+      // Step 2: Small humanized delay between messages
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1500));
+
+      // Step 3: Send buttons as a separate text+button message
+      // Use a short contextual intro instead of repeating the full copy
+      await uazapiRequest(baseUrl, token, "/send/menu", {
+        number: phone,
+        type: "button",
+        text: "👇 Escolha uma opção:",
+        choices,
+      });
+      return;
     }
 
+    // TEXT-ONLY BUTTONS (no image)
     await uazapiRequest(baseUrl, token, "/send/menu", {
       number: phone,
       type: "button",
@@ -280,6 +275,7 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
     return;
   }
 
+  // NO BUTTONS — just media or text
   if (mediaUrl) {
     const mediaType = detectMediaType(mediaUrl);
     if (mediaType === "audio") {
