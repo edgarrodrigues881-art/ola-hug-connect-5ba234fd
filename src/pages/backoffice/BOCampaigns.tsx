@@ -1469,7 +1469,6 @@ const Campaigns = () => {
                                 {[
                                   { t: "reply" as const, label: "Resposta Rápida", Ic: MousePointerClick },
                                   { t: "url" as const, label: "Link (URL)", Ic: Link },
-                                  { t: "phone" as const, label: "Ligar (Telefone)", Ic: Phone },
                                 ].map(opt => (
                                   <button key={opt.t} className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2", btn.type === opt.t && "bg-accent")}
                                     onClick={() => updateButton(btn.id, "type", opt.t)}>
