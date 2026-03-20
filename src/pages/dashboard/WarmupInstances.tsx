@@ -379,67 +379,85 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
       </div>
 
 
-      <div className="px-3 md:px-4 pb-3 md:pb-4 space-y-1.5 md:space-y-2">
+      <div className="px-3 md:px-4 pb-3 md:pb-4 space-y-1.5">
         {/* Tag button for folder view */}
         {availableTags && availableTags.length > 0 && onTagClick && (
           <button
-            className="group/btn w-full flex items-center gap-2.5 px-3 md:px-3.5 h-8 md:h-9 rounded-xl text-[11px] md:text-xs font-medium bg-card/60 border border-border/15 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-colors duration-150"
+            className="group/btn w-full flex items-center gap-3 px-3.5 h-9 rounded-[14px] text-[11px] md:text-xs font-medium bg-gradient-to-r from-card/80 to-card/40 backdrop-blur-sm border border-border/10 text-muted-foreground hover:text-foreground hover:border-primary/25 hover:from-primary/8 hover:to-primary/3 transition-all duration-200"
             onClick={(e) => { e.stopPropagation(); onTagClick(device.id); }}
           >
-            <Tag className="w-3.5 h-3.5 shrink-0 text-primary/60 group-hover/btn:text-primary transition-colors" /> Gerenciar tags
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-primary/10 group-hover/btn:bg-primary/20 transition-colors">
+              <Tag className="w-3 h-3 text-primary/70 group-hover/btn:text-primary transition-colors" />
+            </span>
+            Gerenciar tags
           </button>
         )}
         {!connected ? (
           <button
-            className="w-full flex items-center justify-center gap-2 px-3 h-9 md:h-10 rounded-xl text-[11px] md:text-xs font-semibold bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:brightness-110 transition-all duration-150"
+            className="w-full flex items-center justify-center gap-2.5 px-3.5 h-10 rounded-[14px] text-[11px] md:text-xs font-bold bg-gradient-to-r from-primary to-primary/85 text-primary-foreground shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 hover:brightness-110 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => { e.stopPropagation(); onConnect(device); }}
           >
-            <Wifi className="w-3.5 h-3.5 shrink-0" /> Conectar
+            <Wifi className="w-4 h-4 shrink-0" /> Conectar
           </button>
         ) : cycle && isWarming ? (
           <button
-            className="group/btn w-full flex items-center gap-2.5 px-3 md:px-3.5 h-9 md:h-10 rounded-xl text-[11px] md:text-xs font-semibold bg-card/60 border border-primary/20 text-primary hover:border-primary/40 hover:bg-primary/8 transition-colors duration-150"
+            className="group/btn w-full flex items-center gap-3 px-3.5 h-10 rounded-[14px] text-[11px] md:text-xs font-semibold bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-primary hover:border-primary/35 hover:from-primary/15 hover:to-primary/8 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => onPause(device.id, e)}
           >
-            <Pause className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Parar aquecimento</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-primary/15">
+              <Pause className="w-3 h-3" />
+            </span>
+            <span className="truncate">Parar aquecimento</span>
           </button>
         ) : cycle?.phase === "paused" ? (
           <button
-            className="group/btn w-full flex items-center gap-2.5 px-3 md:px-3.5 h-9 md:h-10 rounded-xl text-[11px] md:text-xs font-semibold bg-card/60 border border-border/15 text-foreground hover:border-primary/30 hover:bg-primary/5 transition-colors duration-150"
+            className="group/btn w-full flex items-center gap-3 px-3.5 h-10 rounded-[14px] text-[11px] md:text-xs font-semibold bg-gradient-to-r from-card/80 to-card/40 border border-border/15 text-foreground hover:border-primary/25 hover:from-primary/8 hover:to-primary/3 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => onResume(device.id, e)}
           >
-            <Play className="w-3.5 h-3.5 shrink-0 text-primary" /> <span className="truncate">Retomar aquecimento</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-primary/15">
+              <Play className="w-3 h-3 text-primary" />
+            </span>
+            <span className="truncate">Retomar aquecimento</span>
           </button>
         ) : connected && !cycle ? (
           <button
-            className="w-full flex items-center justify-center gap-2 px-3 h-9 md:h-10 rounded-xl text-[11px] md:text-xs font-semibold bg-amber-600 text-white shadow-sm shadow-amber-600/20 hover:brightness-110 transition-all duration-150"
+            className="w-full flex items-center justify-center gap-2.5 px-3.5 h-10 rounded-[14px] text-[11px] md:text-xs font-bold bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-600/25 hover:shadow-lg hover:shadow-amber-600/30 hover:brightness-110 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
           >
-            <Flame className="w-3.5 h-3.5 shrink-0" /> Aquecer
+            <Flame className="w-4 h-4 shrink-0" /> Aquecer
           </button>
         ) : null}
         {cycle && (
           <button
-            className="group/btn w-full flex items-center gap-2.5 px-3 md:px-3.5 h-8 md:h-9 rounded-xl text-[11px] md:text-xs font-medium bg-card/60 border border-destructive/15 text-destructive/80 hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-colors duration-150"
+            className="group/btn w-full flex items-center gap-3 px-3.5 h-9 rounded-[14px] text-[11px] md:text-xs font-medium bg-gradient-to-r from-destructive/8 to-destructive/3 border border-destructive/12 text-destructive/70 hover:text-destructive hover:border-destructive/25 hover:from-destructive/12 hover:to-destructive/6 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => { e.stopPropagation(); onCancel(device.id); }}
           >
-            <XCircle className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Cancelar aquecimento</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-destructive/10 group-hover/btn:bg-destructive/15 transition-colors">
+              <XCircle className="w-3 h-3" />
+            </span>
+            <span className="truncate">Cancelar aquecimento</span>
           </button>
         )}
         {cycle && (
           <button
-            className="group/btn w-full flex items-center gap-2.5 px-3 md:px-3.5 h-8 md:h-9 rounded-xl text-[11px] md:text-xs font-medium bg-card/60 border border-border/15 text-muted-foreground hover:text-foreground hover:border-border/30 hover:bg-muted/10 transition-colors duration-150"
+            className="group/btn w-full flex items-center gap-3 px-3.5 h-9 rounded-[14px] text-[11px] md:text-xs font-medium bg-gradient-to-r from-card/80 to-card/40 border border-border/10 text-muted-foreground hover:text-foreground hover:border-border/25 hover:from-muted/15 hover:to-muted/5 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => { e.stopPropagation(); onNavigate(`/dashboard/warmup-v2/${device.id}`); }}
           >
-            <Pencil className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60 group-hover/btn:text-foreground transition-colors" /> Editar
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-muted/20 group-hover/btn:bg-muted/30 transition-colors">
+              <Pencil className="w-3 h-3 text-muted-foreground/60 group-hover/btn:text-foreground transition-colors" />
+            </span>
+            Editar
           </button>
         )}
         {onRemoveFromFolder && (
           <button
-            className="group/btn w-full flex items-center gap-2.5 px-3 md:px-3.5 h-8 md:h-9 rounded-xl text-[11px] md:text-xs font-medium bg-card/60 border border-amber-500/15 text-amber-500/80 hover:text-amber-500 hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors duration-150"
+            className="group/btn w-full flex items-center gap-3 px-3.5 h-9 rounded-[14px] text-[11px] md:text-xs font-medium bg-gradient-to-r from-amber-500/8 to-amber-500/3 border border-amber-500/12 text-amber-500/70 hover:text-amber-500 hover:border-amber-500/25 hover:from-amber-500/12 hover:to-amber-500/6 active:scale-[0.98] transition-all duration-200"
             onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(device.id); }}
           >
-            <FolderOpen className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Remover da pasta</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-amber-500/10 group-hover/btn:bg-amber-500/15 transition-colors">
+              <FolderOpen className="w-3 h-3" />
+            </span>
+            <span className="truncate">Remover da pasta</span>
           </button>
         )}
       </div>
