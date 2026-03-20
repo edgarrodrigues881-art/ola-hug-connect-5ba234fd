@@ -168,6 +168,18 @@ const WarmupInstanceDetail = () => {
 
   const { data: instanceGroups = [] } = useInstanceGroups(deviceId!);
   const { data: autosaveContacts = [] } = useAutosaveContacts();
+
+  // Autosave contact rotation stats
+  const autosaveStats = useMemo(() => {
+    const total = autosaveContacts.length;
+    const valid = autosaveContacts.filter((c: any) => c.is_active && c.contact_status !== "invalid" && c.contact_status !== "discarded").length;
+    const newContacts = autosaveContacts.filter((c: any) => c.is_active && (c.contact_status === "new" || !c.contact_status)).length;
+    const used = autosaveContacts.filter((c: any) => c.is_active && c.contact_status === "used").length;
+    const invalid = autosaveContacts.filter((c: any) => c.contact_status === "invalid").length;
+    const discarded = autosaveContacts.filter((c: any) => c.contact_status === "discarded").length;
+    const exhausted = valid > 0 && newContacts === 0;
+    return { total, valid, newContacts, used, invalid, discarded, exhausted };
+  }, [autosaveContacts]);
   const { data: community } = useCommunityMembership(deviceId!);
   const { data: auditLogs = [] } = useWarmupAuditLogs(cycle?.id);
   const { data: plans = [] } = useWarmupPlans();
