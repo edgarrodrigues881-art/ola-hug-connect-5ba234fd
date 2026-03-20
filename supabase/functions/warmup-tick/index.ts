@@ -106,7 +106,16 @@ function getAutosaveContactsForDay(dayIndex: number, chipState: string): number 
     if (daysSince === 1) return 4; // day 6: 4 contacts
     return 5; // day 7+: 5 contacts
   }
-  // recovered/unstable: keep 5 contacts (existing behavior)
+  if (chipState === "recovered") {
+    const autosaveStart = getGroupsEndDay("recovered") + 1; // day 6
+    const daysSince = dayIndex - autosaveStart;
+    if (daysSince < 0) return 0;
+    if (daysSince === 0) return 2; // day 6: 2 contacts
+    if (daysSince === 1) return 3; // day 7: 3 contacts
+    if (daysSince === 2) return 4; // day 8: 4 contacts
+    return 5; // day 9+: 5 contacts
+  }
+  // unstable: keep 5 contacts
   return 5;
 }
 

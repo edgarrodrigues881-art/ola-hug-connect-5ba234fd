@@ -102,6 +102,12 @@ function getAutosaveInfoForDay(dayIndex: number, chipState: string): { contacts:
     if (daysSince === 0) contacts = 3;
     else if (daysSince === 1) contacts = 4;
     else contacts = 5;
+  } else if (chipState === "recovered") {
+    const daysSince = dayIndex - autosaveStartDay;
+    if (daysSince === 0) contacts = 2;
+    else if (daysSince === 1) contacts = 3;
+    else if (daysSince === 2) contacts = 4;
+    else contacts = 5;
   } else {
     contacts = 5;
   }
