@@ -17,7 +17,6 @@ import logo from "@/assets/logo-new.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { AnnouncementManager } from "@/components/AnnouncementManager";
-import { useAutoSyncDevices } from "@/hooks/useAutoSyncDevices";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useFeatureControls } from "@/hooks/useFeatureControls";
@@ -49,8 +48,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { isFeatureBlocked } = useFeatureControls();
   const [maintenanceModal, setMaintenanceModal] = useState<{ name: string; message: string | null } | null>(null);
 
-  // Global auto-sync of device statuses every 5s across all dashboard pages
-  useAutoSyncDevices(15_000);
+  // Auto-sync temporariamente desativado para isolar a sobrecarga do backend.
 
   // Check if current route is blocked
   const blockedFeature = isFeatureBlocked(location.pathname);
