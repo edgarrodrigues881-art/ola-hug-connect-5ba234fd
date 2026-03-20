@@ -146,18 +146,37 @@ function getAutosaveRoundsPerContact(chipState: string = "new"): number {
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
-  return Math.min(5, daysSinceCommunity + 2);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 1;
+    return 2;
+  }
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 2;
+  if (d === 1) return 3;
+  if (d === 2) return 4;
+  return 5;
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
-  return Math.min(8, daysSinceCommunity + 3);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 2;
+    if (d === 1) return 3;
+    return 4;
+  }
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 3;
+  if (d === 1) return 4;
+  if (d === 2) return 5;
+  if (d === 3) return 6;
+  if (d <= 6) return 7;
+  return 8;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
