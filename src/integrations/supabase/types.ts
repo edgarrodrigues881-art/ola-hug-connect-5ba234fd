@@ -1595,6 +1595,7 @@ export type Database = {
           already_member_count: number
           completed_at: string | null
           created_at: string
+          description: string | null
           device_ids: Json
           error_count: number
           group_links: Json
@@ -1602,6 +1603,8 @@ export type Database = {
           max_delay: number
           min_delay: number
           name: string
+          pause_duration: number | null
+          pause_every: number | null
           started_at: string
           status: string
           success_count: number
@@ -1613,6 +1616,7 @@ export type Database = {
           already_member_count?: number
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           device_ids?: Json
           error_count?: number
           group_links?: Json
@@ -1620,6 +1624,8 @@ export type Database = {
           max_delay?: number
           min_delay?: number
           name?: string
+          pause_duration?: number | null
+          pause_every?: number | null
           started_at?: string
           status?: string
           success_count?: number
@@ -1631,6 +1637,7 @@ export type Database = {
           already_member_count?: number
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           device_ids?: Json
           error_count?: number
           group_links?: Json
@@ -1638,6 +1645,8 @@ export type Database = {
           max_delay?: number
           min_delay?: number
           name?: string
+          pause_duration?: number | null
+          pause_every?: number | null
           started_at?: string
           status?: string
           success_count?: number
