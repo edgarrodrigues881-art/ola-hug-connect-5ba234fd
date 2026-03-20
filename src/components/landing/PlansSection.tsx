@@ -143,20 +143,6 @@ const PlansSection = () => {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-10 text-sm text-white/20">
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 flex-shrink-0" />
-            Infraestrutura segura
-          </div>
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 flex-shrink-0" />
-            Operação estável
-          </div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 flex-shrink-0" />
-            Monitoramento contínuo
-          </div>
-        </div>
       </div>
     </section>
   );
