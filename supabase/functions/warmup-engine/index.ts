@@ -123,12 +123,21 @@ function getDailyBudget(dayIndex: number = 1, chipState: string = "new"): number
 
 function getAutosaveContactsForDay(dayIndex: number, chipState: string): number {
   if (chipState === "new") {
-    const autosaveStart = getGroupsEndDay("new") + 1; // day 5
+    const autosaveStart = getGroupsEndDay("new") + 1;
     const daysSince = dayIndex - autosaveStart;
     if (daysSince < 0) return 0;
-    if (daysSince === 0) return 3; // day 5: 3 contacts
-    if (daysSince === 1) return 4; // day 6: 4 contacts
-    return 5; // day 7+: 5 contacts
+    if (daysSince === 0) return 3;
+    if (daysSince === 1) return 4;
+    return 5;
+  }
+  if (chipState === "recovered") {
+    const autosaveStart = getGroupsEndDay("recovered") + 1;
+    const daysSince = dayIndex - autosaveStart;
+    if (daysSince < 0) return 0;
+    if (daysSince === 0) return 2;
+    if (daysSince === 1) return 3;
+    if (daysSince === 2) return 4;
+    return 5;
   }
   return 5;
 }
