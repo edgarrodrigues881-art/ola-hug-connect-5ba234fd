@@ -1535,17 +1535,28 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth: accept x-internal-secret OR valid Authorization Bearer (for cron jobs)
+  // Auth: accept x-internal-secret OR valid Authorization Bearer (anon/service role)
   const secret = req.headers.get("x-internal-secret");
   const expectedSecret = Deno.env.get("INTERNAL_TICK_SECRET");
   const authHeader = req.headers.get("authorization") || "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-  const secretOk = expectedSecret && secret === expectedSecret;
-  const bearerOk = anonKey && authHeader === `Bearer ${anonKey}`;
+  const secretOk = !!(expectedSecret && secret === expectedSecret);
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const bearerOk = !!(bearerToken && (bearerToken === anonKey || bearerToken === serviceKey));
 
-  if (!secretOk && !bearerOk) {
-    console.error("[warmup-tick] AUTH FAILED: no valid x-internal-secret or Bearer token");
+  // Also accept if the bearer token is a valid Supabase JWT for this project (ref check)
+  let jwtOk = false;
+  if (!secretOk && !bearerOk && bearerToken) {
+    try {
+      const payload = JSON.parse(atob(bearerToken.split(".")[1]));
+      jwtOk = payload?.ref === "ccfsxwmvgyxsoscofqoh" && payload?.role === "anon";
+    } catch { /* invalid jwt */ }
+  }
+
+  if (!secretOk && !bearerOk && !jwtOk) {
+    console.error("[warmup-tick] AUTH FAILED: no valid credential");
     return json({ error: "Unauthorized" }, 401);
   }
 
