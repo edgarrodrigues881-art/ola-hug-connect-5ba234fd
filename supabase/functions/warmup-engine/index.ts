@@ -57,7 +57,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 // groupsEnd: new/recovered = 4, unstable = 7
 
 function getGroupsEndDay(chipState: string): number {
-  if (chipState === "unstable") return 7;
+  if (chipState === "unstable") return 6;
   if (chipState === "recovered") return 5;
   return 4; // new
 }
@@ -139,10 +139,20 @@ function getAutosaveContactsForDay(dayIndex: number, chipState: string): number 
     if (daysSince === 2) return 4;
     return 5;
   }
+  if (chipState === "unstable") {
+    const autosaveStart = getGroupsEndDay("unstable") + 1; // day 7
+    const daysSince = dayIndex - autosaveStart;
+    if (daysSince < 0) return 0;
+    if (daysSince === 0) return 1;
+    if (daysSince === 1) return 3;
+    if (daysSince === 2) return 4;
+    return 5;
+  }
   return 5;
 }
 
-function getAutosaveRoundsPerContact(): number {
+function getAutosaveRoundsPerContact(chipState: string = "new"): number {
+  if (chipState === "unstable") return 5;
   return 3;
 }
 
@@ -175,14 +185,14 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.groupMsgs = totalBudget;
   } else if (phase === "autosave_enabled") {
     const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
-    const asRounds = getAutosaveRoundsPerContact();
+    const asRounds = getAutosaveRoundsPerContact(chipState);
     const asTotal = asContacts * asRounds;
     v.autosaveContacts = asContacts;
     v.autosaveRounds = asRounds;
     v.groupMsgs = Math.max(totalBudget - asTotal, 30);
   } else if (phase === "community_enabled") {
     const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
-    const asRounds = getAutosaveRoundsPerContact();
+    const asRounds = getAutosaveRoundsPerContact(chipState);
     const asTotal = asContacts * asRounds;
     v.autosaveContacts = asContacts;
     v.autosaveRounds = asRounds;

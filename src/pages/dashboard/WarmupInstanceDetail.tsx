@@ -93,7 +93,7 @@ function getExpectedDailyVolume(dayIndex: number, chipState: string): { min: num
 
 /* ── Auto Save contacts helper (mirrors server logic) ── */
 function getAutosaveInfoForDay(dayIndex: number, chipState: string): { contacts: number; msgsPerContact: number; totalMsgs: number } {
-  const autosaveStartDay = (chipState === "unstable" ? 7 : chipState === "recovered" ? 5 : 4) + 1;
+  const autosaveStartDay = (chipState === "unstable" ? 6 : chipState === "recovered" ? 5 : 4) + 1;
   if (dayIndex < autosaveStartDay) return { contacts: 0, msgsPerContact: 0, totalMsgs: 0 };
 
   let contacts: number;
@@ -108,10 +108,16 @@ function getAutosaveInfoForDay(dayIndex: number, chipState: string): { contacts:
     else if (daysSince === 1) contacts = 3;
     else if (daysSince === 2) contacts = 4;
     else contacts = 5;
+  } else if (chipState === "unstable") {
+    const daysSince = dayIndex - autosaveStartDay;
+    if (daysSince === 0) contacts = 1;
+    else if (daysSince === 1) contacts = 3;
+    else if (daysSince === 2) contacts = 4;
+    else contacts = 5;
   } else {
     contacts = 5;
   }
-  const msgsPerContact = 3;
+  const msgsPerContact = chipState === "unstable" ? 5 : 3;
   return { contacts, msgsPerContact, totalMsgs: contacts * msgsPerContact };
 }
 
@@ -123,12 +129,11 @@ const chipStateLabels: Record<string, string> = {
 
 /* ── Helper: autosave / community start day based on chip_state ── */
 function getAutosaveStartDay(chipState: string): number {
-  // Estável (new/recovered) = dia 5, Banido (unstable) = dia 7
-  const groupsEnd = chipState === "unstable" ? 6 : 4;
+  const groupsEnd = chipState === "unstable" ? 6 : chipState === "recovered" ? 5 : 4;
   return groupsEnd + 1;
 }
 function getCommunityStartDay(chipState: string): number {
-  const groupsEnd = chipState === "unstable" ? 6 : 4;
+  const groupsEnd = chipState === "unstable" ? 6 : chipState === "recovered" ? 5 : 4;
   return groupsEnd + 2;
 }
 
