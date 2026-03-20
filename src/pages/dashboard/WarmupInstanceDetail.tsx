@@ -1112,7 +1112,7 @@ const WarmupInstanceDetail = () => {
                     disabled={testingCommunity}
                   >
                     {testingCommunity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span className="text-[9px] font-semibold leading-none">Comunidade</span>
+                    <span className="text-[9px] font-semibold leading-none">Comunitário</span>
                   </button>
                 </div>
               )}
