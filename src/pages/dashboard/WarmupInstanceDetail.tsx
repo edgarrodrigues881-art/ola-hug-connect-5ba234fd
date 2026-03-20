@@ -1081,38 +1081,38 @@ const WarmupInstanceDetail = () => {
 
               {/* Quick actions */}
               {cycle.is_running && (
-                <div className="grid grid-cols-4 gap-1 mt-2">
+                <div className="grid grid-cols-4 gap-2 mt-3">
                   <button
-                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/8 transition-all disabled:opacity-40"
+                    className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 hover:border-amber-400/40 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)] transition-all duration-200 disabled:opacity-40 disabled:hover:shadow-none"
                     onClick={() => setShowAccelerateConfirm(true)}
                     disabled={accelerating}
                   >
-                    {accelerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FastForward className="w-4 h-4" />}
-                    <span className="text-[9px] font-semibold leading-none">Forçar</span>
+                    {accelerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FastForward className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                    <span className="text-[9px] font-bold leading-none tracking-wide">Forçar</span>
                   </button>
                   <button
-                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-purple-400/70 hover:text-purple-300 hover:bg-purple-500/8 transition-all disabled:opacity-40"
+                    className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-200 disabled:opacity-40 disabled:hover:shadow-none"
                     onClick={() => setShowAdvanceConfirm(true)}
                     disabled={advancingPhase || cycle.phase === "completed"}
                   >
-                    {advancingPhase ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4" />}
-                    <span className="text-[9px] font-semibold leading-none">Pular</span>
+                    {advancingPhase ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                    <span className="text-[9px] font-bold leading-none tracking-wide">Pular</span>
                   </button>
                   <button
-                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-sky-400/70 hover:text-sky-300 hover:bg-sky-500/8 transition-all disabled:opacity-40"
+                    className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 hover:border-sky-400/40 hover:shadow-[0_0_12px_rgba(14,165,233,0.15)] transition-all duration-200 disabled:opacity-40 disabled:hover:shadow-none"
                     onClick={handleTestAutosave}
                     disabled={testingAutosave}
                   >
-                    {testingAutosave ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span className="text-[9px] font-semibold leading-none">Auto Save</span>
+                    {testingAutosave ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                    <span className="text-[9px] font-bold leading-none tracking-wide">Auto Save</span>
                   </button>
                   <button
-                    className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-violet-400/70 hover:text-violet-300 hover:bg-violet-500/8 transition-all disabled:opacity-40"
+                    className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 hover:border-violet-400/40 hover:shadow-[0_0_12px_rgba(139,92,246,0.15)] transition-all duration-200 disabled:opacity-40 disabled:hover:shadow-none"
                     onClick={handleTestCommunity}
                     disabled={testingCommunity}
                   >
-                    {testingCommunity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span className="text-[9px] font-semibold leading-none">Comunitário</span>
+                    {testingCommunity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                    <span className="text-[9px] font-bold leading-none tracking-wide">Comunitário</span>
                   </button>
                 </div>
               )}
