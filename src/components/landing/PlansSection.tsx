@@ -5,34 +5,32 @@ import AnimateOnView from "@/components/AnimateOnView";
 
 const plans = [
   {
-    name: "Essencial", instances: 5, price: "89,90", perInstance: "17,98",
-    subtitle: "Ideal para quem está iniciando com estrutura profissional.",
-    extraCopy: null, cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Monitoramento em tempo real limitado", "Suporte padrão"],
-  },
-  {
-    name: "Start", instances: 10, price: "159,90", perInstance: "15,99",
+    name: "Start", instances: 10, price: "149,90", perInstance: "14,99",
     subtitle: "Ideal para quem está começando com estrutura profissional.",
-    extraCopy: null, cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Painel centralizado", "Monitoramento em tempo real", "Suporte padrão"],
+    extraCopy: null, cta: "Começar agora", popular: false,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"],
+    addon: "Relatórios WhatsApp + R$ 18,90/mês",
   },
   {
     name: "Pro", instances: 30, price: "349,90", perInstance: "11,66",
     subtitle: "Estrutura ideal para operadores ativos.",
-    extraCopy: "Plano mais escolhido por operadores ativos.", cta: "Contratar Plano", popular: true,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada de instâncias", "Monitoramento completo", "Suporte prioritário"],
+    extraCopy: null, cta: "Começar agora", popular: true,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"],
+    addon: "Relatórios WhatsApp + R$ 18,90/mês",
   },
   {
     name: "Scale", instances: 50, price: "549,90", perInstance: "10,99",
     subtitle: "Para operações em crescimento que precisam de volume e estabilidade.",
-    extraCopy: null, cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão avançada", "Monitoramento em tempo real", "Suporte prioritário"],
+    extraCopy: null, cta: "Começar agora", popular: false,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário", "Relatórios WhatsApp incluso"],
+    addon: null,
   },
   {
-    name: "Elite", instances: 100, price: "999,90", perInstance: "9,99",
+    name: "Elite", instances: 100, price: "899,90", perInstance: "8,99",
     subtitle: "Máxima capacidade operacional.",
-    extraCopy: "Indicado para estruturas robustas com alto volume e suporte dedicado.", cta: "Contratar Plano", popular: false,
-    features: ["Aquecimento automatizado incluso", "Disparador interativo incluso", "Gestão completa de instâncias", "Monitoramento avançado", "Atendimento prioritário dedicado"],
+    extraCopy: null, cta: "Começar agora", popular: false,
+    features: ["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário", "Relatórios WhatsApp incluso"],
+    addon: null,
   },
 ];
 
