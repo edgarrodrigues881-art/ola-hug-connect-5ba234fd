@@ -160,32 +160,41 @@ function detectMediaType(url: string): string {
 async function sendCaptionedMedia(baseUrl: string, token: string, phone: string, mediaUrl: string, mediaType: string, caption: string) {
   const normalizedCaption = typeof caption === "string" ? caption.trim() : "";
 
-  if (mediaType === "image") {
-    return await uazapiRequest(baseUrl, token, "/send/image", {
-      number: phone,
-      image: mediaUrl,
-      caption: normalizedCaption,
-      viewOnce: false,
-    });
-  }
-
-  const payload: any = {
+  const primaryPayload: Record<string, unknown> = {
     number: phone,
     file: mediaUrl,
     type: mediaType,
     caption: normalizedCaption,
   };
 
+  if (mediaType === "image") {
+    primaryPayload.compress = false;
+  }
+
   try {
-    return await uazapiRequest(baseUrl, token, "/send/media", payload);
+    return await uazapiRequest(baseUrl, token, "/send/media", primaryPayload);
   } catch (error) {
     console.warn(`Primary /send/media failed for ${phone}: ${error instanceof Error ? error.message : String(error)}`);
-    return await uazapiRequest(baseUrl, token, "/send/media", {
-      number: phone,
-      media: mediaUrl,
-      type: mediaType,
-      caption: normalizedCaption,
-    });
+
+    try {
+      return await uazapiRequest(baseUrl, token, "/send/media", {
+        number: phone,
+        media: mediaUrl,
+        type: mediaType,
+        caption: normalizedCaption,
+        ...(mediaType === "image" ? { compress: false } : {}),
+      });
+    } catch (fallbackError) {
+      if (mediaType === "image") {
+        return await uazapiRequest(baseUrl, token, "/send/image", {
+          number: phone,
+          image: mediaUrl,
+          caption: normalizedCaption,
+          viewOnce: false,
+        });
+      }
+      throw fallbackError;
+    }
   }
 }
 
