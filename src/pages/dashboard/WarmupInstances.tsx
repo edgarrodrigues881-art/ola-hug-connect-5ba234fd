@@ -239,10 +239,10 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   return (
     <div
       className={cn(
-        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150",
-        "bg-card shadow-sm hover:shadow-lg",
+        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-colors duration-100",
+        "bg-card shadow-sm",
         connected
-          ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
+          ? "border-primary/15 hover:border-primary/30"
           : "border-border/30 hover:border-border/50"
       )}
       onClick={() => onNavigate(`/dashboard/warmup-v2/${device.id}`)}
