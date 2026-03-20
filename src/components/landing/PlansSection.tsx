@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Check, ArrowRight, Lock, Activity, TrendingUp } from "lucide-react";
+import { Check } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import AnimateOnView from "@/components/AnimateOnView";
 
