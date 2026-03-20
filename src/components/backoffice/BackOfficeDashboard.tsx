@@ -510,6 +510,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "tokens-global": return <AdminTokensGlobal />;
         case "community": return <AdminCommunityWarmer />;
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
+        case "warmup-diagnostic": return <AdminWarmupDiagnostic />;
         case "msg-generator": return <MessageGeneratorPreview />;
         case "announcements": return <AdminAnnouncements />;
         case "feature-controls": return <AdminFeatureControls />;
