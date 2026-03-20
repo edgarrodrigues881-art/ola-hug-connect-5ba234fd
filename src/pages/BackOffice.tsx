@@ -70,8 +70,23 @@ const BackOffice = ({ initialTab }: { initialTab?: string }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLogging(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) toast({ title: "Credenciais inválidas", variant: "destructive" });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        const isTimeout = error.message?.includes("timeout") || error.message?.includes("fetch") || error.status === 504 || error.status === 500;
+        toast({
+          title: isTimeout ? "Servidor temporariamente indisponível" : "Credenciais inválidas",
+          description: isTimeout ? "O banco de dados está sobrecarregado. Aguarde alguns minutos e tente novamente." : error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao servidor. Tente novamente em alguns minutos.",
+        variant: "destructive",
+      });
+    }
     setLogging(false);
   };
 
