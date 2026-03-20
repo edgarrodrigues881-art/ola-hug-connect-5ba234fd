@@ -203,20 +203,24 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
   const isWarming = cycle && cycle.is_running && cycle.phase !== "completed";
   const warmupProgress = getWarmupProgress(cycle);
 
-  // Disconnect elapsed timer (counts UP from disconnection moment)
-  const [countdown, setCountdown] = useState("");
-  useEffect(() => {
+  // Disconnect elapsed timer — update every 60s instead of 1s to reduce re-renders
+  const [countdown, setCountdown] = useState(() => {
+    if (connected) return "";
     const disconnectSince = device.updated_at ?? device.created_at;
-    if (connected || !disconnectSince) {
-      setCountdown("");
-      return;
-    }
-
+    if (!disconnectSince) return "";
+    const elapsed = Date.now() - new Date(disconnectSince).getTime();
+    if (elapsed < 0 || Number.isNaN(elapsed)) return "";
+    const totalMin = Math.floor(elapsed / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  });
+  useEffect(() => {
+    if (connected) { setCountdown(""); return; }
+    const disconnectSince = device.updated_at ?? device.created_at;
+    if (!disconnectSince) return;
     const disconnectedAt = new Date(disconnectSince).getTime();
-    if (Number.isNaN(disconnectedAt)) {
-      setCountdown("");
-      return;
-    }
+    if (Number.isNaN(disconnectedAt)) return;
 
     const calc = () => {
       const elapsed = Date.now() - disconnectedAt;
@@ -228,17 +232,17 @@ const DeviceCard = memo(({ device, cycle, onPause, onResume, onCancel, onConnect
     };
 
     calc();
-    const interval = setInterval(calc, 1000);
+    const interval = setInterval(calc, 60_000); // every 60s instead of 1s
     return () => clearInterval(interval);
   }, [connected, device.updated_at, device.created_at]);
 
   return (
     <div
       className={cn(
-        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150",
-        "bg-card shadow-sm hover:shadow-lg",
+        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-colors duration-100",
+        "bg-card shadow-sm",
         connected
-          ? "border-primary/15 hover:border-primary/30 hover:shadow-primary/5"
+          ? "border-primary/15 hover:border-primary/30"
           : "border-border/30 hover:border-border/50"
       )}
       onClick={() => onNavigate(`/dashboard/warmup-v2/${device.id}`)}
