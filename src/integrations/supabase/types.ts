@@ -3200,6 +3200,8 @@ export type Database = {
         | "paused"
         | "error"
         | "community_light"
+        | "community_ramp_up"
+        | "community_stable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3381,6 +3383,8 @@ export const Constants = {
         "paused",
         "error",
         "community_light",
+        "community_ramp_up",
+        "community_stable",
       ],
     },
   },

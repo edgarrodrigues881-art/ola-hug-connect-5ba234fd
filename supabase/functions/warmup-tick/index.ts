@@ -3141,16 +3141,30 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         }
 
         if (!scored.length) {
-          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
-          await db.from("warmup_jobs")
-            .update({ status: "pending", run_at: retryAt, last_error: "Todos os pares ocupados ou em cooldown" })
-            .eq("id", job.id);
-          bufferAudit({
-            user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
-            level: "info", event_type: "community_all_busy",
-            message: "Todos os pares ocupados ou em cooldown — nada a fazer agora",
-            meta: { total_pairs: uniquePairs.length },
-          });
+          const busyAttempts = (job.attempts || 0) + 1;
+          const MAX_BUSY_RETRIES = 5;
+          if (busyAttempts >= MAX_BUSY_RETRIES) {
+            await db.from("warmup_jobs")
+              .update({ status: "failed", last_error: `Todos os pares ocupados após ${busyAttempts} tentativas`, attempts: busyAttempts })
+              .eq("id", job.id);
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "warn", event_type: "community_all_busy_exhausted",
+              message: `Todos os pares ocupados — desistindo após ${busyAttempts} tentativas`,
+              meta: { total_pairs: uniquePairs.length, attempts: busyAttempts },
+            });
+          } else {
+            const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+            await db.from("warmup_jobs")
+              .update({ status: "pending", run_at: retryAt, last_error: "Todos os pares ocupados ou em cooldown", attempts: busyAttempts })
+              .eq("id", job.id);
+            bufferAudit({
+              user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
+              level: "info", event_type: "community_all_busy",
+              message: `Todos os pares ocupados — tentativa ${busyAttempts}/${MAX_BUSY_RETRIES}`,
+              meta: { total_pairs: uniquePairs.length, attempts: busyAttempts },
+            });
+          }
           return false;
         }
 
@@ -3188,10 +3202,18 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         });
 
         if (pickedResult !== "ok") {
-          const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
-          await db.from("warmup_jobs")
-            .update({ status: "pending", run_at: retryAt, last_error: `Comunidade sem envio efetivo: ${pickedResult}` })
-            .eq("id", job.id);
+          const noSendAttempts = (job.attempts || 0) + 1;
+          const MAX_NO_SEND_RETRIES = 4;
+          if (noSendAttempts >= MAX_NO_SEND_RETRIES) {
+            await db.from("warmup_jobs")
+              .update({ status: "failed", last_error: `Comunidade sem envio efetivo após ${noSendAttempts} tentativas: ${pickedResult}`, attempts: noSendAttempts })
+              .eq("id", job.id);
+          } else {
+            const retryAt = new Date(Date.now() + randInt(180, 600) * 1000).toISOString();
+            await db.from("warmup_jobs")
+              .update({ status: "pending", run_at: retryAt, last_error: `Comunidade sem envio efetivo: ${pickedResult}`, attempts: noSendAttempts })
+              .eq("id", job.id);
+          }
           return false;
         }
 
