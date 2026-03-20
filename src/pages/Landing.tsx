@@ -226,15 +226,112 @@ const Features = () => (
 );
 
 // ─── 5. Planos ───
-const plans = [
-  { name: "Start", instances: 10, price: "149,90", popular: false, whatsappReports: false, warmup: 65 },
-  { name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false, warmup: 87 },
-  { name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true, warmup: 94 },
-  { name: "Elite", instances: 100, price: "899,90", popular: false, whatsappReports: true, warmup: 99 },
+const allPlans = [
+  {
+    name: "Essencial", instances: 5, price: "89,90", popular: false, whatsappReports: false,
+    subtitle: "Para quem está começando a aquecer chips com segurança e estrutura profissional.",
+    extraCopy: null, cta: "Começar agora",
+    features: ["Aquecimento automatizado", "Disparo interativo", "Monitoramento em tempo real limitado", "Suporte padrão", "Relatórios via WhatsApp (add-on)", "Módulos extras disponíveis"],
+  },
+  {
+    name: "Start", instances: 10, price: "159,90", popular: false, whatsappReports: false,
+    subtitle: "Para quem já validou a operação e quer expandir.",
+    extraCopy: "Melhor custo-benefício inicial", cta: "Começar agora",
+    features: ["Aquecimento automatizado", "Disparo interativo", "Painel centralizado", "Monitoramento em tempo real", "Organização de instâncias", "Relatórios via WhatsApp (add-on)", "Módulos extras disponíveis"],
+  },
+  {
+    name: "Pro", instances: 30, price: "349,90", popular: true, whatsappReports: false,
+    subtitle: "Para operadores ativos que precisam escalar com consistência.",
+    extraCopy: "Recomendado para operações reais", cta: "Escalar operação",
+    features: ["Aquecimento automatizado", "Disparo interativo", "Painel centralizado", "Gestão avançada de instâncias", "Monitoramento completo", "Suporte prioritário", "Relatórios via WhatsApp (add-on)", "Módulos extras disponíveis"],
+  },
+  {
+    name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true,
+    subtitle: "Para quem precisa escalar com mais chips e visibilidade sobre toda a operação.",
+    extraCopy: null, cta: "Escalar operação",
+    features: ["Aquecimento automatizado", "Disparo interativo", "Painel centralizado", "Monitoramento em tempo real", "Suporte prioritário", "Relatórios via WhatsApp incluso", "Módulos extras disponíveis"],
+  },
+  {
+    name: "Elite", instances: 100, price: "999,90", popular: false, whatsappReports: true,
+    subtitle: "Ideal para operações que exigem volume alto com performance e suporte dedicado.",
+    extraCopy: "Alta performance garantida", cta: "Ir para o Elite",
+    features: ["Aquecimento automatizado em escala", "Disparo avançado", "Monitoramento avançado", "Suporte VIP", "Relatórios via WhatsApp incluso", "Módulos extras disponíveis"],
+  },
+  {
+    name: "Custom", instances: 200, price: null, popular: false, whatsappReports: true,
+    subtitle: "Soluções personalizadas para operações de grande escala com necessidades específicas.",
+    extraCopy: null, cta: "Falar com suporte",
+    features: ["Instâncias sob medida", "Aquecimento automatizado em escala", "Estrutura personalizada", "Infraestrutura dedicada", "Suporte VIP", "Ajustes personalizados", "Relatórios via WhatsApp incluso", "Configuração sob consulta"],
+  },
 ];
 
 const Plans = () => {
   const navigate = useNavigate();
+  const topRow = allPlans.slice(0, 3);
+  const bottomRow = allPlans.slice(3);
+
+  const renderCard = (p: typeof allPlans[0]) => (
+    <motion.div key={p.name} variants={fadeUp}
+      className={`relative rounded-2xl border transition-all duration-300 ${
+        p.popular
+          ? "border-amber-500/40 bg-amber-500/[0.04] p-8 md:p-9 shadow-[0_0_40px_-8px_rgba(245,158,11,0.2)] z-10"
+          : "border-white/[0.08] bg-white/[0.03] p-7 md:p-8 hover:border-white/[0.14]"
+      }`}
+    >
+      {p.popular && (
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-black px-4 py-1.5 rounded-full">
+          Recomendado
+        </span>
+      )}
+      <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
+      <p className="text-[13px] text-white/40 font-medium mb-2">
+        {p.name === "Custom" ? "200+ instâncias" : `até ${p.instances} instâncias`}
+      </p>
+      {p.subtitle && <p className="text-xs text-white/25 leading-relaxed mb-2 min-h-[2rem]">{p.subtitle}</p>}
+      {p.extraCopy && <p className={`text-xs font-semibold mb-3 ${p.popular ? "text-amber-400/80" : "text-emerald-400/70"}`}>{p.extraCopy}</p>}
+      {!p.extraCopy && <div className="mb-3" />}
+
+      <div className="flex items-baseline gap-1 mb-5">
+        {p.price ? (
+          <>
+            <span className="text-sm font-medium text-white/30">R$</span>
+            <span className="text-3xl font-extrabold text-white italic">{p.price.split(",")[0]}</span>
+            <span className="text-base font-bold text-white/35 italic">,{p.price.split(",")[1]}</span>
+            <span className="text-sm font-medium text-white/25">/ mês</span>
+          </>
+        ) : (
+          <span className="text-3xl font-extrabold text-white italic">Sob consulta</span>
+        )}
+      </div>
+
+      <div className="h-px bg-white/[0.05] mb-5" />
+
+      <ul className="space-y-2.5 mb-7">
+        {p.features.map((item) => (
+          <li key={item} className="flex items-start gap-2.5 text-[13px] text-white/50 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-white/30 flex-shrink-0 mt-0.5" />{item}
+          </li>
+        ))}
+      </ul>
+      <Button onClick={() => {
+        if (p.name === "Custom") {
+          const msg = `Olá, tudo bem?\nTenho interesse no plano Custom (200+ instâncias).\nPode me enviar mais detalhes?`;
+          window.open(`https://wa.me/5562994192500?text=${encodeURIComponent(msg)}`, "_blank");
+        } else {
+          navigate("/auth?mode=signup");
+        }
+      }}
+        className={`w-full text-[13px] font-semibold h-10 ${
+          p.popular
+            ? "bg-amber-500 hover:bg-amber-400 text-black shadow-md"
+            : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+        }`}
+      >
+        {p.cta} <ArrowRight className="w-4 h-4 ml-1" />
+      </Button>
+    </motion.div>
+  );
+
   return (
     <Section id="planos">
       <div className="text-center mb-10">
@@ -242,57 +339,11 @@ const Plans = () => {
         <SectionTitle>Planos sob medida para cada operação</SectionTitle>
         <SectionSub>Acesso completo em todos os planos. O que muda é a quantidade de instâncias e nível de suporte.</SectionSub>
       </div>
-      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
-        {plans.map((p) => (
-          <motion.div key={p.name} variants={fadeUp}
-            className={`relative rounded-2xl border transition-all duration-300 ${
-              p.popular
-                ? "border-[hsl(var(--primary))]/40 bg-[hsl(var(--primary))]/[0.06] p-8 md:p-9 scale-[1.03] shadow-[0_0_40px_-8px_hsl(var(--primary)/0.25)] z-10"
-                : "border-white/[0.08] bg-white/[0.03] p-7 md:p-8 hover:border-white/[0.14]"
-            }`}
-          >
-            {p.popular && (
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider bg-[hsl(var(--primary))] text-white px-4 py-1.5 rounded-full shadow-lg shadow-[hsl(var(--primary))]/30">
-                Mais escolhido
-              </span>
-            )}
-            {/* Warmup badge */}
-            <div className="absolute top-4 right-4 flex items-center gap-1 bg-orange-500/10 border border-orange-500/25 rounded-full px-2.5 py-1">
-              <Flame className="w-3.5 h-3.5 text-orange-400" />
-              <span className="text-[11px] font-bold text-orange-400">{p.warmup}%</span>
-            </div>
-            <h3 className="text-xl font-extrabold text-white mb-1">{p.name}</h3>
-            <p className="text-[13px] text-white/40 font-medium mb-4">até {p.instances} instâncias</p>
-            <div className="flex items-baseline gap-1 mb-6">
-              <span className="text-sm font-medium text-white/30">R$</span>
-              <span className="text-3xl font-extrabold text-white">{p.price.split(",")[0]}</span>
-              <span className="text-base font-bold text-white/35">,{p.price.split(",")[1]}</span>
-              <span className="text-sm font-medium text-white/25">/mês</span>
-            </div>
-            <ul className="space-y-3 mb-7">
-              {["Envios ilimitados", "Aquecimento automático", "Campanhas completas", "Suporte prioritário"].map((item) => (
-              <li key={item} className="flex items-center gap-2.5 text-[13px] text-white/50 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--primary))]/80 flex-shrink-0" />{item}
-                </li>
-              ))}
-              <li className="flex items-center gap-2.5 text-[13px] font-medium">
-                <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${p.whatsappReports ? "text-[hsl(var(--primary))]" : "text-white/15"}`} />
-                <span className={p.whatsappReports ? "text-white/60" : "text-white/25"}>
-                  Relatórios WhatsApp {p.whatsappReports ? "incluso" : <span className="text-white/30 ml-1">+ R$ 18,90/mês</span>}
-                </span>
-              </li>
-            </ul>
-            <Button onClick={() => navigate("/auth?mode=signup")}
-              className={`w-full text-[13px] font-semibold h-10 ${
-                p.popular
-                  ? "bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white shadow-md shadow-[hsl(var(--primary))]/20"
-                  : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
-              }`}
-            >
-              Começar agora
-            </Button>
-          </motion.div>
-        ))}
+      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start max-w-5xl mx-auto mb-5">
+        {topRow.map(renderCard)}
+      </motion.div>
+      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start max-w-5xl mx-auto">
+        {bottomRow.map(renderCard)}
       </motion.div>
     </Section>
   );
