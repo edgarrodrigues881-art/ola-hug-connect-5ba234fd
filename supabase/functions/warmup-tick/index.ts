@@ -2593,7 +2593,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           // The first message IS the validation — if it fails, don't waste 4 more attempts
           if (mIdx === 0) {
             await db.from("warmup_autosave_contacts")
-              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .update({ is_active: false, contact_status: "discarded", updated_at: new Date().toISOString() })
               .eq("phone_e164", target.phone_e164)
               .eq("user_id", job.user_id);
 
