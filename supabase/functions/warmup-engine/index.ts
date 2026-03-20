@@ -807,7 +807,7 @@ async function handleStart(db: any, userId: string | null, body: any) {
     }
 
     // Enable community membership if phase requires it
-    if (initialPhase === "community_enabled") {
+    if (isCommunityPhase(initialPhase)) {
       await db.from("warmup_community_membership").upsert({
         user_id: userId,
         device_id,
