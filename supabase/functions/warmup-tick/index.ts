@@ -65,7 +65,7 @@ function getPhaseForDay(day: number, chipState: string): string {
 }
 
 function isCommunityPhase(phase: string): boolean {
-  return phase === "community_ramp_up" || phase === "community_stable";
+  return phase === "community_ramp_up" || phase === "community_stable" || phase === "community_enabled" || phase === "community_light";
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1630,44 +1630,141 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
   // ── ORPHANED CYCLE RECOVERY: Running cycles with 0 pending jobs during operating hours ──
   if (withinWindow && isPrimaryShard) {
     const { data: runningCycles } = await db.from("warmup_cycles")
-      .select("id, user_id, device_id, day_index, days_total, chip_state, phase, daily_interaction_budget_target, daily_interaction_budget_used")
+      .select("id, user_id, device_id, day_index, days_total, chip_state, phase, daily_interaction_budget_target, daily_interaction_budget_used, last_daily_reset_at, first_24h_ends_at")
       .eq("is_running", true)
-      .not("phase", "in", '("completed","paused","error","pre_24h")')
+      .not("phase", "in", '("completed","paused","error")')
       .limit(500);
 
     if (runningCycles?.length) {
-      // Get all cycle IDs that have at least one pending job
       const cycleIds = runningCycles.map((c: any) => c.id);
-      const { data: pendingJobCycles } = await db.from("warmup_jobs")
-        .select("cycle_id")
-        .in("cycle_id", cycleIds)
-        .in("status", ["pending", "running"]);
 
-      const cyclesWithJobs = new Set((pendingJobCycles || []).map((j: any) => j.cycle_id));
+      // Batch: get all cycle IDs that have pending jobs AND pending daily_reset jobs
+      const [pendingJobsRes, pendingResetRes] = await Promise.all([
+        db.from("warmup_jobs").select("cycle_id").in("cycle_id", cycleIds).in("status", ["pending", "running"]),
+        db.from("warmup_jobs").select("cycle_id").in("cycle_id", cycleIds).eq("job_type", "daily_reset").eq("status", "pending"),
+      ]);
+
+      const cyclesWithJobs = new Set((pendingJobsRes.data || []).map((j: any) => j.cycle_id));
+      const cyclesWithReset = new Set((pendingResetRes.data || []).map((j: any) => j.cycle_id));
+      const nowMs = Date.now();
+      const STALE_RESET_MS = 26 * 60 * 60 * 1000; // 26 hours — should reset every ~24h
 
       for (const cycle of runningCycles) {
-        if (cyclesWithJobs.has(cycle.id)) continue;
-        // This cycle is running but has NO pending/running jobs — orphaned
-        if (cycle.daily_interaction_budget_used >= cycle.daily_interaction_budget_target) continue; // budget exhausted, normal
+        const chipState = cycle.chip_state || "new";
 
-        // Check device is connected before regenerating
+        // ── FIX A: Force daily reset for cycles stuck >26h without reset ──
+        const lastResetMs = cycle.last_daily_reset_at ? new Date(cycle.last_daily_reset_at).getTime() : 0;
+        const resetAge = nowMs - lastResetMs;
+
+        if (cycle.phase !== "pre_24h" && resetAge > STALE_RESET_MS) {
+          // Check device is connected
+          const { data: dev } = await db.from("devices").select("status").eq("id", cycle.device_id).maybeSingle();
+          if (!dev || !CONNECTED_STATUSES.includes(dev.status)) continue;
+
+          const newDay = Math.min((cycle.day_index || 1) + 1, cycle.days_total);
+          if (newDay > cycle.days_total) {
+            await db.from("warmup_cycles").update({ is_running: false, phase: "completed" }).eq("id", cycle.id);
+            continue;
+          }
+
+          const oldPhase = cycle.phase;
+          const newPhase = getPhaseForDay(newDay, chipState);
+
+          // Cancel old jobs
+          await db.from("warmup_jobs")
+            .update({ status: "cancelled", last_error: "Cancelado: reset forçado por ciclo travado" })
+            .eq("cycle_id", cycle.id).eq("status", "pending")
+            .in("job_type", [...INTERACTION_JOB_TYPES, "enable_autosave", "enable_community", "daily_reset"]);
+
+          const resetAt = new Date().toISOString();
+          await db.from("warmup_cycles").update({
+            day_index: newDay, phase: newPhase,
+            last_daily_reset_at: resetAt,
+            daily_interaction_budget_used: 0, daily_unique_recipients_used: 0,
+          }).eq("id", cycle.id);
+
+          // Ensure community membership
+          if (["autosave_enabled", "community_ramp_up", "community_stable"].includes(newPhase) || isCommunityPhase(newPhase)) {
+            const { data: membership } = await db.from("warmup_community_membership")
+              .select("id, is_enabled").eq("device_id", cycle.device_id).maybeSingle();
+            if (!membership) {
+              await db.from("warmup_community_membership").insert({
+                user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+                is_eligible: true, is_enabled: true, enabled_at: resetAt,
+              });
+            } else if (!membership.is_enabled) {
+              await db.from("warmup_community_membership")
+                .update({ is_enabled: true, is_eligible: true, enabled_at: resetAt, cycle_id: cycle.id })
+                .eq("id", membership.id);
+            }
+          }
+
+          // Reconcile community pairs
+          if (isCommunityPhase(newPhase)) {
+            await reconcileCommunityPairs(db, { deviceId: cycle.device_id, userId: cycle.user_id, cycleId: cycle.id, dayIndex: newDay, chipState });
+          }
+
+          await ensureJoinGroupJobs(db, cycle.id, cycle.user_id, cycle.device_id);
+          await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, newDay, newPhase, chipState, true);
+
+          // Schedule next daily reset
+          const nextReset = new Date();
+          nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+          nextReset.setUTCHours(9, 50, 0, 0);
+          await db.from("warmup_jobs").insert({
+            user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+            job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
+          });
+
+          await db.from("warmup_audit_logs").insert({
+            user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+            level: "warning", event_type: "stale_reset_forced",
+            message: `Ciclo travado há ${Math.round(resetAge / 3600000)}h sem reset. Reset forçado: dia ${cycle.day_index} → ${newDay}, fase: ${oldPhase} → ${newPhase}`,
+            meta: { old_day: cycle.day_index, new_day: newDay, old_phase: oldPhase, new_phase: newPhase, stale_hours: Math.round(resetAge / 3600000) },
+          });
+          console.log(`[warmup-tick] STALE RESET: cycle ${cycle.id} stuck ${Math.round(resetAge / 3600000)}h — forced day ${cycle.day_index} → ${newDay}, ${oldPhase} → ${newPhase}`);
+          continue;
+        }
+
+        // ── FIX B: Ensure every running cycle has a daily_reset job ──
+        if (cycle.phase !== "pre_24h" && !cyclesWithReset.has(cycle.id)) {
+          const nextReset = new Date();
+          nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+          nextReset.setUTCHours(9, 50, 0, 0);
+          // If reset for tomorrow is already past (unlikely), schedule for day after
+          if (nextReset.getTime() < nowMs) nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+          await db.from("warmup_jobs").insert({
+            user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+            job_type: "daily_reset", payload: {}, run_at: nextReset.toISOString(), status: "pending",
+          });
+          await db.from("warmup_audit_logs").insert({
+            user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+            level: "warning", event_type: "daily_reset_chain_restored",
+            message: `Reset diário ausente detectado — cadeia restaurada para ${nextReset.toISOString()}`,
+          });
+          console.log(`[warmup-tick] RESET CHAIN RESTORED: cycle ${cycle.id} had no daily_reset job`);
+        }
+
+        // Skip pre_24h for orphan recovery below
+        if (cycle.phase === "pre_24h") continue;
+
+        // ── Original orphan recovery: running with 0 pending jobs ──
+        if (cyclesWithJobs.has(cycle.id)) continue;
+        if (cycle.daily_interaction_budget_used >= cycle.daily_interaction_budget_target && cycle.daily_interaction_budget_target > 0) continue;
+
         const { data: dev } = await db.from("devices").select("status").eq("id", cycle.device_id).maybeSingle();
         if (!dev || !CONNECTED_STATUSES.includes(dev.status)) continue;
 
         console.log(`[warmup-tick] ORPHAN RECOVERY: cycle ${cycle.id} (${cycle.phase}, day ${cycle.day_index}) has 0 pending jobs, budget ${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target} — regenerating`);
 
-        // Regenerate today's jobs
         await scheduleDayJobs(db, cycle.id, cycle.user_id, cycle.device_id, cycle.day_index, cycle.phase, cycle.chip_state, true);
         await ensureNextDailyResetJob(db, { user_id: cycle.user_id, device_id: cycle.device_id }, cycle.id);
         await ensureJoinGroupJobs(db, cycle.id, cycle.user_id, cycle.device_id);
 
         await db.from("warmup_audit_logs").insert({
-          user_id: cycle.user_id,
-          device_id: cycle.device_id,
-          cycle_id: cycle.id,
-          level: "warning",
-          event_type: "orphan_recovery",
-          message: `Ciclo órfão recuperado: 0 jobs pendentes detectados. Reagendamento gerado. Budget: ${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target}`,
+          user_id: cycle.user_id, device_id: cycle.device_id, cycle_id: cycle.id,
+          level: "warning", event_type: "orphan_recovery",
+          message: `Ciclo órfão recuperado: 0 jobs pendentes. Budget: ${cycle.daily_interaction_budget_used}/${cycle.daily_interaction_budget_target}`,
         });
       }
     }

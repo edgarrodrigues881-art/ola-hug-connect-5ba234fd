@@ -8,7 +8,7 @@ import {
   Flame, ListTodo, Server, Heart, Loader2, LogOut,
   ChevronRight, Menu, X, BookOpen, MessageCircle, Clock,
   AlertTriangle, XCircle, Skull, Check, Mail, Plug, Sparkles, Key,
-  Send, FileText, Cable, Megaphone, List, Trash2, ToggleLeft
+  Send, FileText, Cable, Megaphone, List, Trash2, ToggleLeft, Activity
 } from "lucide-react";
 import logoNew from "@/assets/logo-new.png";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const AdminWarmupJobs = lazy(() => import("./AdminWarmupJobs"));
 const AdminInfra = lazy(() => import("./AdminInfra"));
 const AdminCommunityWarmer = lazy(() => import("./AdminCommunityWarmer"));
 const AdminWarmupRoadmap = lazy(() => import("./AdminWarmupRoadmap"));
+const AdminWarmupDiagnostic = lazy(() => import("./AdminWarmupDiagnostic"));
 const AdminMessages = lazy(() => import("./AdminMessages"));
 const AdminConexao = lazy(() => import("./AdminConexao"));
 const AdminTokensGlobal = lazy(() => import("./AdminTokensGlobal"));
@@ -77,6 +78,7 @@ const NAV_ITEMS = [
   { id: "tokens-global", label: "Tokens Globais", shortLabel: "Tokens", icon: Key, group: "sistema", badge: false },
   { id: "community", label: "Comunidade", shortLabel: "Social", icon: Heart, group: "sistema", badge: false },
   { id: "msg-generator", label: "Gerador de Mensagens", shortLabel: "Gerador", icon: Sparkles, group: "operacao", badge: false },
+  { id: "warmup-diagnostic", label: "Diagnóstico Warmup", shortLabel: "Diagnóstico", icon: Activity, group: "operacao", badge: false },
 ] as const;
 
 const GROUP_LABELS: Record<string, string> = {
@@ -509,6 +511,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
         case "tokens-global": return <AdminTokensGlobal />;
         case "community": return <AdminCommunityWarmer />;
         case "warmup-roadmap": return <AdminWarmupRoadmap />;
+        case "warmup-diagnostic": return <AdminWarmupDiagnostic />;
         case "msg-generator": return <MessageGeneratorPreview />;
         case "announcements": return <AdminAnnouncements />;
         case "feature-controls": return <AdminFeatureControls />;
