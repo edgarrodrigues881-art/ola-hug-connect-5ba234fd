@@ -1613,17 +1613,6 @@ const WarmupInstances = () => {
               className="pl-8 h-8 text-xs bg-card/50 border-border/30"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs bg-card/50 border-border/30">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="connected">Conectados</SelectItem>
-              <SelectItem value="disconnected">Desconectados</SelectItem>
-              <SelectItem value="warming">Aquecendo</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       )}
 
