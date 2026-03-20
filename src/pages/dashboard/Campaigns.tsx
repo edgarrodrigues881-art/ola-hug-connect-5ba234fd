@@ -1453,8 +1453,8 @@ const Campaigns = () => {
                 
                 <div className="space-y-3">
                   {buttons.map((btn, idx) => {
-                    const typeLabel = btn.type === "reply" ? "Resposta Rápida" : btn.type === "url" ? "Link (URL)" : "Ligar (Telefone)";
-                    const TypeIcon = btn.type === "reply" ? MousePointerClick : btn.type === "url" ? Link : Phone;
+                    const typeLabel = btn.type === "reply" ? "Resposta Rápida" : "Link (URL)";
+                    const TypeIcon = btn.type === "reply" ? MousePointerClick : Link;
                     return (
                       <div key={btn.id} className="rounded-xl border border-border/30 dark:border-border/15 bg-muted/15 dark:bg-muted/8 p-4 space-y-3">
                         <div className="flex items-center justify-between">
@@ -1476,7 +1476,6 @@ const Campaigns = () => {
                                 {[
                                   { t: "reply" as const, label: "Resposta Rápida", Ic: MousePointerClick },
                                   { t: "url" as const, label: "Link (URL)", Ic: Link },
-                                  { t: "phone" as const, label: "Ligar (Telefone)", Ic: Phone },
                                 ].map(opt => (
                                   <button key={opt.t} className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2", btn.type === opt.t && "bg-accent")}
                                     onClick={() => updateButton(btn.id, "type", opt.t)}>

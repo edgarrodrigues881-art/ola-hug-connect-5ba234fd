@@ -361,7 +361,7 @@ const Templates = () => {
   };
 
   const buttonTypeLabel = (type: string) => {
-    const map: Record<string, string> = { reply: "Resposta Rápida", url: "Link (URL)", phone: "Ligar (Telefone)" };
+    const map: Record<string, string> = { reply: "Resposta Rápida", url: "Link (URL)" };
     return map[type] || type;
   };
 
@@ -765,7 +765,6 @@ const Templates = () => {
                               {[
                                 { t: "reply" as const, label: "Resposta Rápida", Ic: MousePointerClick },
                                 { t: "url" as const, label: "Link (URL)", Ic: Link },
-                                { t: "phone" as const, label: "Ligar (Telefone)", Ic: Phone },
                               ].map(opt => (
                                 <button key={opt.t} className={cn("w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-accent transition-colors flex items-center gap-2", btn.type === opt.t && "bg-accent")}
                                   onClick={() => updateButton(btn.id, "type", opt.t)}>
