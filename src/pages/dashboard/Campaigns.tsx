@@ -1953,16 +1953,20 @@ const Campaigns = () => {
                       </div>
                       <div>
                         <p className="text-[13px] font-bold text-foreground">Instâncias</p>
-                        <p className="text-[10px] text-muted-foreground/50">{devices.length} disponível{devices.length !== 1 ? "is" : ""}</p>
+                        <p className="text-[10px] text-muted-foreground/50">{connectedDevices.length} conectada{connectedDevices.length !== 1 ? "s" : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {devices.length > 0 && (
+                      {connectedDevices.length > 0 && (
                         <button
-                          onClick={() => setSelectedDevices(prev => prev.length === devices.length ? [] : devices.map(d => d.id))}
+                          onClick={() => {
+                            const allConnectedIds = connectedDevices.map(d => d.id);
+                            const allSelected = allConnectedIds.every(id => selectedDevices.includes(id));
+                            setSelectedDevices(allSelected ? [] : allConnectedIds);
+                          }}
                           className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
                         >
-                          {selectedDevices.length === devices.length ? "Desmarcar todas" : "Selecionar todas"}
+                          {connectedDevices.length > 0 && connectedDevices.every(d => selectedDevices.includes(d.id)) ? "Desmarcar todas" : "Selecionar todas"}
                         </button>
                       )}
                       {selectedDevices.length > 0 && (
@@ -1973,14 +1977,14 @@ const Campaigns = () => {
                     </div>
                   </div>
 
-                  {devices.length === 0 ? (
+                  {connectedDevices.length === 0 ? (
                     <div className="py-6 flex flex-col items-center gap-2">
                       <WifiOff className="w-6 h-6 text-muted-foreground/20" />
-                      <p className="text-[11px] text-muted-foreground/40">Nenhuma instância</p>
+                      <p className="text-[11px] text-muted-foreground/40">Nenhuma instância conectada</p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {devices.map(d => {
+                      {connectedDevices.map(d => {
                         const st = getDeviceStatus(d.status);
                         const isSelected = selectedDevices.includes(d.id);
                         return (
