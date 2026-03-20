@@ -1101,7 +1101,7 @@ const WarmupInstances = () => {
       onRemoveFromFolder={activeFolder ? handleRemoveFromFolderClick : undefined}
     />
   ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, handleNavigate, activeFolder, handleTagClick, handleRemoveFromFolderClick]);
-  ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder, activeFolderId]);
+  
 
   return (
     <div className="space-y-5">
