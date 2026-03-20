@@ -282,10 +282,19 @@ Deno.serve(async (req) => {
 
         totalProcessed++;
 
-        // Random delay between items
-        const delay = randomDelay(campaign.min_delay || 10, campaign.max_delay || 30);
-        await new Promise(r => setTimeout(r, delay * 1000));
-      }
+        // Pause every N groups
+        const pauseEvery = campaign.pause_every || 5;
+        const pauseDurationSec = campaign.pause_duration || 180;
+        if (totalProcessed > 0 && totalProcessed % pauseEvery === 0) {
+          console.log(`[process-group-join] pause for ${pauseDurationSec}s after ${totalProcessed} items`);
+          // Cap the pause at 50s to stay within execution limit; self-invoke will continue
+          const effectivePause = Math.min(pauseDurationSec, 45) * 1000;
+          await new Promise(r => setTimeout(r, effectivePause));
+        } else {
+          // Random delay between items
+          const delay = randomDelay(campaign.min_delay || 10, campaign.max_delay || 30);
+          await new Promise(r => setTimeout(r, delay * 1000));
+        }
 
       // Update campaign counters
       const { data: allItems } = await supabase
