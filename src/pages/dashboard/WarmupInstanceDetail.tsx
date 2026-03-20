@@ -1383,7 +1383,10 @@ const WarmupInstanceDetail = () => {
             const isPre24h = cycle?.phase === "pre_24h";
 
             const cyclePercent = Math.round((cycle!.day_index / cycle!.days_total) * 100);
-            const todayPercent = Math.min(100, totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0);
+            // After 19:00 BRT the warmup window is closed — show 100%
+            const nowBrtHour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }).format(nowUtc));
+            const windowClosed = nowBrtHour >= 19;
+            const todayPercent = windowClosed ? 100 : Math.min(100, totalDisplay > 0 ? Math.round(((doneToday + failedToday) / totalDisplay) * 100) : 0);
 
             return (
               <>
