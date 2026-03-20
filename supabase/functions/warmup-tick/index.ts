@@ -1542,21 +1542,22 @@ Deno.serve(async (req) => {
   const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
   const secretOk = !!(expectedSecret && secret === expectedSecret);
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  const bearerOk = !!(bearerToken && (bearerToken === anonKey || bearerToken === serviceKey));
 
-  // Also accept if the bearer token is a valid Supabase JWT for this project (ref check)
-  let jwtOk = false;
-  if (!secretOk && !bearerOk && bearerToken) {
+  // Accept any JWT that belongs to this Supabase project
+  let bearerOk = false;
+  if (bearerToken) {
     try {
-      const payload = JSON.parse(atob(bearerToken.split(".")[1]));
-      jwtOk = payload?.ref === "ccfsxwmvgyxsoscofqoh" && payload?.role === "anon";
+      const parts = bearerToken.split(".");
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        // Accept if it's a Supabase JWT for this project (anon or service_role)
+        bearerOk = payload?.iss === "supabase" && payload?.ref === "ccfsxwmvgyxsoscofqoh";
+      }
     } catch { /* invalid jwt */ }
   }
 
-  if (!secretOk && !bearerOk && !jwtOk) {
-    console.error("[warmup-tick] AUTH FAILED: no valid credential");
+  if (!secretOk && !bearerOk) {
+    console.error(`[warmup-tick] AUTH FAILED: secretOk=${secretOk}, bearerOk=${bearerOk}, hasBearer=${!!bearerToken}, tokenLen=${bearerToken.length}`);
     return json({ error: "Unauthorized" }, 401);
   }
 
