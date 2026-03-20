@@ -53,17 +53,19 @@ import { ptBR } from "date-fns/locale";
 
 /* ── phase config ── */
 const phaseConfig: Record<string, { label: string; color: string; icon: typeof Clock; step: number }> = {
-  pre_24h:            { label: "Primeiras 24h",  color: "text-amber-400",           icon: Timer,        step: 1 },
-  groups_only:        { label: "Grupos",          color: "text-teal-400",            icon: Users,        step: 2 },
-  autosave_enabled:   { label: "Auto Save",       color: "text-emerald-400",         icon: MessageSquare, step: 3 },
-  community_enabled:  { label: "Comunitário",      color: "text-purple-400",          icon: Globe,        step: 4 },
-  community_light:    { label: "Comunitário Light", color: "text-purple-400",          icon: Globe,        step: 4 },
-  completed:          { label: "Concluído",        color: "text-muted-foreground",    icon: CheckCircle2, step: 5 },
-  paused:             { label: "Pausado",          color: "text-amber-400",           icon: Pause,        step: 0 },
-  error:              { label: "Erro",             color: "text-destructive",         icon: AlertTriangle, step: 0 },
+  pre_24h:              { label: "Primeiras 24h",       color: "text-amber-400",           icon: Timer,        step: 1 },
+  groups_only:          { label: "Grupos",              color: "text-teal-400",            icon: Users,        step: 2 },
+  autosave_enabled:     { label: "Auto Save",           color: "text-emerald-400",         icon: MessageSquare, step: 3 },
+  community_ramp_up:    { label: "Comunitário Ramp-Up", color: "text-violet-400",          icon: Globe,        step: 4 },
+  community_stable:     { label: "Comunitário Estável", color: "text-purple-400",          icon: Globe,        step: 5 },
+  community_enabled:    { label: "Comunitário",         color: "text-purple-400",          icon: Globe,        step: 4 },
+  community_light:      { label: "Comunitário Light",   color: "text-purple-400",          icon: Globe,        step: 4 },
+  completed:            { label: "Concluído",           color: "text-muted-foreground",    icon: CheckCircle2, step: 6 },
+  paused:               { label: "Pausado",             color: "text-amber-400",           icon: Pause,        step: 0 },
+  error:                { label: "Erro",                color: "text-destructive",         icon: AlertTriangle, step: 0 },
 };
 
-const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_enabled", "completed"] as const;
+const phaseSteps = ["pre_24h", "groups_only", "autosave_enabled", "community_ramp_up", "community_stable", "completed"] as const;
 
 /* ── Progressive volume helper (mirrors server logic) ── */
 function getExpectedDailyVolume(dayIndex: number, chipState: string): { min: number; max: number; phase: string } {

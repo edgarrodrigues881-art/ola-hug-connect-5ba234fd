@@ -49,12 +49,14 @@ function shuffleArray<T>(arr: T[]): T[] {
 // PHASE RULES — Single Source of Truth
 // ══════════════════════════════════════════════════════════
 //
-// Dia 1: pre_24h (proteção, entrada nos grupos após 4-6h)
-// Dia 2 → groupsEnd: groups_only (mensagens nos grupos)
-// Dia groupsEnd+1: autosave_enabled (grupos + autosave)
-// Dia groupsEnd+2+: community_enabled (grupos + autosave + comunidade)
+// Dia 1: pre_24h
+// Dia 2 → groupsEnd: groups_only
+// groupsEnd+1: autosave_enabled
+// groupsEnd+2 → rampEnd: community_ramp_up
+// rampEnd+1 → 30: community_stable
 //
-// groupsEnd: new/recovered = 4, unstable = 7
+// groupsEnd:  new=4, recovered=5, unstable=6
+// rampEnd:    new=9, recovered=10, unstable=10
 
 function getGroupsEndDay(chipState: string): number {
   if (chipState === "unstable") return 6;
@@ -62,12 +64,24 @@ function getGroupsEndDay(chipState: string): number {
   return 4; // new
 }
 
+function getCommunityRampEnd(chipState: string): number {
+  if (chipState === "unstable") return 10;
+  if (chipState === "recovered") return 10;
+  return 9; // new
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (day <= 1) return "pre_24h";
   const groupsEnd = getGroupsEndDay(chipState);
   if (day <= groupsEnd) return "groups_only";
   if (day === groupsEnd + 1) return "autosave_enabled";
-  return "community_enabled";
+  const rampEnd = getCommunityRampEnd(chipState);
+  if (day <= rampEnd) return "community_ramp_up";
+  return "community_stable";
+}
+
+function isCommunityPhase(phase: string): boolean {
+  return phase === "community_ramp_up" || phase === "community_stable";
 }
 
 // ══════════════════════════════════════════════════════════
@@ -158,18 +172,41 @@ function getAutosaveRoundsPerContact(chipState: string = "new"): number {
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
-  return Math.min(5, daysSinceCommunity + 2);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    // Dia 8:1, Dia 9:2, Dia 10+:2
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 1;
+    return 2;
+  }
+  // new: 6→2, 7→3, 8→4, 9+→5 | recovered: 7→2, 8→3, 9→4, 10+→5
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 2;
+  if (d === 1) return 3;
+  if (d === 2) return 4;
+  return 5;
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
-  return Math.min(8, daysSinceCommunity + 3);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    // Dia 8:2, Dia 9:3, Dia 10+:4
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 2;
+    if (d === 1) return 3;
+    return 4;
+  }
+  // new: 6→3,7→4,8→5,9→6,10-12→7,13+→8 | recovered: 7→3,8→4,9→5,10→6,11-13→7,14+→8
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 3;
+  if (d === 1) return 4;
+  if (d === 2) return 5;
+  if (d === 3) return 6;
+  if (d <= 6) return 7;
+  return 8;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -190,7 +227,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveContacts = asContacts;
     v.autosaveRounds = asRounds;
     v.groupMsgs = Math.max(totalBudget - asTotal, 30);
-  } else if (phase === "community_enabled") {
+  } else if (isCommunityPhase(phase)) {
     const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
     const asRounds = getAutosaveRoundsPerContact(chipState);
     const asTotal = asContacts * asRounds;
@@ -770,7 +807,7 @@ async function handleStart(db: any, userId: string | null, body: any) {
     }
 
     // Enable community membership if phase requires it
-    if (initialPhase === "community_enabled") {
+    if (isCommunityPhase(initialPhase)) {
       await db.from("warmup_community_membership").upsert({
         user_id: userId,
         device_id,

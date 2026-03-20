@@ -48,12 +48,24 @@ function getGroupsEndDay(chipState: string): number {
   return 4; // new
 }
 
+function getCommunityRampEnd(chipState: string): number {
+  if (chipState === "unstable") return 10;
+  if (chipState === "recovered") return 10;
+  return 9; // new
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (day <= 1) return "pre_24h";
   const groupsEnd = getGroupsEndDay(chipState);
   if (day <= groupsEnd) return "groups_only";
   if (day === groupsEnd + 1) return "autosave_enabled";
-  return "community_enabled";
+  const rampEnd = getCommunityRampEnd(chipState);
+  if (day <= rampEnd) return "community_ramp_up";
+  return "community_stable";
+}
+
+function isCommunityPhase(phase: string): boolean {
+  return phase === "community_ramp_up" || phase === "community_stable";
 }
 
 // ══════════════════════════════════════════════════════════
@@ -134,18 +146,37 @@ function getAutosaveRoundsPerContact(chipState: string = "new"): number {
 
 function getCommunityPeers(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(2, daysSinceCommunity + 1);
-  return Math.min(5, daysSinceCommunity + 2);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 1;
+    return 2;
+  }
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 2;
+  if (d === 1) return 3;
+  if (d === 2) return 4;
+  return 5;
 }
 
 function getCommunityBurstsPerPeer(dayIndex: number, chipState: string): number {
   const communityStartDay = getGroupsEndDay(chipState) + 2;
-  const daysSinceCommunity = dayIndex - communityStartDay;
-  if (daysSinceCommunity < 0) return 0;
-  if (chipState === "unstable") return Math.min(4, daysSinceCommunity + 2);
-  return Math.min(8, daysSinceCommunity + 3);
+  if (dayIndex < communityStartDay) return 0;
+
+  if (chipState === "unstable") {
+    const d = dayIndex - communityStartDay;
+    if (d === 0) return 2;
+    if (d === 1) return 3;
+    return 4;
+  }
+  const d = dayIndex - communityStartDay;
+  if (d === 0) return 3;
+  if (d === 1) return 4;
+  if (d === 2) return 5;
+  if (d === 3) return 6;
+  if (d <= 6) return 7;
+  return 8;
 }
 
 function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolumes {
@@ -166,7 +197,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveContacts = asContacts;
     v.autosaveRounds = asRounds;
     v.groupMsgs = Math.max(totalBudget - asTotal, 30);
-  } else if (phase === "community_enabled") {
+  } else if (isCommunityPhase(phase)) {
     const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
     const asRounds = getAutosaveRoundsPerContact(chipState);
     const asTotal = asContacts * asRounds;
@@ -1335,7 +1366,7 @@ async function reconcileCommunityPairs(
       const candidateDeviceMap = Object.fromEntries((candidateDevicesRes.data || []).map((row: any) => [row.id, row]));
       const candidateCycleMap = Object.fromEntries((candidateCyclesRes.data || []).map((row: any) => [row.device_id, row]));
       const phaseRank = (phase?: string) => {
-        if (phase === "community_enabled") return 0;
+        if (phase === "community_ramp_up" || phase === "community_stable") return 0;
         if (phase === "autosave_enabled") return 1;
         if (phase === "groups_only") return 2;
         return 3;
@@ -3110,7 +3141,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           chipState,
         });
 
-        await db.from("warmup_cycles").update({ phase: "community_enabled" }).eq("id", cycle.id);
+        await db.from("warmup_cycles").update({ phase: getPhaseForDay(cycle.day_index, chipState) }).eq("id", cycle.id);
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_enabled",
@@ -3209,7 +3240,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
 
         // [BUG 3 FIX] When transitioning to autosave_enabled or community_enabled,
         // ensure community membership is activated (was only done by enable_autosave job before)
-        if (newPhase !== oldPhase && ["autosave_enabled", "community_enabled"].includes(newPhase)) {
+        if (newPhase !== oldPhase && ["autosave_enabled", "community_ramp_up", "community_stable"].includes(newPhase)) {
           const { data: membership } = await db.from("warmup_community_membership")
             .select("id, is_enabled").eq("device_id", job.device_id).maybeSingle();
 
@@ -3234,7 +3265,7 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
         });
 
         // Rotate community pairs on daily reset
-        if (newPhase === "community_enabled") {
+        if (isCommunityPhase(newPhase)) {
           const pairStats = await reconcileCommunityPairs(db, {
             deviceId: job.device_id,
             userId: job.user_id,
@@ -3357,7 +3388,7 @@ async function handleDailyReset(db: any) {
     }).eq("id", cycle.id);
 
     // [BUG A FIX] Activate community membership on phase transition (mirrors job-based daily_reset)
-    if (newPhase !== oldPhase && ["autosave_enabled", "community_enabled"].includes(newPhase)) {
+    if (newPhase !== oldPhase && ["autosave_enabled", "community_ramp_up", "community_stable"].includes(newPhase)) {
       const { data: membership } = await db.from("warmup_community_membership")
         .select("id, is_enabled").eq("device_id", cycle.device_id).maybeSingle();
 
@@ -3374,7 +3405,7 @@ async function handleDailyReset(db: any) {
     }
 
     // [BUG A FIX] Rotate/reconcile community pairs on daily reset (mirrors job-based daily_reset)
-    if (newPhase === "community_enabled") {
+    if (isCommunityPhase(newPhase)) {
       const pairStats = await reconcileCommunityPairs(db, {
         deviceId: cycle.device_id,
         userId: cycle.user_id,
