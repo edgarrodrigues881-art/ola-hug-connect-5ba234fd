@@ -142,9 +142,7 @@ const App = () => (
                           <Route path="chip-conversation" element={<ChipConversation />} />
                           <Route path="group-interaction" element={<GroupInteraction />} />
                           <Route path="community-warmup" element={<CommunityWarmup />} />
-                          <Route path="group-join" element={<GroupJoinCampaignList />} />
-                          <Route path="group-join/new" element={<GroupJoinCampaignNew />} />
-                          <Route path="group-join/:id" element={<GroupJoinCampaignDetail />} />
+                          <Route path="group-join" element={<GroupJoinComingSoon />} />
                         </Routes>
                       </Suspense>
                     </DashboardLayout>
