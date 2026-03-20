@@ -1400,31 +1400,38 @@ const Campaigns = () => {
                   if (val !== "nova") {
                     const tmpl = savedTemplates.find(t => t.id === val);
                     if (tmpl) {
-                      // Parse message variants into tabs
-                      const contentParts = tmpl.content.includes("|||") ? tmpl.content.split("|||") : tmpl.content.includes("|&&|") ? tmpl.content.split("|&&|") : [tmpl.content];
+                      const normalizedTemplate = normalizeComposerMessage({
+                        content: tmpl.content,
+                        media_url: tmpl.media_url,
+                        buttons: tmpl.buttons,
+                        source: "template_import",
+                        templateId: tmpl.id,
+                      });
                       const msgs = ["", "", "", "", ""];
-                      contentParts.forEach((p: string, i: number) => { if (i < 5) msgs[i] = p; });
+                      normalizedTemplate.messageVariants.forEach((part, i) => {
+                        if (i < 5) msgs[i] = part;
+                      });
                       setMessages(msgs);
                       setActiveMessageTab(0);
-                      if (tmpl.content.includes("|&&|")) setRotationMode("all");
-                      else if (tmpl.content.includes("|||")) setRotationMode("random");
-                      // Parse media_url — templates save as JSON array, extract first URL
-                      if (tmpl.media_url) {
-                        let extractedUrl = tmpl.media_url;
-                        try {
-                          const parsed = JSON.parse(tmpl.media_url);
-                          if (Array.isArray(parsed) && parsed.length > 0) {
-                            extractedUrl = parsed[0].url || tmpl.media_url;
-                            setMediaFileName(parsed[0].name || "Mídia");
-                          }
-                        } catch { /* plain URL, use as-is */ }
-                        setMediaUrl(extractedUrl);
-                      } else { setMediaUrl(""); }
-                      if (tmpl.buttons && Array.isArray(tmpl.buttons)) {
-                        setButtons(tmpl.buttons.map((b: any, i: number) => ({ id: Date.now() + i, type: b.type || "reply", text: b.text || "", value: b.value || "" })));
-                      } else { setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                      setRotationMode(normalizedTemplate.rotationMode);
+                      setMediaUrl(normalizedTemplate.mediaUrl);
+                      setMediaFileName(normalizedTemplate.mediaName);
+                      setButtons(
+                        normalizedTemplate.buttons.length > 0
+                          ? normalizedTemplate.buttons.map((b, i) => ({ id: Date.now() + i, type: b.type, text: b.text, value: b.value }))
+                          : [{ id: Date.now(), type: "reply", text: "", value: "" }]
+                      );
+                      setMessageType(detectMessageType(normalizedTemplate.mediaUrl, normalizedTemplate.hasButtons));
                     }
-                  } else { setMessages(["", "", "", "", ""]); setActiveMessageTab(0); setRotationMode("random"); setMediaUrl(""); setMediaFileName(""); setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]); }
+                  } else {
+                    setMessages(["", "", "", "", ""]);
+                    setActiveMessageTab(0);
+                    setRotationMode("random");
+                    setMediaUrl("");
+                    setMediaFileName("");
+                    setButtons([{ id: Date.now(), type: "reply", text: "", value: "" }]);
+                    setMessageType("texto");
+                  }
                 }}>
                   <SelectTrigger className="h-11 text-sm font-medium bg-background/50 dark:bg-muted/20 border-border/30 hover:border-primary/40 transition-colors">
                     <SelectValue placeholder="Campanha Padrão" />
