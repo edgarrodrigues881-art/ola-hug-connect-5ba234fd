@@ -158,6 +158,7 @@ const WarmupInstanceDetail = () => {
   const [testingAutosave, setTestingAutosave] = useState(false);
   const [testingCommunity, setTestingCommunity] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+  const [showAllDays, setShowAllDays] = useState(false);
 
   // Auto-enable community when community day is reached
   useEffect(() => {
