@@ -248,7 +248,7 @@ const allPlans = [
   {
     name: "Scale", instances: 50, price: "549,90", popular: false, whatsappReports: true,
     subtitle: "Para quem precisa escalar com mais chips e visibilidade sobre toda a operação.",
-    extraCopy: null, cta: "Escalar operação",
+    extraCopy: null, cta: "Escalar",
     features: ["Aquecimento automatizado", "Disparo interativo", "Painel centralizado", "Monitoramento em tempo real", "Suporte prioritário", "Relatórios via WhatsApp incluso", "Módulos extras disponíveis"],
   },
   {
