@@ -48,12 +48,24 @@ function getGroupsEndDay(chipState: string): number {
   return 4; // new
 }
 
+function getCommunityRampEnd(chipState: string): number {
+  if (chipState === "unstable") return 10;
+  if (chipState === "recovered") return 10;
+  return 9; // new
+}
+
 function getPhaseForDay(day: number, chipState: string): string {
   if (day <= 1) return "pre_24h";
   const groupsEnd = getGroupsEndDay(chipState);
   if (day <= groupsEnd) return "groups_only";
   if (day === groupsEnd + 1) return "autosave_enabled";
-  return "community_enabled";
+  const rampEnd = getCommunityRampEnd(chipState);
+  if (day <= rampEnd) return "community_ramp_up";
+  return "community_stable";
+}
+
+function isCommunityPhase(phase: string): boolean {
+  return phase === "community_ramp_up" || phase === "community_stable";
 }
 
 // ══════════════════════════════════════════════════════════
