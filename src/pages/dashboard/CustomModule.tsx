@@ -26,10 +26,6 @@ import {
   Zap,
   HeartPulse,
   CircleDot,
-  Calendar,
-  MessageSquare,
-  Users,
-  Send,
 } from "lucide-react";
 
 const CustomModule = () => {
