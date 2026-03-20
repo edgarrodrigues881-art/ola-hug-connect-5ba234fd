@@ -3264,13 +3264,41 @@ async function handleTick(db: any, shardIndex = 0, shardTotal = 1) {
           pickedResult = result;
         }
 
+        // Build selected_peer_id from picked pair
+        const selectedPeerId = pickedPair
+          ? (pickedPair.instance_id_a === job.device_id ? pickedPair.instance_id_b : pickedPair.instance_id_a)
+          : null;
+
+        // Build tried peers list (all candidates that were attempted before success)
+        const triedPeers: { peer_id: string; result: string }[] = [];
+        for (const candidate of scored) {
+          const candidatePeerId = candidate.pair.instance_id_a === job.device_id
+            ? candidate.pair.instance_id_b : candidate.pair.instance_id_a;
+          if (candidate.pair === pickedPair) {
+            triedPeers.push({ peer_id: candidatePeerId, result: pickedResult });
+            break;
+          }
+          triedPeers.push({ peer_id: candidatePeerId, result: "skipped_or_failed" });
+        }
+
         bufferAudit({
           user_id: job.user_id, device_id: job.device_id, cycle_id: job.cycle_id,
           level: "info", event_type: "community_smart_pick",
           message: `Par selecionado (prioridade ${pickedPriority}): ${pickedResult}`,
           meta: {
-            pair_id: pickedPair?.id || null, priority: pickedPriority,
-            result: pickedResult, candidates: scored.length, total_pairs: uniquePairs.length,
+            pair_id: pickedPair?.id || null,
+            selected_peer_id: selectedPeerId,
+            priority: pickedPriority,
+            result: pickedResult,
+            candidates: scored.length,
+            total_pairs: uniquePairs.length,
+            rejected_peers: rejectedPeers.slice(0, 10),
+            tried_peers: triedPeers.slice(0, 10),
+            chronic_offline_peers: Object.entries(peerOfflineCounts)
+              .filter(([, c]) => c >= CHRONIC_OFFLINE_THRESHOLD)
+              .map(([id, c]) => ({ peer_id: id, offline_count: c })),
+            phase: cycle.phase,
+            day_index: cycle.day_index,
           },
         });
 
