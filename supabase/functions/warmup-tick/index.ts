@@ -197,7 +197,7 @@ function getVolumes(chipState: string, dayIndex: number, phase: string): DayVolu
     v.autosaveContacts = asContacts;
     v.autosaveRounds = asRounds;
     v.groupMsgs = Math.max(totalBudget - asTotal, 30);
-  } else if (phase === "community_enabled") {
+  } else if (isCommunityPhase(phase)) {
     const asContacts = getAutosaveContactsForDay(dayIndex, chipState);
     const asRounds = getAutosaveRoundsPerContact(chipState);
     const asTotal = asContacts * asRounds;
