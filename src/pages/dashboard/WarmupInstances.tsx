@@ -1072,6 +1072,18 @@ const WarmupInstances = () => {
     setCancelConfirmDevice(deviceId);
   }, []);
 
+  const handleNavigate = useCallback((path: string) => {
+    navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path);
+  }, [navigate, activeFolderId]);
+
+  const handleTagClick = useCallback((deviceId: string) => {
+    setDeviceTagTarget(deviceId);
+  }, []);
+
+  const handleRemoveFromFolderClick = useCallback((deviceId: string) => {
+    setRemoveFromFolderTarget(deviceId);
+  }, []);
+
   const renderDeviceCard = useCallback((device: any) => (
     <DeviceCard
       key={device.id}
@@ -1081,14 +1093,12 @@ const WarmupInstances = () => {
       onResume={handleResume}
       onCancel={onCancelClick}
       onConnect={openConnect}
-      onNavigate={(path: string) => navigate(activeFolderId ? `${path}?folder=${activeFolderId}` : path)}
+      onNavigate={handleNavigate}
       formatPhone={formatPhone}
       deviceTags={activeFolder?.device_tags?.get(device.id)}
       availableTags={activeFolder?.tags}
-      onTagClick={activeFolder ? (deviceId) => setDeviceTagTarget(deviceId) : undefined}
-      onRemoveFromFolder={activeFolder ? (deviceId) => {
-        setRemoveFromFolderTarget(deviceId);
-      } : undefined}
+      onTagClick={activeFolder ? handleTagClick : undefined}
+      onRemoveFromFolder={activeFolder ? handleRemoveFromFolderClick : undefined}
     />
   ), [cycleByDeviceId, handlePause, handleResume, onCancelClick, openConnect, navigate, activeFolder, activeFolderId]);
 
