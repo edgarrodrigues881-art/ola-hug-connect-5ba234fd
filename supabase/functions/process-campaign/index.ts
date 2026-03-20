@@ -167,14 +167,15 @@ async function sendUazapiMessage(baseUrl: string, token: string, to: string, bod
 
     // If there's an image + buttons: send image first, then buttons separately (avoids imageButton incompatibility)
     if (hasImageMedia) {
+      // Send image first (without caption — text goes with buttons)
       await uazapiRequest(baseUrl, token, "/send/media", {
         number: phone, file: mediaUrl, media: mediaUrl, type: detectMediaType(mediaUrl),
-        caption: body || "", compress: false,
+        compress: false,
       });
       // Small delay to ensure image arrives before buttons
       await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
-      // Send buttons without image and without repeating the text
-      const payload: any = { number: phone, type: "button", text: "Escolha uma opção:", choices };
+      // Send buttons with the actual message text
+      const payload: any = { number: phone, type: "button", text: body || "Escolha uma opção:", choices };
       await uazapiRequest(baseUrl, token, "/send/menu", payload);
     } else {
       // No image — send menu normally (this works fine)
