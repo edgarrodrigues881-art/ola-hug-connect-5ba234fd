@@ -62,6 +62,9 @@ const AutoReplyComingSoon = lazyRetry(() => import("./pages/dashboard/AutoReplyC
 const ChipConversation = lazyRetry(() => import("./pages/dashboard/ChipConversationComingSoon"));
 const GroupInteraction = lazyRetry(() => import("./pages/dashboard/GroupInteractionComingSoon"));
 const CommunityWarmup = lazyRetry(() => import("./pages/dashboard/CommunityWarmupComingSoon"));
+const GroupJoinCampaignList = lazyRetry(() => import("./pages/dashboard/GroupJoinCampaignList"));
+const GroupJoinCampaignNew = lazyRetry(() => import("./pages/dashboard/GroupJoinCampaignNew"));
+const GroupJoinCampaignDetail = lazyRetry(() => import("./pages/dashboard/GroupJoinCampaignDetail"));
 
 // Pause polling when tab is hidden
 focusManager.setEventListener((handleFocus) => {
