@@ -1808,37 +1808,17 @@ const WarmupInstances = () => {
                   )}
                 </div>
 
-                {/* Groups */}
+                {/* Groups — read-only list */}
                 <div className="space-y-3">
                   <p className="text-[11px] font-extrabold text-foreground uppercase tracking-[0.18em]">Grupos de aquecimento</p>
-                  <p className="text-[10px] text-muted-foreground -mt-1.5 font-medium">O aquecimento usará os grupos cadastrados abaixo.</p>
-
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Link do grupo (chat.whatsapp.com/...)"
-                      value={newGroupLink}
-                      onChange={(e) => setNewGroupLink(e.target.value)}
-                      className="h-11 text-xs rounded-xl bg-card/50 border-2 border-border/20 focus-visible:border-primary/40 flex-1 font-medium"
-                    />
-                    <Button
-                      size="sm"
-                      className="h-11 w-11 rounded-xl shrink-0 bg-primary hover:bg-primary/90"
-                      disabled={!newGroupLink.trim()}
-                      onClick={addCustomGroup}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <p className="text-[10px] text-muted-foreground -mt-1.5 font-medium">Os grupos cadastrados na página <strong>Grupos</strong> serão usados.</p>
 
                   {userCustomGroups.length > 0 ? (
-                    <div className="rounded-xl border-2 border-border/10 bg-card/20 p-2 max-h-[150px] overflow-y-auto space-y-1 scrollbar-thin">
+                    <div className="rounded-xl border-2 border-border/10 bg-card/20 p-2 max-h-[180px] overflow-y-auto space-y-1 scrollbar-thin">
                       {userCustomGroups.map((g: any) => (
-                        <div key={g.id} className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors group">
+                        <div key={g.id} className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-muted/10 transition-colors">
                           <Users className="w-4 h-4 text-primary/60 shrink-0" />
                           <span className="text-xs font-bold text-foreground truncate flex-1">{g.name}</span>
-                          <button onClick={() => removeCustomGroup(g.id)} className="text-muted-foreground/30 hover:text-destructive transition-colors shrink-0 opacity-0 group-hover:opacity-100">
-                            <X className="w-4 h-4" />
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -1846,7 +1826,7 @@ const WarmupInstances = () => {
                     <div className="rounded-xl border-2 border-dashed border-amber-500/25 bg-amber-500/[0.04] px-4 py-4 text-center">
                       <Users className="w-5 h-5 text-amber-500/50 mx-auto mb-2" />
                       <p className="text-[11px] text-amber-400 font-bold">Nenhum grupo cadastrado</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">Cole o link de um grupo acima para começar.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Cadastre grupos na página Grupos para iniciar.</p>
                     </div>
                   )}
                 </div>
