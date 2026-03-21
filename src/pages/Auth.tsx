@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, Lock, User, ShieldCheck, Phone, Eye, EyeOff, Building2, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import logo from "@/assets/logo-new.png";
 
 const translateAuthError = (msg: string): string => {
@@ -24,7 +26,19 @@ const translateAuthError = (msg: string): string => {
   return map[msg] || msg;
 };
 
+const isTimeoutError = (msg: string) =>
+  msg?.includes("timeout") ||
+  msg?.includes("upstream") ||
+  msg?.includes("504") ||
+  msg?.includes("503") ||
+  msg?.includes("connection termination") ||
+  msg?.includes("Failed to fetch") ||
+  msg?.includes("NetworkError") ||
+  msg?.includes("fetch") ||
+  msg?.includes("Database error");
+
 const Auth = () => {
+  const { backendDown, retryConnection } = useAuth();
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
 
@@ -128,11 +142,19 @@ const Auth = () => {
         toast({ title: "Conta criada!", description: "Verifique seu email para confirmar o cadastro." });
       }
     } catch (error: any) {
-      const msg = translateAuthError(error.message);
-      if (error.message?.includes("Email not confirmed")) {
+      const rawMsg = error.message || "";
+      if (isTimeoutError(rawMsg)) {
+        toast({
+          title: "Servidor indisponível",
+          description: "O servidor está temporariamente fora do ar. Tente novamente em alguns minutos.",
+          variant: "destructive",
+        });
+      } else if (rawMsg.includes("Email not confirmed")) {
         setShowResendConfirm(true);
+        toast({ title: "Erro", description: translateAuthError(rawMsg), variant: "destructive" });
+      } else {
+        toast({ title: "Erro", description: translateAuthError(rawMsg), variant: "destructive" });
       }
-      toast({ title: "Erro", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -214,6 +236,23 @@ const Auth = () => {
 
           {/* Heading */}
           <div className="text-center mb-9">
+            {backendDown && (
+              <div className="mb-4 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <div className="text-left">
+                  <p className="font-semibold">Servidor temporariamente indisponível</p>
+                  <p className="text-amber-300/70 mt-0.5">O sistema detectou instabilidade. Tentativas automáticas foram pausadas.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={retryConnection}
+                  className="ml-auto shrink-0 p-1.5 rounded-lg hover:bg-amber-500/20 transition-colors"
+                  title="Tentar reconectar"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white mb-2 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {isLogin ? "Bem-vindo" : "Crie sua conta"}
             </h1>
