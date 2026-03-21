@@ -238,11 +238,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { session, loading } = useAuth();
+  const { session, loading, backendDown } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !session) {
+    if (!loading && !session && !backendDown) {
       // Preserve current path so user returns here after login
       const currentPath = window.location.pathname + window.location.search;
       const redirectParam = currentPath !== "/auth" ? `?redirect=${encodeURIComponent(currentPath)}` : "";
@@ -253,7 +253,15 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        {backendDown ? (
+          <div className="flex flex-col items-center gap-3 text-center px-4">
+            <div className="text-amber-400 text-lg font-bold">Servidor indisponível</div>
+            <p className="text-muted-foreground text-sm max-w-xs">O sistema está temporariamente fora do ar. O acesso será restaurado automaticamente.</p>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+          </div>
+        ) : (
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        )}
       </div>
     );
   }
