@@ -1,12 +1,44 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+
+// ── Contingency mode: stop refresh loops when backend is down ──
+let backendDownSince: number | null = null;
+let consecutiveFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 3;
+const BACKOFF_BASE_MS = 30_000; // 30s base backoff
+const MAX_BACKOFF_MS = 300_000; // 5min max
+
+function markBackendFailure() {
+  consecutiveFailures++;
+  if (!backendDownSince) backendDownSince = Date.now();
+  // Disable auto-refresh to stop the retry loop
+  if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    supabase.auth.stopAutoRefresh();
+    console.warn(`[auth-contingency] Backend down — auto-refresh paused after ${consecutiveFailures} failures`);
+  }
+}
+
+function markBackendRecovered() {
+  if (consecutiveFailures > 0) {
+    console.info("[auth-contingency] Backend recovered — resuming auto-refresh");
+  }
+  consecutiveFailures = 0;
+  backendDownSince = null;
+  supabase.auth.startAutoRefresh();
+}
+
+export function isBackendDown() {
+  return consecutiveFailures >= MAX_CONSECUTIVE_FAILURES;
+}
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  backendDown: boolean;
+  retryConnection: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -14,6 +46,8 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   loading: true,
+  backendDown: false,
+  retryConnection: () => {},
   signOut: async () => {},
 });
 
@@ -23,7 +57,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [backendDown, setBackendDown] = useState(false);
   const isSigningOut = useRef(false);
+  const healthCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Periodic health check when backend is down
+  useEffect(() => {
+    if (!backendDown) {
+      if (healthCheckRef.current) {
+        clearInterval(healthCheckRef.current);
+        healthCheckRef.current = null;
+      }
+      return;
+    }
+
+    const check = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/settings`,
+          {
+            headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeout);
+        if (res.ok) {
+          markBackendRecovered();
+          setBackendDown(false);
+        }
+      } catch {
+        // still down
+      }
+    };
+
+    // Check every 30s
+    healthCheckRef.current = setInterval(check, 30_000);
+    return () => {
+      if (healthCheckRef.current) clearInterval(healthCheckRef.current);
+    };
+  }, [backendDown]);
+
+  const retryConnection = useCallback(async () => {
+    markBackendRecovered();
+    setBackendDown(false);
+    setLoading(true);
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      setSession(s);
+      setUser(s?.user ?? null);
+    } catch {
+      markBackendFailure();
+      setBackendDown(isBackendDown());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Single effect: init auth + handle "Manter conectado"
   useEffect(() => {
@@ -63,12 +153,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!isMounted) return null;
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-
+        markBackendRecovered();
+        if (isMounted) setBackendDown(false);
         if (remember === "false") {
           sessionStorage.setItem("dg_session_alive", "true");
         }
       } catch (err) {
         console.error("Error initializing auth:", err);
+        markBackendFailure();
+        if (isMounted) setBackendDown(isBackendDown());
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -89,6 +182,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (newSession) {
             setSession(newSession);
             setUser(newSession.user ?? null);
+            markBackendRecovered();
+            if (isMounted) setBackendDown(false);
 
             // Auto-provision trial tokens on first sign-in (debounced + idempotent)
             if (event === "SIGNED_IN") {
@@ -102,6 +197,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 });
               }
             }
+          }
+          // Detect TOKEN_REFRESHED failure (event fires but session is null = failure)
+          if (!newSession && event === "TOKEN_REFRESHED") {
+            markBackendFailure();
+            if (isMounted) setBackendDown(isBackendDown());
           }
         }
       );
@@ -131,7 +231,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, backendDown, retryConnection, signOut }}>
       {children}
     </AuthContext.Provider>
   );
