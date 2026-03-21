@@ -94,11 +94,11 @@ const Devices = () => {
   const [quickActionLoading, setQuickActionLoading] = useState<Record<string, string>>({});
 
   // Force avatar cache refresh every 5s so provider photo/name changes appear without F5
-  const [avatarRefreshTick, setAvatarRefreshTick] = useState(() => Math.floor(Date.now() / 5000));
+  const [avatarRefreshTick, setAvatarRefreshTick] = useState(() => Math.floor(Date.now() / 60000));
   useEffect(() => {
     const interval = setInterval(() => {
-      setAvatarRefreshTick(Math.floor(Date.now() / 5000));
-    }, 5000);
+      setAvatarRefreshTick(Math.floor(Date.now() / 60000));
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -224,9 +224,9 @@ const Devices = () => {
         })) as Device[];
     },
     enabled: !!session,
-    refetchInterval: 5000,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch warmup sessions to identify devices in warmup
