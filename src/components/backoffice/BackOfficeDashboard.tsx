@@ -127,7 +127,7 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 120_000,
   });
 
   // Fetch subscriptions for expiry alerts
