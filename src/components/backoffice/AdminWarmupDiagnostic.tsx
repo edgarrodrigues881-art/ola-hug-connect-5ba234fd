@@ -147,7 +147,7 @@ const AdminWarmupDiagnostic = () => {
       if (error) throw error;
       return (data || []) as unknown as CycleDiag[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 120_000,
   });
 
   const { data: recentLogs = [] } = useQuery({
