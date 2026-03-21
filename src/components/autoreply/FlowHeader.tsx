@@ -47,7 +47,7 @@ export function FlowHeader({ flowId, name, onNameChange, isActive, onToggleActiv
       return data;
     },
     enabled: !!user,
-    refetchInterval: 15_000,
+    refetchInterval: 120_000,
   });
 
   const handleTest = async () => {

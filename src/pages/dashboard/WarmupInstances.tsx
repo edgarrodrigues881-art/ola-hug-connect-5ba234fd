@@ -766,7 +766,7 @@ const WarmupInstances = () => {
       });
     },
     enabled: !!user,
-    refetchInterval: 15_000,
+    refetchInterval: 120_000,
   });
 
   const { data: cycles = [], isLoading: cyclesLoading } = useWarmupCycles();

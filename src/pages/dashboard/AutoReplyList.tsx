@@ -63,7 +63,7 @@ export default function AutoReplyList() {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 15_000,
+    refetchInterval: 120_000,
   });
 
   const onlineStatuses = new Set(["connected", "Connected", "Ready", "ready", "authenticated"]);

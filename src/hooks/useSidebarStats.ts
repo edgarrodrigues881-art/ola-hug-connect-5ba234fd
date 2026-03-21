@@ -57,7 +57,7 @@ export function useSidebarStats() {
       };
     },
     enabled: !!user,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 300_000,
+    staleTime: 120_000,
   });
 }

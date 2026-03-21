@@ -129,7 +129,7 @@ export function useNotifications() {
   // Initial fetch + light polling as safety net (realtime handles instant delivery)
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // 30s — realtime is the primary channel
+    const interval = setInterval(fetchNotifications, 120_000); // 2min — emergency mode
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 

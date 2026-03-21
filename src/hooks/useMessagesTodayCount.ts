@@ -24,7 +24,7 @@ export function useMessagesTodayCount() {
       return data.reduce((sum, row) => sum + (row.messages_sent || 0), 0);
     },
     enabled: !!user?.id,
-    refetchInterval: 15000,
-    staleTime: 10000,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
 }
