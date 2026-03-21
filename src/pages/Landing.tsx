@@ -515,6 +515,7 @@ const Landing = () => {
         <Features />
         <Plans />
         <CommunitySection />
+        <DataExportSection />
        
         <FAQ />
         
