@@ -99,37 +99,7 @@ export function useAutoSyncDevices(intervalMs = 300_000) {
   // Keep-alive removed: sync-devices already handles status checks for all devices
   // This eliminates ~24 concurrent Edge Function calls that were overwhelming the runtime
 
-  // ── Realtime subscription (debounced 1s for high volume) ──
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const channel = supabase
-      .channel("devices-autosync")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "devices",
-          filter: `user_id=eq.${session.user.id}`,
-        },
-        () => {
-          if (Date.now() < mutedUntil) return;
-          if (debounceTimer) clearTimeout(debounceTimer);
-          // 1s debounce (up from 500ms) to batch rapid changes from bulk sync
-          debounceTimer = setTimeout(() => {
-            if (Date.now() >= mutedUntil) {
-              queryClient.invalidateQueries({ queryKey: ["devices"] });
-            }
-          }, 5000);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [session?.user?.id, queryClient]);
+  // ── Realtime DESATIVADO para reduzir consumo do banco ──
+  // A subscription realtime gera carga constante no banco.
+  // Reativar quando a infraestrutura estiver estável.
 }

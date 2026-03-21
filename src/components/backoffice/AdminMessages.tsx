@@ -74,7 +74,7 @@ const AdminMessages = () => {
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 120_000,
   });
 
   const filtered = useMemo(() => {

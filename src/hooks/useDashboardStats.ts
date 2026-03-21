@@ -47,19 +47,12 @@ export function useDashboardStats() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!user?.id) return;
-    const channel = supabase
-      .channel("dashboard-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "devices", filter: `user_id=eq.${user.id}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "warmup_cycles", filter: `user_id=eq.${user.id}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id, queryClient]);
+  // Realtime DESATIVADO para reduzir consumo do banco
+  // useEffect(() => {
+  //   if (!user?.id) return;
+  //   const channel = supabase.channel("dashboard-rt")...
+  //   return () => { supabase.removeChannel(channel); };
+  // }, [user?.id, queryClient]);
 
   return useQuery({
     queryKey: ["dashboard-stats", user?.id],
@@ -184,7 +177,7 @@ export function useDashboardStats() {
         warmupEvolution,
       };
     },
-    refetchInterval: 120_000,
-    staleTime: 60_000,
+    refetchInterval: 300_000,  // 5min — economia máxima
+    staleTime: 180_000,       // 3min
   });
 }

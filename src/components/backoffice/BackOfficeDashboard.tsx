@@ -127,7 +127,7 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 120_000,
   });
 
   // Fetch subscriptions for expiry alerts
@@ -140,7 +140,7 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 60000,
+    refetchInterval: 300_000,
   });
 
   const { data: profiles = [] } = useQuery({
@@ -152,7 +152,7 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 60000,
+    refetchInterval: 300_000,
   });
 
   const profileMap = useMemo(() => {
@@ -452,7 +452,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
       if (error) return 0;
       return count || 0;
     },
-    refetchInterval: 30000,
+    refetchInterval: 120_000,
   });
   const pendingCount = pendingQueueCount;
 

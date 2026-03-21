@@ -74,11 +74,11 @@ focusManager.setEventListener((handleFocus) => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60,              // 60s — reduce refetches
-      gcTime: 1000 * 60 * 10,           // 10 min
+      staleTime: 1000 * 120,              // 2min — economia máxima
+      gcTime: 1000 * 60 * 15,             // 15 min
       refetchOnWindowFocus: false,
-      retry: 1,
-      refetchIntervalInBackground: false, // pause polling when tab hidden
+      retry: 0,                            // sem retry automático — evita cascata
+      refetchIntervalInBackground: false,
     },
   },
 });
