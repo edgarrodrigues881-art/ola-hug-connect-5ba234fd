@@ -184,7 +184,7 @@ export function useDashboardStats() {
         warmupEvolution,
       };
     },
-    refetchInterval: 15000,
-    staleTime: 10000,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
 }

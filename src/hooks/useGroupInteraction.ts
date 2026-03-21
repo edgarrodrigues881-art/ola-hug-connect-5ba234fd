@@ -79,7 +79,7 @@ export function useGroupInteraction() {
       return (data || []) as unknown as GroupInteractionLog[];
     },
     enabled: !!user,
-    refetchInterval: 10000,
+    refetchInterval: 120_000,
   });
 
   const createInteraction = useMutation({

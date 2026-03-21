@@ -51,7 +51,7 @@ export default function GroupJoinCampaignDetail() {
       return data as any;
     },
     enabled: !!id && !!user,
-    refetchInterval: 4000,
+    refetchInterval: 60_000,
   });
 
   const { data: queueItems = [] } = useQuery({
@@ -65,7 +65,7 @@ export default function GroupJoinCampaignDetail() {
       return (data || []) as any[];
     },
     enabled: !!id && !!user,
-    refetchInterval: 4000,
+    refetchInterval: 60_000,
   });
 
   const filteredItems = useMemo(() => {

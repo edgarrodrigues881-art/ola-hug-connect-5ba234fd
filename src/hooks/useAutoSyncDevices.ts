@@ -36,7 +36,7 @@ export function resumeKeepAlive() {
  * - Scales to 10k+ instances via sharding (splits sync across parallel calls).
  * - Pauses sync when tab is hidden.
  */
-export function useAutoSyncDevices(intervalMs = 30_000) {
+export function useAutoSyncDevices(intervalMs = 300_000) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const syncingRef = useRef(false);
@@ -86,12 +86,13 @@ export function useAutoSyncDevices(intervalMs = 30_000) {
     };
 
     // Delay initial sync by 3s to not block page load
-    const initialTimeout = setTimeout(doSync, 3000);
-    const interval = setInterval(doSync, intervalMs);
+    // EMERGENCY: sync disabled to relieve backend load
+    const initialTimeout: ReturnType<typeof setTimeout> | null = null;
+    const interval: ReturnType<typeof setInterval> | null = null;
 
     return () => {
-      clearTimeout(initialTimeout);
-      clearInterval(interval);
+      if (initialTimeout) clearTimeout(initialTimeout);
+      if (interval) clearInterval(interval);
     };
   }, [session?.access_token, intervalMs, queryClient]);
 
@@ -121,7 +122,7 @@ export function useAutoSyncDevices(intervalMs = 30_000) {
             if (Date.now() >= mutedUntil) {
               queryClient.invalidateQueries({ queryKey: ["devices"] });
             }
-          }, 1000);
+          }, 5000);
         }
       )
       .subscribe();

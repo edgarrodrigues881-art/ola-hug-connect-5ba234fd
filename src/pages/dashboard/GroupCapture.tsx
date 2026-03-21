@@ -112,8 +112,8 @@ function GroupJoinCampaignsWidget() {
       return (data || []) as any[];
     },
     enabled: !!user,
-    refetchInterval: 8000,
-    staleTime: 5000,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
 
   const cancelMut = useMutation({
