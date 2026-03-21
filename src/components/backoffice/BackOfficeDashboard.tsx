@@ -452,7 +452,7 @@ const BackOfficeDashboard = ({ onLogout, initialTab }: { onLogout: () => void; i
       if (error) return 0;
       return count || 0;
     },
-    refetchInterval: 30000,
+    refetchInterval: 120_000,
   });
   const pendingCount = pendingQueueCount;
 
