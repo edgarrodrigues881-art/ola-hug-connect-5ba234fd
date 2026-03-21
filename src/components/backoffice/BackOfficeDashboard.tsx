@@ -140,7 +140,7 @@ const PendenciasTab = memo(({ onSelectClient, users }: { onSelectClient?: (u: Ad
       if (error) throw error;
       return (data || []) as any[];
     },
-    refetchInterval: 60000,
+    refetchInterval: 300_000,
   });
 
   const { data: profiles = [] } = useQuery({
