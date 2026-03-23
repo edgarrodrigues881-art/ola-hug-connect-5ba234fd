@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Database, Download, Copy, Check, Loader2, Table2, Users, HardDrive, Code2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import JSZip from "jszip";
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
@@ -49,54 +50,99 @@ function toCsv(rows: any[]): string {
   return lines.join("\n");
 }
 
-function downloadFile(content: string, filename: string, mime = "text/csv") {
-  const blob = new Blob([content], { type: mime });
+async function fetchAllRows(table: string): Promise<any[]> {
+  const PAGE_SIZE = 1000;
+  let allRows: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await (supabase
+      .from(table as any)
+      .select("*")
+      .range(offset, offset + PAGE_SIZE - 1)) as any;
+
+    if (error) {
+      console.warn(`Erro ao exportar ${table}:`, error.message);
+      break;
+    }
+    if (!data || data.length === 0) {
+      hasMore = false;
+    } else {
+      allRows = allRows.concat(data);
+      if (data.length < PAGE_SIZE) {
+        hasMore = false;
+      } else {
+        offset += PAGE_SIZE;
+      }
+    }
+  }
+  return allRows;
+}
+
+async function exportTablesToZip(tables: string[], onProgress: (done: number, total: number) => void): Promise<Blob | null> {
+  const zip = new JSZip();
+  let done = 0;
+  const total = tables.length;
+  const CONCURRENCY = 4;
+
+  for (let i = 0; i < tables.length; i += CONCURRENCY) {
+    const batch = tables.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (table) => {
+        const rows = await fetchAllRows(table);
+        done++;
+        onProgress(done, total);
+        return { table, rows };
+      })
+    );
+    for (const { table, rows } of results) {
+      if (rows.length > 0) {
+        zip.file(`${table}.csv`, toCsv(rows));
+      }
+    }
+  }
+
+  const files = Object.keys(zip.files);
+  if (files.length === 0) return null;
+  return await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+}
+
+function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
 
-const SQL_SCHEMA = ALL_TABLES.map(t =>
-  `-- Exportar estrutura: ${t}\n-- Use: SELECT * FROM ${t};`
-).join("\n\n");
-
 const FULL_SQL_MIGRATION = `-- ============================================
 -- SQL de Migração - DG Contingência PRO
 -- Gerado em: ${new Date().toISOString().split("T")[0]}
 -- ============================================
--- IMPORTANTE: Execute no banco de destino
--- As tabelas abaixo representam a estrutura atual
-
 ${ALL_TABLES.map(t => `-- Tabela: ${t}\n-- Para exportar: SELECT * FROM public.${t};`).join("\n\n")}
-
--- ============================================
--- Para migrar dados, exporte cada tabela como CSV
--- e importe no banco de destino usando:
--- \\copy public.<tabela> FROM 'arquivo.csv' WITH CSV HEADER;
--- ============================================
 `;
 
 export default function DataExportSection() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [copied, setCopied] = useState(false);
 
   const exportGroup = async (groupLabel: string, tables: string[]) => {
     setLoading(groupLabel);
+    setProgress({ done: 0, total: tables.length });
     try {
-      for (const table of tables) {
-        const { data, error } = await (supabase.from(table as any).select("*").limit(10000)) as any;
-        if (error) { console.warn(`Erro ao exportar ${table}:`, error.message); continue; }
-        if (!data || data.length === 0) continue;
-        const csv = toCsv(data);
-        downloadFile(csv, `${table}.csv`);
-        // Small delay between downloads
-        await new Promise(r => setTimeout(r, 300));
+      const blob = await exportTablesToZip(tables, (done, total) => {
+        setProgress({ done, total });
+      });
+      if (blob) {
+        const safeName = groupLabel.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        downloadBlob(blob, `export_${safeName}_${new Date().toISOString().split("T")[0]}.zip`);
       }
     } catch (e) {
       console.error("Erro na exportação:", e);
     } finally {
       setLoading(null);
+      setProgress({ done: 0, total: 0 });
     }
   };
 
@@ -105,6 +151,10 @@ export default function DataExportSection() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
+
+  const progressText = loading && progress.total > 0
+    ? `${progress.done}/${progress.total} tabelas`
+    : "Exportando...";
 
   return (
     <section id="exportar-dados" className="py-12 md:py-20 px-5">
@@ -115,11 +165,10 @@ export default function DataExportSection() {
             Exporte seus dados
           </motion.h2>
           <motion.p variants={fadeUp} className="text-sm md:text-base text-white/45 max-w-2xl leading-relaxed font-medium mx-auto">
-            Baixe todos os dados do sistema em CSV ou copie o SQL para migrar as tabelas.
+            Baixe todos os dados do sistema em CSV (ZIP) ou copie o SQL para migrar as tabelas.
           </motion.p>
         </motion.div>
 
-        {/* Export buttons grid */}
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {EXPORT_GROUPS.map((g) => (
             <motion.div key={g.label} variants={fadeUp}
@@ -141,15 +190,14 @@ export default function DataExportSection() {
                 variant="outline"
               >
                 {loading === g.label ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Exportando...</>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {progressText}</>
                 ) : (
-                  <><Download className="w-3.5 h-3.5" /> Exportar CSV</>
+                  <><Download className="w-3.5 h-3.5" /> Exportar ZIP</>
                 )}
               </Button>
             </motion.div>
           ))}
 
-          {/* Individual table export */}
           <motion.div variants={fadeUp}
             className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 hover:border-cyan-500/20 hover:bg-cyan-500/[0.04] transition-all duration-300"
           >
@@ -180,7 +228,6 @@ export default function DataExportSection() {
           </motion.div>
         </motion.div>
 
-        {/* SQL Schema area */}
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
           className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6"
         >
