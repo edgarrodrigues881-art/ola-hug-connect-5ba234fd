@@ -66,42 +66,10 @@ function toCsv(rows: Record<string, unknown>[]): string {
   return lines.join("\n");
 }
 
-async function verifyAdmin(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new Error("Sessão inválida. Faça login novamente.");
-  }
-
+function getAdminClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const { data: { user }, error: userError } = await userClient.auth.getUser();
-  if (userError || !user) {
-    throw new Error("Sessão inválida. Faça login novamente.");
-  }
-
-  const adminClient = createClient(supabaseUrl, serviceRoleKey);
-  const { data: roleData, error: roleError } = await adminClient
-    .from("user_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
-
-  if (roleError) {
-    throw new Error(`Falha ao validar acesso: ${roleError.message}`);
-  }
-
-  if (!roleData) {
-    throw new Error("Acesso negado: somente admin pode exportar todos os dados.");
-  }
-
-  return { adminClient, userId: user.id };
+  return createClient(supabaseUrl, serviceRoleKey);
 }
 
 async function fetchTableRows(adminClient: ReturnType<typeof createClient>, table: string) {
