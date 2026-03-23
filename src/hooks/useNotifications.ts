@@ -126,51 +126,15 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
-  // Initial fetch + light polling as safety net (realtime handles instant delivery)
+  // Initial fetch + light polling (realtime disabled to save DB)
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 120_000); // 2min — emergency mode
+    const interval = setInterval(fetchNotifications, 600_000); // 10min — economia máxima
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // Realtime subscription
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel("notifications-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const newNotif = payload.new as Notification;
-          if (!toastedIdsRef.current.has(newNotif.id)) {
-            toastedIdsRef.current.add(newNotif.id);
-            knownIdsRef.current.add(newNotif.id);
-            setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
-            setUnreadCount((c) => c + 1);
-
-            // Dedup by title+message within 10s window to prevent duplicate toasts
-            const dedupKey = `${newNotif.title}::${newNotif.message}`;
-            const lastShown = recentToastsRef.current.get(dedupKey) || 0;
-            if (Date.now() - lastShown > 10_000) {
-              recentToastsRef.current.set(dedupKey, Date.now());
-              showToastForNotif(newNotif);
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
+  // Realtime DESATIVADO para economia do banco
+  // Notificações são carregadas via polling a cada 10min
 
   return { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll };
 }

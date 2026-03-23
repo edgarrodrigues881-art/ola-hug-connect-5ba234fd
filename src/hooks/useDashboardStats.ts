@@ -177,7 +177,7 @@ export function useDashboardStats() {
         warmupEvolution,
       };
     },
-    refetchInterval: 300_000,  // 5min — economia máxima
-    staleTime: 180_000,       // 3min
+    refetchInterval: 900_000,  // 15min — economia máxima
+    staleTime: 600_000,       // 10min
   });
 }

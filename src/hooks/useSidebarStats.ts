@@ -57,7 +57,7 @@ export function useSidebarStats() {
       };
     },
     enabled: !!user,
-    refetchInterval: 600_000,   // 10min — economia máxima
-    staleTime: 300_000,        // 5min
+    refetchInterval: 1_800_000, // 30min — economia máxima
+    staleTime: 900_000,        // 15min
   });
 }
