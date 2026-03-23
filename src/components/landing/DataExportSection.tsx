@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Database, Download, Copy, Check, Loader2, Table2, Users, HardDrive, Code2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
+// Export sem login - usa service_role no backend
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
@@ -75,25 +75,14 @@ export default function DataExportSection() {
   const [loading, setLoading] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { session } = useAuth();
 
   const exportGroup = async (groupLabel: string, tables: string[]) => {
-    if (!session?.access_token) {
-      toast({
-        variant: "destructive",
-        title: "Faça login novamente",
-        description: "A exportação completa precisa de uma sessão válida para acessar todos os dados.",
-      });
-      return;
-    }
-
     setLoading(groupLabel);
 
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           "Content-Type": "application/json",
         },
