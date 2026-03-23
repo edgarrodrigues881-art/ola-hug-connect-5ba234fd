@@ -75,25 +75,14 @@ export default function DataExportSection() {
   const [loading, setLoading] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { session } = useAuth();
 
   const exportGroup = async (groupLabel: string, tables: string[]) => {
-    if (!session?.access_token) {
-      toast({
-        variant: "destructive",
-        title: "Faça login novamente",
-        description: "A exportação completa precisa de uma sessão válida para acessar todos os dados.",
-      });
-      return;
-    }
-
     setLoading(groupLabel);
 
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           "Content-Type": "application/json",
         },
