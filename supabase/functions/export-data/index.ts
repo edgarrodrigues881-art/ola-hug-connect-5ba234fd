@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { adminClient } = await verifyAdmin(req);
+    const adminClient = getAdminClient();
     const body = await req.json().catch(() => ({}));
     const requestedTables = Array.isArray(body?.tables) ? body.tables : [];
     const label = typeof body?.label === "string" ? body.label : "dados";

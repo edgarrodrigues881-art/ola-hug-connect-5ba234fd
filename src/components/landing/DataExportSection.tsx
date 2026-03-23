@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Database, Download, Copy, Check, Loader2, Table2, Users, HardDrive, Code2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
+// Export sem login - usa service_role no backend
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
