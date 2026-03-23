@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Database, Download, Copy, Check, Loader2, Table2, Users, HardDrive, Code2, FileText } from "lucide-react";
+import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 // Export sem login - usa service_role no backend
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
+const EXPORT_BATCH_SIZE = 1;
 
 const ALL_TABLES = [
   "admin_connection_purposes", "admin_costs", "admin_dispatch_contacts", "admin_dispatch_templates",
@@ -74,45 +76,82 @@ ${ALL_TABLES.map(t => `-- Tabela: ${t}\n-- Para exportar: SELECT * FROM public.$
 export default function DataExportSection() {
   const [loading, setLoading] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const { toast } = useToast();
+
+  const requestExportPart = async (label: string, tables: string[]) => {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`, {
+      method: "POST",
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ label, tables }),
+    });
+
+    if (!response.ok) {
+      let message = "Não foi possível exportar os dados.";
+      try {
+        const errorData = await response.json();
+        message = errorData?.error || message;
+      } catch {
+        const text = await response.text();
+        if (text) message = text;
+      }
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    if (!blob.size) {
+      throw new Error("O arquivo ZIP veio vazio.");
+    }
+
+    return {
+      blob,
+      summary: getExportSummary(response.headers.get("x-export-manifest")),
+    };
+  };
 
   const exportGroup = async (groupLabel: string, tables: string[]) => {
     setLoading(groupLabel);
+    setProgress({ current: 0, total: tables.length });
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`, {
-        method: "POST",
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ label: groupLabel, tables }),
-      });
+      const chunks = tables.reduce<string[][]>((acc, table, index) => {
+        const chunkIndex = Math.floor(index / EXPORT_BATCH_SIZE);
+        if (!acc[chunkIndex]) acc[chunkIndex] = [];
+        acc[chunkIndex].push(table);
+        return acc;
+      }, []);
 
-      if (!response.ok) {
-        let message = "Não foi possível exportar os dados.";
-        try {
-          const errorData = await response.json();
-          message = errorData?.error || message;
-        } catch {
-          const text = await response.text();
-          if (text) message = text;
-        }
-        throw new Error(message);
-      }
+      const finalZip = new JSZip();
+      const combinedSummary: Array<{ table: string; row_count: number; status: "ok" | "error"; error?: string }> = [];
 
-      const blob = await response.blob();
-      if (!blob.size) {
-        throw new Error("O arquivo ZIP veio vazio.");
+      for (const chunk of chunks) {
+        const { blob, summary } = await requestExportPart(`${groupLabel}-${chunk[0]}`, chunk);
+        const chunkZip = await JSZip.loadAsync(blob);
+
+        await Promise.all(Object.values(chunkZip.files).map(async (file) => {
+          if (file.dir || file.name === "manifest.json") return;
+          const content = await file.async("uint8array");
+          finalZip.file(file.name, content);
+        }));
+
+        combinedSummary.push(...summary);
+        setProgress((current) => current ? { ...current, current: Math.min(current.total, current.current + chunk.length) } : current);
       }
 
       const fallbackName = `export_${groupLabel.toLowerCase().replace(/[^a-z0-9]/g, "_")}.zip`;
-      const filename = getFilenameFromDisposition(response.headers.get("content-disposition"), fallbackName);
-      const summary = getExportSummary(response.headers.get("x-export-manifest"));
-      const failedTables = summary.filter((item) => item.status === "error");
-      const exportedTables = summary.filter((item) => item.status === "ok").length;
+      finalZip.file("manifest.json", JSON.stringify({ generated_at: new Date().toISOString(), label: groupLabel, tables: combinedSummary }, null, 2));
+      const blob = await finalZip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+      const failedTables = combinedSummary.filter((item) => item.status === "error");
+      const exportedTables = combinedSummary.filter((item) => item.status === "ok").length;
 
-      downloadBlob(blob, filename);
+      downloadBlob(blob, fallbackName);
 
       toast({
         title: failedTables.length ? "Exportação concluída com avisos" : "Exportação concluída",
@@ -128,6 +167,7 @@ export default function DataExportSection() {
       });
     } finally {
       setLoading(null);
+      setProgress(null);
     }
   };
 
@@ -176,7 +216,7 @@ export default function DataExportSection() {
                 className="h-9 w-full border-primary/25 bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/15"
               >
                 {loading === group.label ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando ZIP...</>
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando ZIP{progress ? ` (${progress.current}/${progress.total})` : "..."}</>
                 ) : (
                   <><Download className="h-3.5 w-3.5" /> Exportar ZIP</>
                 )}
