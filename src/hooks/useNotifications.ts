@@ -126,10 +126,10 @@ export function useNotifications() {
     setUnreadCount(0);
   }, [user]);
 
-  // Initial fetch + light polling as safety net (realtime handles instant delivery)
+  // Initial fetch + light polling (realtime disabled to save DB)
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 120_000); // 2min — emergency mode
+    const interval = setInterval(fetchNotifications, 600_000); // 10min — economia máxima
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
